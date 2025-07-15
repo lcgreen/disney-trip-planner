@@ -1,18 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Calendar } from 'lucide-react'
+import { Clock, Calendar, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import WidgetBase, { WidgetSize } from './WidgetBase'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
 
 interface CountdownWidgetProps {
-  size?: WidgetSize
+  id: string
   onRemove?: () => void
   onSettings?: () => void
-  onSizeChange?: (size: WidgetSize) => void
 }
 
-export default function CountdownWidget({ size = 'medium', onRemove, onSettings, onSizeChange }: CountdownWidgetProps) {
+export default function CountdownWidget({ id, onRemove, onSettings }: CountdownWidgetProps) {
+  const [config, setConfig] = useState<{ size: WidgetSize } | null>(null)
   const [tripDate, setTripDate] = useState<string>('')
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -22,17 +23,28 @@ export default function CountdownWidget({ size = 'medium', onRemove, onSettings,
   })
 
   useEffect(() => {
-    // Load saved trip date or set default
-    const saved = localStorage.getItem('disney-trip-date')
-    if (saved) {
-      setTripDate(saved)
+    // Load widget config
+    const widgetConfig = WidgetConfigManager.getConfig(id)
+    if (widgetConfig) {
+      setConfig({ size: widgetConfig.size })
     } else {
-      // Default to 30 days from now
-      const defaultDate = new Date()
-      defaultDate.setDate(defaultDate.getDate() + 30)
-      setTripDate(defaultDate.toISOString().split('T')[0])
+      // Default config
+      const defaultConfig = { size: 'medium' as WidgetSize }
+      setConfig(defaultConfig)
+      WidgetConfigManager.addConfig({
+        id,
+        type: 'countdown',
+        size: 'medium',
+        settings: {}
+      })
     }
-  }, [])
+
+    // Load saved trip date
+    const countdownData = WidgetConfigManager.getCountdownData()
+    if (countdownData?.tripDate) {
+      setTripDate(countdownData.tripDate)
+    }
+  }, [id])
 
   useEffect(() => {
     if (!tripDate) return
@@ -57,35 +69,75 @@ export default function CountdownWidget({ size = 'medium', onRemove, onSettings,
     return () => clearInterval(interval)
   }, [tripDate])
 
+    const handleSizeChange = (newSize: WidgetSize) => {
+    WidgetConfigManager.updateConfig(id, { size: newSize })
+    setConfig(prev => prev ? { ...prev, size: newSize } : { size: newSize })
+  }
+
+  if (!config) {
+    return <div>Loading...</div>
+  }
+
+  if (!tripDate) {
     return (
+      <WidgetBase
+        id={id}
+        title="Disney Countdown"
+        icon={Clock}
+        iconColor="bg-gradient-to-br from-disney-blue to-disney-purple"
+        size={config.size}
+        onRemove={onRemove}
+        onSettings={onSettings}
+        onSizeChange={handleSizeChange}
+      >
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <AlertCircle className="w-12 h-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">
+            No Trip Date Set
+          </h3>
+          <p className="text-gray-500 mb-6 max-w-sm">
+            Set your Disney trip date to start counting down to the magic!
+          </p>
+          <Link
+            href="/countdown"
+            className="bg-gradient-to-r from-disney-blue to-disney-purple text-white px-4 py-2 rounded-lg hover:shadow-md transition-all duration-200"
+          >
+            Set Trip Date
+          </Link>
+        </div>
+      </WidgetBase>
+    )
+  }
+
+  return (
     <WidgetBase
-      id="countdown"
+      id={id}
       title="Disney Countdown"
       icon={Clock}
       iconColor="bg-gradient-to-br from-disney-blue to-disney-purple"
-      size={size}
+      size={config.size}
       onRemove={onRemove}
       onSettings={onSettings}
-      onSizeChange={onSizeChange}
+      onSizeChange={handleSizeChange}
     >
       {/* Countdown Display */}
       <div className="flex flex-col h-full">
-        <div className="flex-1 flex flex-col justify-center">
+                <div className="flex-1 flex flex-col justify-center">
           <div className="text-center mb-4">
-            <div className={`grid gap-3 mb-4 ${size === 'large' ? 'grid-cols-4' : 'grid-cols-2'}`}>
+            <div className={`grid gap-3 mb-4 ${config.size === 'large' ? 'grid-cols-4' : 'grid-cols-2'}`}>
               <div className="bg-gradient-to-br from-disney-blue/10 to-disney-purple/10 rounded-lg p-3">
-                <div className={`font-bold text-disney-blue ${size === 'large' ? 'text-3xl' : size === 'small' ? 'text-lg' : 'text-xl'}`}>
+                <div className={`font-bold text-disney-blue ${config.size === 'large' ? 'text-3xl' : config.size === 'small' ? 'text-lg' : 'text-xl'}`}>
                   {timeLeft.days}
                 </div>
                 <div className="text-xs text-gray-600">Days</div>
               </div>
               <div className="bg-gradient-to-br from-disney-blue/10 to-disney-purple/10 rounded-lg p-3">
-                <div className={`font-bold text-disney-blue ${size === 'large' ? 'text-3xl' : size === 'small' ? 'text-lg' : 'text-xl'}`}>
+                <div className={`font-bold text-disney-blue ${config.size === 'large' ? 'text-3xl' : config.size === 'small' ? 'text-lg' : 'text-xl'}`}>
                   {timeLeft.hours}
                 </div>
                 <div className="text-xs text-gray-600">Hours</div>
               </div>
-              {size === 'large' && (
+              {config.size === 'large' && (
                 <>
                   <div className="bg-gradient-to-br from-disney-blue/10 to-disney-purple/10 rounded-lg p-3">
                     <div className="text-3xl font-bold text-disney-blue">{timeLeft.minutes}</div>
@@ -99,7 +151,7 @@ export default function CountdownWidget({ size = 'medium', onRemove, onSettings,
               )}
             </div>
 
-            {size !== 'large' && (
+            {config.size !== 'large' && (
               <div className="text-sm text-gray-600 mb-3">
                 {timeLeft.minutes}m {timeLeft.seconds}s
               </div>

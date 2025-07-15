@@ -7,14 +7,7 @@ import CountdownWidget from '@/components/widgets/CountdownWidget'
 import TripPlannerWidget from '@/components/widgets/TripPlannerWidget'
 import BudgetWidget from '@/components/widgets/BudgetWidget'
 import PackingWidget from '@/components/widgets/PackingWidget'
-import { WidgetSize } from '@/components/widgets/WidgetBase'
-
-interface DashboardWidget {
-  id: string
-  type: 'countdown' | 'planner' | 'budget' | 'packing'
-  size: WidgetSize
-  position: { x: number; y: number }
-}
+import { WidgetConfigManager, WidgetConfig } from '@/lib/widgetConfig'
 
 const widgetComponents = {
   countdown: CountdownWidget,
@@ -31,61 +24,51 @@ const widgetOptions = [
 ]
 
 export default function DashboardPage() {
-  const [widgets, setWidgets] = useState<DashboardWidget[]>([])
+  const [widgets, setWidgets] = useState<WidgetConfig[]>([])
   const [isAddingWidget, setIsAddingWidget] = useState(false)
 
   useEffect(() => {
-    // Load saved widgets or set defaults
-    const savedWidgets = localStorage.getItem('dashboard-widgets')
-    if (savedWidgets) {
-      setWidgets(JSON.parse(savedWidgets))
-    } else {
-      // Default widgets
-      const defaultWidgets: DashboardWidget[] = [
+    // Load widget configs
+    const configs = WidgetConfigManager.getConfigs()
+    if (configs.length === 0) {
+      // Create default widgets
+      const defaultConfigs: WidgetConfig[] = [
         {
           id: 'countdown-1',
           type: 'countdown',
-          position: { x: 0, y: 0 },
-          size: 'medium'
+          size: 'medium',
+          settings: {}
         },
         {
           id: 'packing-1',
           type: 'packing',
-          position: { x: 1, y: 0 },
-          size: 'medium'
+          size: 'medium',
+          settings: {}
         }
       ]
-      setWidgets(defaultWidgets)
-      localStorage.setItem('dashboard-widgets', JSON.stringify(defaultWidgets))
+      defaultConfigs.forEach(config => WidgetConfigManager.addConfig(config))
+      setWidgets(defaultConfigs)
+    } else {
+      setWidgets(configs)
     }
   }, [])
 
-  const addWidget = (type: DashboardWidget['type']) => {
-    const newWidget: DashboardWidget = {
+  const addWidget = (type: WidgetConfig['type']) => {
+    const newConfig: WidgetConfig = {
       id: `${type}-${Date.now()}`,
       type,
-      position: { x: widgets.length % 3, y: Math.floor(widgets.length / 3) },
-      size: 'medium'
+      size: 'medium',
+      settings: {}
     }
 
-    const updatedWidgets = [...widgets, newWidget]
-    setWidgets(updatedWidgets)
-    localStorage.setItem('dashboard-widgets', JSON.stringify(updatedWidgets))
+    WidgetConfigManager.addConfig(newConfig)
+    setWidgets(prev => [...prev, newConfig])
     setIsAddingWidget(false)
   }
 
   const removeWidget = (id: string) => {
-    const updatedWidgets = widgets.filter(w => w.id !== id)
-    setWidgets(updatedWidgets)
-    localStorage.setItem('dashboard-widgets', JSON.stringify(updatedWidgets))
-  }
-
-  const updateWidgetSize = (id: string, newSize: WidgetSize) => {
-    const updatedWidgets = widgets.map(w =>
-      w.id === id ? { ...w, size: newSize } : w
-    )
-    setWidgets(updatedWidgets)
-    localStorage.setItem('dashboard-widgets', JSON.stringify(updatedWidgets))
+    WidgetConfigManager.removeConfig(id)
+    setWidgets(prev => prev.filter(w => w.id !== id))
   }
 
   return (
@@ -139,9 +122,8 @@ export default function DashboardPage() {
                 className={widget.size === 'large' ? 'md:col-span-2' : ''}
               >
                 <WidgetComponent
-                  size={widget.size}
+                  id={widget.id}
                   onRemove={() => removeWidget(widget.id)}
-                  onSizeChange={(newSize) => updateWidgetSize(widget.id, newSize)}
                   onSettings={() => {
                     // Widget settings functionality
                     console.log('Settings for', widget.type)
