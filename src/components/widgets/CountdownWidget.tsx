@@ -225,7 +225,7 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
       id={id}
       title="Disney Countdown"
       icon={Clock}
-      iconColor="bg-gradient-to-r from-disney-blue to-purple-600"
+      iconColor="bg-gradient-to-r from-disney-blue to-disney-purple"
       widgetType="countdown"
       size={size}
       selectedItemId={config.selectedItemId}

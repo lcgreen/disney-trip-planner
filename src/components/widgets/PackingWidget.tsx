@@ -228,7 +228,7 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
       id={id}
       title="Packing Checklist"
       icon={Package}
-      iconColor="bg-gradient-to-r from-green-600 to-emerald-600"
+      iconColor="bg-gradient-to-r from-disney-green to-disney-teal"
       widgetType="packing"
       size={size}
       selectedItemId={config.selectedItemId}

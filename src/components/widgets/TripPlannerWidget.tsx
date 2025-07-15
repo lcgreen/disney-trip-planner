@@ -269,7 +269,7 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
       id={id}
       title="Trip Planner"
       icon={Calendar}
-      iconColor="bg-gradient-to-r from-purple-600 to-indigo-600"
+      iconColor="bg-gradient-to-r from-park-magic to-park-epcot"
       widgetType="planner"
       size={size}
       selectedItemId={config.selectedItemId}

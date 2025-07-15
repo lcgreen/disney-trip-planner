@@ -68,9 +68,11 @@ type Story = StoryObj<typeof meta>
 
 // Basic Tooltip Example
 export const BasicTooltip: Story = {
+  args: {
+    content: "This is a helpful tooltip with information about this feature.",
+  },
   render: (args) => (
     <Tooltip
-      content="This is a helpful tooltip with information about this feature."
       {...args}
     >
       <Button variant="disney">

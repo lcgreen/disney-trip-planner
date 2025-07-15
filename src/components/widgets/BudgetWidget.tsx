@@ -269,7 +269,7 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
       id={id}
       title="Budget Tracker"
       icon={DollarSign}
-      iconColor="bg-gradient-to-r from-blue-600 to-cyan-600"
+      iconColor="bg-gradient-to-r from-disney-gold to-disney-orange"
       widgetType="budget"
       size={size}
       selectedItemId={config.selectedItemId}

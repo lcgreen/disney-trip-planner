@@ -138,7 +138,9 @@ export default function CountdownTimer({
       const countdown = WidgetConfigManager.getSelectedItemData('countdown', createdItemId) as SavedCountdown
       if (countdown) {
         setTargetDate(countdown.date)
-        setSelectedPark(countdown.park)
+        // Ensure we get the complete park object with all properties
+        const fullPark = getParkById(countdown.park.id) || countdown.park
+        setSelectedPark(fullPark)
         setSettings(countdown.settings)
         setCustomTheme(countdown.theme || null)
         setCountdownName(countdown.name)
@@ -254,7 +256,9 @@ export default function CountdownTimer({
   }
 
   const loadCountdown = (saved: SavedCountdown): void => {
-    setSelectedPark(saved.park)
+    // Ensure we get the complete park object with all properties
+    const fullPark = getParkById(saved.park.id) || saved.park
+    setSelectedPark(fullPark)
     setTargetDate(saved.date)
     setSettings(saved.settings)
     setCustomTheme(saved.theme || null)
@@ -859,7 +863,7 @@ export default function CountdownTimer({
                   🎢 Must-Do Attractions at {selectedPark.name}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedPark.popularAttractions.map((attraction, index) => (
+                  {(selectedPark.popularAttractions || []).map((attraction, index) => (
                     <motion.div
                       key={attraction}
                       initial={{ opacity: 0, x: -20 }}
