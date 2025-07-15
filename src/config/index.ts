@@ -16,7 +16,11 @@ import type {
   ActivityTypesConfig,
   WeatherConfig,
   DisneyPark,
-  CountdownTheme,
+  DisneySubPark,
+  CountdownPalette,
+  GradientOption,
+  TextColorOption,
+  FontOption,
   BudgetCategory,
   PackingCategory,
   PackingItem,
@@ -36,23 +40,126 @@ export const getWeatherConfig = (): WeatherConfig => weatherConfig as WeatherCon
 
 // Convenience functions for commonly used data
 
-// Parks
+// Parks - Updated to handle subParks structure
 export const getAllParks = (): DisneyPark[] => getParksConfig().parks
-export const getParkById = (id: string): DisneyPark | undefined =>
-  getAllParks().find(park => park.id === id)
-export const getParkOptions = (): SelectOption[] =>
-  getAllParks().map(park => ({
-    value: park.id,
-    label: park.name,
-    icon: park.icon,
-    description: park.location
-  }))
 
-// Themes
-export const getAllThemes = (): CountdownTheme[] => getThemesConfig().themes
-export const getThemeById = (id: string): CountdownTheme | undefined =>
-  getAllThemes().find(theme => theme.id === id)
+// Helper function to get all parks including sub-parks for backward compatibility
+export const getAllParksFlattened = (): DisneyPark[] => {
+  const parks = getAllParks()
+  const flattened: DisneyPark[] = []
+
+  parks.forEach(park => {
+    if (park.subParks) {
+      // Add the main resort park
+      flattened.push(park)
+      // Add each sub-park as a separate entry for backward compatibility
+      park.subParks.forEach(subPark => {
+        flattened.push({
+          id: subPark.id,
+          name: subPark.name,
+          location: park.location,
+          color: subPark.color,
+          gradient: subPark.gradient,
+          timezone: park.timezone,
+          openingTime: park.openingTime,
+          icon: subPark.icon,
+          description: subPark.description,
+          popularAttractions: subPark.popularAttractions
+        })
+      })
+    } else {
+      // Regular park without sub-parks
+      flattened.push(park)
+    }
+  })
+
+  return flattened
+}
+
+export const getParkById = (id: string): DisneyPark | undefined => {
+  // First try to find in main parks
+  const mainPark = getAllParks().find(park => park.id === id)
+  if (mainPark) return mainPark
+
+  // Then try to find in sub-parks
+  const parks = getAllParks()
+  for (const park of parks) {
+    if (park.subParks) {
+      const subPark = park.subParks.find(sub => sub.id === id)
+      if (subPark) {
+        return {
+          id: subPark.id,
+          name: subPark.name,
+          location: park.location,
+          color: subPark.color,
+          gradient: subPark.gradient,
+          timezone: park.timezone,
+          openingTime: park.openingTime,
+          icon: subPark.icon,
+          description: subPark.description,
+          popularAttractions: subPark.popularAttractions
+        }
+      }
+    }
+  }
+
+  return undefined
+}
+
+export const getParkOptions = (): SelectOption[] => {
+  const parks = getAllParks()
+  const options: SelectOption[] = []
+
+  parks.forEach(park => {
+    if (park.subParks) {
+      // Add the main resort option
+      options.push({
+        value: park.id,
+        label: park.name,
+        icon: park.icon,
+        description: park.location
+      })
+      // Add each sub-park as a separate option
+      park.subParks.forEach(subPark => {
+        options.push({
+          value: subPark.id,
+          label: `${park.name} - ${subPark.name}`,
+          icon: subPark.icon,
+          description: park.location
+        })
+      })
+    } else {
+      // Regular park
+      options.push({
+        value: park.id,
+        label: park.name,
+        icon: park.icon,
+        description: park.location
+      })
+    }
+  })
+
+  return options
+}
+
+// Themes and Palettes
+export const getAllPalettes = (): CountdownPalette[] => getThemesConfig().palettes
+export const getPaletteById = (id: string): CountdownPalette | undefined =>
+  getAllPalettes().find(palette => palette.id === id)
+export const getAllGradients = (): GradientOption[] => getThemesConfig().gradients
+export const getGradientById = (id: string): GradientOption | undefined =>
+  getAllGradients().find(gradient => gradient.id === id)
+export const getAllTextColors = (): TextColorOption[] => getThemesConfig().textColors
+export const getTextColorById = (id: string): TextColorOption | undefined =>
+  getAllTextColors().find(color => color.id === id)
+export const getAllFonts = (): FontOption[] => getThemesConfig().fonts
+export const getFontById = (id: string): FontOption | undefined =>
+  getAllFonts().find(font => font.id === id)
 export const getQuickDateOptions = () => getThemesConfig().quickDateOptions
+
+// Backward compatibility
+export const getAllThemes = (): CountdownPalette[] => getAllPalettes()
+export const getThemeById = (id: string): CountdownPalette | undefined => getPaletteById(id)
 
 // Budget Categories
 export const getAllBudgetCategories = (): BudgetCategory[] => getBudgetConfig().categories
@@ -139,7 +246,7 @@ export const isValidParkId = (id: string): boolean =>
   getAllParks().some(park => park.id === id)
 
 export const isValidThemeId = (id: string): boolean =>
-  getAllThemes().some(theme => theme.id === id)
+  getAllPalettes().some(palette => palette.id === id)
 
 export const isValidBudgetCategoryId = (id: string): boolean =>
   getAllBudgetCategories().some(category => category.id === id)
@@ -165,7 +272,11 @@ export type {
   ActivityTypesConfig,
   WeatherConfig,
   DisneyPark,
-  CountdownTheme,
+  DisneySubPark,
+  CountdownPalette,
+  GradientOption,
+  TextColorOption,
+  FontOption,
   BudgetCategory,
   PackingCategory,
   PackingItem,

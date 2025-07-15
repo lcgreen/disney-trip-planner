@@ -1,68 +1,162 @@
 {
-  "themes": [
+  "palettes": [
     {
-      "id": "classic",
+      "id": "classic-disney",
       "name": "Classic Disney",
+      "description": "The timeless Disney magic theme",
       "gradient": "from-disney-blue to-disney-purple",
       "textColor": "text-white",
-      "digitBg": "bg-white/20",
-      "description": "The timeless Disney magic theme"
+      "font": "font-disney",
+      "digitBg": "bg-white/20"
     },
     {
-      "id": "princess",
-      "name": "Princess Pink",
+      "id": "princess-magic",
+      "name": "Princess Magic",
+      "description": "Perfect for princess-themed trips",
       "gradient": "from-disney-pink to-disney-purple",
       "textColor": "text-white",
-      "digitBg": "bg-white/20",
-      "description": "Perfect for princess-themed trips"
+      "font": "font-disney",
+      "digitBg": "bg-white/20"
     },
     {
-      "id": "villains",
+      "id": "villains-dark",
       "name": "Villains Dark",
-      "gradient": "from-purple-900 to-black",
-      "textColor": "text-purple-200",
-      "digitBg": "bg-purple-800/30",
-      "description": "For those who prefer the dark side"
+      "description": "For those who prefer the dark side",
+      "gradient": "from-disney-purple to-disney-black",
+      "textColor": "text-white",
+      "font": "font-disney",
+      "digitBg": "bg-white/20"
     },
     {
-      "id": "pixar",
+      "id": "pixar-bright",
       "name": "Pixar Bright",
-      "gradient": "from-disney-gold to-disney-orange",
+      "description": "Bright and cheerful like Pixar movies",
+      "gradient": "from-disney-orange to-disney-red",
       "textColor": "text-white",
-      "digitBg": "bg-white/20",
-      "description": "Bright and cheerful like Pixar movies"
+      "font": "font-disney",
+      "digitBg": "bg-white/20"
     },
     {
-      "id": "frozen",
+      "id": "frozen-ice",
       "name": "Frozen Ice",
-      "gradient": "from-blue-200 to-blue-600",
-      "textColor": "text-blue-900",
-      "digitBg": "bg-white/40",
-      "description": "Cool and icy like Elsa's powers"
+      "description": "Cool and icy like Elsa's powers",
+      "gradient": "from-disney-blue to-disney-teal",
+      "textColor": "text-white",
+      "font": "font-disney",
+      "digitBg": "bg-white/20"
     },
     {
-      "id": "marvel",
+      "id": "marvel-heroes",
       "name": "Marvel Heroes",
-      "gradient": "from-red-600 to-blue-800",
+      "description": "Super hero themed countdown",
+      "gradient": "from-disney-red to-disney-blue",
       "textColor": "text-white",
-      "digitBg": "bg-white/20",
-      "description": "Super hero themed countdown"
+      "font": "font-disney",
+      "digitBg": "bg-white/20"
     },
     {
       "id": "star-wars",
       "name": "Star Wars",
-      "gradient": "from-black to-gray-800",
-      "textColor": "text-yellow-400",
-      "digitBg": "bg-yellow-400/20",
-      "description": "A galaxy far, far away theme"
+      "description": "A galaxy far, far away theme",
+      "gradient": "from-disney-black to-disney-purple",
+      "textColor": "text-disney-gold",
+      "font": "font-disney",
+      "digitBg": "bg-disney-gold/20"
     },
     {
-      "id": "sunset",
+      "id": "disney-sunset",
       "name": "Disney Sunset",
-      "gradient": "from-orange-500 to-pink-600",
+      "description": "Beautiful as a Disney park sunset",
+      "gradient": "from-disney-orange to-disney-pink",
       "textColor": "text-white",
-      "digitBg": "bg-white/20",
-      "description": "Beautiful as a Disney park sunset"
+      "font": "font-disney",
+      "digitBg": "bg-white/20"
+    }
+  ],
+  "gradients": [
+    {
+      "id": "disney-blue-purple",
+      "name": "Disney Blue to Purple",
+      "value": "from-disney-blue to-disney-purple"
+    },
+    {
+      "id": "disney-pink-purple",
+      "name": "Pink to Purple",
+      "value": "from-disney-pink to-disney-purple"
+    },
+    {
+      "id": "disney-purple-black",
+      "name": "Purple to Black",
+      "value": "from-disney-purple to-disney-black"
+    },
+    {
+      "id": "disney-orange-red",
+      "name": "Orange to Red",
+      "value": "from-disney-orange to-disney-red"
+    },
+    {
+      "id": "disney-blue-teal",
+      "name": "Blue to Teal",
+      "value": "from-disney-blue to-disney-teal"
+    },
+    {
+      "id": "disney-red-blue",
+      "name": "Red to Blue",
+      "value": "from-disney-red to-disney-blue"
+    },
+    {
+      "id": "disney-black-purple",
+      "name": "Black to Purple",
+      "value": "from-disney-black to-disney-purple"
+    },
+    {
+      "id": "disney-orange-pink",
+      "name": "Orange to Pink",
+      "value": "from-disney-orange to-disney-pink"
+    }
+  ],
+  "textColors": [
+    {
+      "id": "white",
+      "name": "White",
+      "value": "text-white"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "value": "text-disney-gold"
+    },
+    {
+      "id": "black",
+      "name": "Black",
+      "value": "text-black"
+    },
+    {
+      "id": "blue",
+      "name": "Blue",
+      "value": "text-disney-blue"
+    },
+    {
+      "id": "purple",
+      "name": "Purple",
+      "value": "text-disney-purple"
+    }
+  ],
+  "fonts": [
+    {
+      "id": "disney",
+      "name": "Disney",
+      "value": "font-disney"
+    },
+    {
+      "id": "elegant",
+      "name": "Elegant",
+      "value": "font-elegant"
+    },
+    {
+      "id": "sans",
+      "name": "Sans Serif",
+      "value": "font-sans"
     }
   ],
   "quickDateOptions": [

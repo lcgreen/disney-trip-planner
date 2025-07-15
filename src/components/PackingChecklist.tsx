@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, Luggage, Check, Star, Save, FolderOpen } from 'lucide-react'
 import {
@@ -45,13 +45,28 @@ interface PackingChecklistProps {
   createdItemId?: string | null
   widgetId?: string | null
   isEditMode?: boolean
+  currentName?: string
+  onNameChange?: (name: string) => void
+  onCanSaveChange?: (canSave: boolean) => void
+  savedLists?: StoredPackingList[]
+  onDeleteList?: (listId: string) => void
 }
 
-export default function PackingChecklist({
+export interface PackingChecklistRef {
+  saveCurrentList: () => void
+  loadList: (list: StoredPackingList) => void
+}
+
+const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(({
   createdItemId = null,
   widgetId = null,
-  isEditMode = false
-}: PackingChecklistProps = {}) {
+  isEditMode = false,
+  currentName = '',
+  onNameChange,
+  onCanSaveChange,
+  savedLists = [],
+  onDeleteList
+}, ref) => {
   // Get configuration data
   const categories = getAllPackingCategories()
   const configDefaultItems = getDefaultPackingItems()
@@ -74,19 +89,11 @@ export default function PackingChecklist({
   })
   const [selectedWeather, setSelectedWeather] = useState<string[]>(['sunny'])
   const [filterCategory, setFilterCategory] = useState<string>('all')
-
-  // Local storage state
-  const [savedLists, setSavedLists] = useState<StoredPackingList[]>([])
-  const [currentListName, setCurrentListName] = useState<string>('')
   const [activeListId, setActiveListId] = useState<string | null>(null)
-  const [showSaveList, setShowSaveList] = useState(false)
-  const [showLoadList, setShowLoadList] = useState(false)
-  const [listToSave, setListToSave] = useState<string>('')
 
   // Load saved lists on component mount
   useEffect(() => {
     const storage = storageUtils.initializePackingStorage()
-    setSavedLists(storage.lists)
 
     // Only load active list if we're in edit mode
     // This prevents new lists from inheriting existing data
@@ -100,10 +107,10 @@ export default function PackingChecklist({
 
   // Auto-save current list when items or weather change (if we have an active list)
   useEffect(() => {
-    if (activeListId && currentListName && items.some(item => item.isCustom || item.isChecked !== false)) {
+    if (activeListId && currentName && items.some(item => item.isCustom || item.isChecked !== false)) {
       saveCurrentList(false) // Silent save without showing modal
     }
-  }, [items, selectedWeather, activeListId, currentListName])
+  }, [items, selectedWeather, activeListId, currentName])
 
   // Auto-save current state for widgets (only when editing or when we have a valid list)
   useEffect(() => {
@@ -119,12 +126,24 @@ export default function PackingChecklist({
       if (packingList) {
         setItems(packingList.items)
         setSelectedWeather(packingList.selectedWeather)
-        setCurrentListName(packingList.name)
         setActiveListId(packingList.id)
-        setListToSave(packingList.name)
       }
     }
   }, [isEditMode, createdItemId])
+
+  // Update can save state when items change
+  useEffect(() => {
+    if (onCanSaveChange) {
+      const hasChanges = items.some(item => item.isCustom || item.isChecked !== false)
+      onCanSaveChange(hasChanges && currentName.trim().length > 0)
+    }
+  }, [items, currentName, onCanSaveChange])
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    saveCurrentList: () => saveCurrentList(false),
+    loadList: (list: StoredPackingList) => loadList(list)
+  }))
 
   const addItem = () => {
     if (newItem.name.trim()) {
@@ -162,17 +181,11 @@ export default function PackingChecklist({
 
   // Storage functions
   const saveCurrentList = (showModal: boolean = true) => {
-    if (!listToSave.trim() && showModal) {
-      setShowSaveList(true)
-      return
-    }
-
-    const listName = showModal ? listToSave.trim() : currentListName
-    if (!listName) return
+    if (!currentName.trim()) return
 
     const listData: StoredPackingList = {
       id: activeListId || storageUtils.generateId(),
-      name: listName,
+      name: currentName.trim(),
       items: items.map(item => ({
         id: item.id,
         name: item.name,
@@ -205,15 +218,9 @@ export default function PackingChecklist({
     })
 
     // Update local state
-    const storage = packingStorage.get()!
-    setSavedLists(storage.lists)
     setActiveListId(listData.id)
-    setCurrentListName(listData.name)
 
     if (showModal) {
-      setListToSave('')
-      setShowSaveList(false)
-
       // Check for pending widget links and auto-link if needed
       WidgetConfigManager.checkAndApplyPendingLinks(listData.id, 'packing')
     }
@@ -231,10 +238,7 @@ export default function PackingChecklist({
       isCustom: item.isCustom
     })))
     setSelectedWeather(list.selectedWeather)
-
     setActiveListId(list.id)
-    setCurrentListName(list.name)
-    setShowLoadList(false)
 
     // Update active list in storage
     packingStorage.update(storage => ({
@@ -252,12 +256,8 @@ export default function PackingChecklist({
       return { lists, activeListId }
     })
 
-    const storage = packingStorage.get()!
-    setSavedLists(storage.lists)
-
     if (activeListId === listId) {
       setActiveListId(null)
-      setCurrentListName('')
       setItems(defaultItems)
       setSelectedWeather(['sunny'])
     }
@@ -270,7 +270,6 @@ export default function PackingChecklist({
     setItems(defaultItems)
     setSelectedWeather(['sunny'])
     setActiveListId(null)
-    setCurrentListName('')
 
     packingStorage.update(storage => ({
       ...storage,
@@ -339,60 +338,7 @@ export default function PackingChecklist({
             Make sure you&rsquo;re prepared for your magical Disney adventure with our comprehensive packing guide!
           </motion.p>
 
-          {/* Save/Load Controls */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white p-4 md:p-6 rounded-2xl mb-8 shadow-lg border border-gray-100"
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                {currentListName ? (
-                  <div className="flex items-center gap-2">
-                    <Luggage className="w-4 h-4 text-disney-blue" />
-                    <span className="font-medium text-gray-700">Current List: {currentListName}</span>
-                    <Badge variant="success" size="sm">Saved</Badge>
-                  </div>
-                ) : (
-                  <span className="text-gray-500">No list loaded</span>
-                )}
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={() => setShowLoadList(true)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  Load List
-                </Button>
-
-                <Button
-                  onClick={() => setShowSaveList(true)}
-                  variant="disney"
-                  size="sm"
-                  className="flex items-center gap-2"
-                  disabled={items.every(item => !item.isChecked && !item.isCustom)}
-                >
-                  <Save className="w-4 h-4" />
-                  Save List
-                </Button>
-
-                <Button
-                  onClick={startNewList}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  New List
-                </Button>
-              </div>
-            </div>
-          </motion.div>
         </div>
 
         {/* Weather Selection */}
@@ -651,120 +597,12 @@ export default function PackingChecklist({
           </div>
         </motion.div>
 
-        {/* Save List Modal */}
-        <Modal
-          isOpen={showSaveList}
-          onClose={() => {
-            setShowSaveList(false)
-            setListToSave('')
-          }}
-          title="Save Packing List"
-          size="md"
-        >
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Save your current packing list to access it later. Your list will be stored locally in your browser.
-            </p>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">List Name</label>
-              <input
-                type="text"
-                value={listToSave}
-                onChange={(e) => setListToSave(e.target.value)}
-                placeholder={isEditMode ? "Update packing list name..." : "Enter a name for your packing list..."}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
-                autoFocus
-              />
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowSaveList(false)
-                  setListToSave('')
-                }}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => saveCurrentList(true)}
-                disabled={!listToSave.trim()}
-                className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-              >
-                {isEditMode ? 'Update List' : 'Save List'}
-              </button>
-            </div>
-          </div>
-        </Modal>
-
-        {/* Load List Modal */}
-        <Modal
-          isOpen={showLoadList}
-          onClose={() => setShowLoadList(false)}
-          title="Load Packing List"
-          size="lg"
-        >
-          <div className="space-y-4">
-            {savedLists.length === 0 ? (
-              <div className="text-center py-8">
-                <Luggage className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No saved lists found.</p>
-                <p className="text-sm text-gray-400">Create and save a packing list to see it here.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-gray-600">
-                  Select a saved packing list to load. This will replace your current list.
-                </p>
-
-                {savedLists.map((list) => (
-                  <div
-                    key={list.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                      activeListId === list.id
-                        ? 'border-disney-blue bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1" onClick={() => loadList(list)}>
-                        <h3 className="font-medium text-gray-900">{list.name}</h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                          <span>{list.items.length} {list.items.length === 1 ? 'item' : 'items'}</span>
-                          <span>•</span>
-                          <span>{list.items.filter(item => item.isChecked).length} packed</span>
-                          <span>•</span>
-                          <span>Updated {new Date(list.updatedAt).toLocaleDateString()}</span>
-                          {activeListId === list.id && (
-                            <>
-                              <span>•</span>
-                              <Badge variant="success" size="sm">Currently Loaded</Badge>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (confirm(`Are you sure you want to delete "${list.name}"?`)) {
-                            deleteList(list.id)
-                          }
-                        }}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Modal>
       </div>
     </div>
   )
-}
+})
+
+PackingChecklist.displayName = 'PackingChecklist'
+
+export default PackingChecklist

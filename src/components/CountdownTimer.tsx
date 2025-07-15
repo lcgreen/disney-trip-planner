@@ -1,4 +1,6 @@
-'use client'
+"use client";
+
+import { Pencil } from 'lucide-react'
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -17,7 +19,8 @@ import {
   Checkbox,
   SettingsCheckbox,
   StatCard,
-  CountdownStat
+  CountdownStat,
+  AutoSaveIndicator
 } from '@/components/ui'
 import { getSafeTextColor } from '@/lib/utils'
 import {
@@ -28,9 +31,11 @@ import {
   getThemeById,
   calculateQuickDate,
   type DisneyPark,
-  type CountdownTheme
+  type CountdownPalette
 } from '@/config'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useAutoSave } from '@/hooks/useAutoSave'
+import { AutoSaveService } from '@/lib/autoSaveService'
 
 interface CountdownData {
   days: number
@@ -58,7 +63,7 @@ interface SavedCountdown {
   park: DisneyPark
   date: string
   settings: CountdownSettings
-  theme?: CountdownTheme
+  theme?: CountdownPalette
   createdAt: string
 }
 
@@ -74,13 +79,59 @@ interface CountdownTimerProps {
   createdItemId?: string | null
   widgetId?: string | null
   isEditMode?: boolean
+  name?: string
+  onNameChange?: (name: string) => void
+  onSave?: (data: Partial<SavedCountdown>) => void
+  onLoad?: (countdown: SavedCountdown) => void
+  onNew?: () => void
+  savedCountdowns?: SavedCountdown[]
+  activeCountdown?: SavedCountdown | null
+  setCanSave?: (canSave: boolean) => void
 }
 
 export default function CountdownTimer({
   createdItemId = null,
   widgetId = null,
-  isEditMode = false
-}: CountdownTimerProps = {}): JSX.Element {
+  isEditMode = false,
+  name = '',
+  onNameChange,
+  onSave,
+  onLoad,
+  onNew,
+  savedCountdowns = [],
+  activeCountdown = null,
+  setCanSave
+}: CountdownTimerProps): JSX.Element {
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editedName, setEditedName] = useState(name)
+  useEffect(() => {
+    setEditedName(name)
+  }, [name])
+  const handleNameEdit = () => {
+    setIsEditingName(true)
+  }
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditedName(e.target.value)
+  }
+
+  const handleNameBlur = () => {
+    setIsEditingName(false)
+    if (editedName.trim() && editedName !== name) {
+      onNameChange?.(editedName.trim())
+    } else {
+      setEditedName(name)
+    }
+  }
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      (e.target as HTMLInputElement).blur()
+    } else if (e.key === 'Escape') {
+      setIsEditingName(false)
+      setEditedName(name)
+    }
+  }
   const [targetDate, setTargetDate] = useState<string>('')
   const [selectedPark, setSelectedPark] = useState<DisneyPark>(disneyParks[0])
   const [countdown, setCountdown] = useState<CountdownData>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
@@ -89,9 +140,9 @@ export default function CountdownTimer({
   const [showSettings, setShowSettings] = useState(false)
   const [showEmbed, setShowEmbed] = useState(false)
   const [showSaved, setShowSaved] = useState(false)
-  const [customTheme, setCustomTheme] = useState<CountdownTheme | null>(null)
-  const [countdownName, setCountdownName] = useState<string>('')
-  const [savedCountdowns, setSavedCountdowns] = useState<SavedCountdown[]>([])
+  const [customTheme, setCustomTheme] = useState<CountdownPalette | null>(null)
+  // Remove countdownName and savedCountdowns state
+  // Use props.name and props.savedCountdowns instead
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const [settings, setSettings] = useState<CountdownSettings>({
@@ -115,10 +166,10 @@ export default function CountdownTimer({
         const parsed = JSON.parse(saved)
         // Handle both old format (array) and new format (object with countdowns property)
         const countdowns = Array.isArray(parsed) ? parsed : (parsed.countdowns || [])
-        setSavedCountdowns(countdowns)
+        // setSavedCountdowns(countdowns) // This state is now managed by parent
       } catch (error) {
         console.error('Error loading countdowns:', error)
-        setSavedCountdowns([])
+        // setSavedCountdowns([]) // This state is now managed by parent
       }
     }
 
@@ -160,7 +211,7 @@ export default function CountdownTimer({
         setSelectedPark(fullPark)
         setSettings(countdown.settings)
         setCustomTheme(countdown.theme || null)
-        setCountdownName(countdown.name)
+        // setCountdownName(countdown.name) // This state is now managed by parent
       }
     }
   }, [isEditMode, createdItemId])
@@ -197,7 +248,9 @@ export default function CountdownTimer({
 
           // Play completion sound
           if (settings.playSound && audioRef.current) {
-            audioRef.current.play()
+            audioRef.current.play().catch(error => {
+              console.warn('Failed to play completion sound:', error)
+            })
           }
         }
       }
@@ -211,17 +264,65 @@ export default function CountdownTimer({
     }
   }, [isActive, targetDate, settings.showMilliseconds, settings.playSound])
 
+    // Auto-save functionality for widget editing
+  const autoSaveData = widgetId && isEditMode && targetDate ? {
+    id: createdItemId || activeCountdown?.id || Date.now().toString(),
+    name: editedName || name || 'New Countdown',
+    date: targetDate,
+    park: selectedPark,
+    settings,
+    theme: customTheme || undefined,
+    createdAt: activeCountdown?.createdAt || new Date().toISOString()
+  } : null
+
+  const { forceSave, isSaving, lastSaved, error } = useAutoSave(
+    autoSaveData,
+    async (data) => {
+      if (data) {
+        console.log('[AutoSave] Attempting to save countdown data:', data)
+        await AutoSaveService.saveCountdownData(data, widgetId || undefined)
+      }
+    },
+    {
+      enabled: !!autoSaveData,
+      delay: 1000, // 1 second delay
+      onSave: () => {
+        console.log('[AutoSave] Successfully auto-saved countdown changes')
+      },
+      onError: (error) => {
+        console.error('[AutoSave] Auto-save failed:', error)
+      }
+    }
+  )
+
+  // Debug logging for auto-save conditions
+  useEffect(() => {
+    console.log('[AutoSave Debug] Conditions:', {
+      widgetId,
+      isEditMode,
+      hasActiveCountdown: !!activeCountdown,
+      hasAutoSaveData: !!autoSaveData,
+      autoSaveEnabled: !!autoSaveData,
+      autoSaveData: autoSaveData,
+      targetDate,
+      hasTargetDate: !!targetDate
+    })
+  }, [widgetId, isEditMode, activeCountdown, autoSaveData, targetDate])
+
+  // Manual trigger for testing auto-save
+  useEffect(() => {
+    if (widgetId && isEditMode && targetDate) {
+      console.log('[AutoSave] Manual trigger - conditions met for auto-save')
+    }
+  }, [widgetId, isEditMode, targetDate])
+
   const handleStartCountdown = (): void => {
     if (targetDate) {
       setIsActive(true)
     }
   }
 
-  const resetCountdown = (): void => {
-    setIsActive(false)
-    setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-    setMilliseconds(0)
-  }
+
 
   const formatTargetDate = (): string => {
     if (!targetDate) return ''
@@ -236,37 +337,33 @@ export default function CountdownTimer({
   }
 
   const saveCountdown = (): void => {
-    if (!countdownName.trim()) return
+    if (!name.trim()) return
 
     // If we're editing an existing item, update it
     if (isEditMode && createdItemId) {
       const updatedCountdown: SavedCountdown = {
         id: createdItemId,
-        name: countdownName.trim(),
+        name: name.trim(),
         park: selectedPark,
         date: targetDate,
         settings,
         theme: customTheme || undefined,
-        createdAt: savedCountdowns.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString()
+        createdAt: savedCountdowns?.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString()
       }
 
-      const updated = savedCountdowns.map(c =>
-        c.id === createdItemId ? updatedCountdown : c
-      )
-      setSavedCountdowns(updated)
-      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updated }))
+      onSave?.(updatedCountdown)
 
       // Also update widget config manager data
       const date = new Date(targetDate)
       if (!isNaN(date.getTime())) {
         const isoString = date.toISOString()
-        WidgetConfigManager.saveCurrentCountdownState(isoString, countdownName.trim(), selectedPark)
+        WidgetConfigManager.saveCurrentCountdownState(isoString, name.trim(), selectedPark)
       }
     } else {
       // Creating a new countdown
       const newCountdown: SavedCountdown = {
         id: Date.now().toString(),
-        name: countdownName.trim(),
+        name: name.trim(),
         park: selectedPark,
         date: targetDate,
         settings,
@@ -274,9 +371,7 @@ export default function CountdownTimer({
         createdAt: new Date().toISOString()
       }
 
-      const updated = [...savedCountdowns, newCountdown]
-      setSavedCountdowns(updated)
-      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updated }))
+      onNew?.()
 
       // Check for pending widget links and auto-link if needed
       WidgetConfigManager.checkAndApplyPendingLinks(newCountdown.id, 'countdown')
@@ -285,27 +380,30 @@ export default function CountdownTimer({
       const date = new Date(targetDate)
       if (!isNaN(date.getTime())) {
         const isoString = date.toISOString()
-        WidgetConfigManager.saveCurrentCountdownState(isoString, countdownName.trim(), selectedPark)
+        WidgetConfigManager.saveCurrentCountdownState(isoString, name.trim(), selectedPark)
       }
     }
-
-    setCountdownName('')
   }
 
   const loadCountdown = (saved: SavedCountdown): void => {
     // Ensure we get the complete park object with all properties
     const fullPark = getParkById(saved.park.id) || saved.park
     setSelectedPark(fullPark)
-    setTargetDate(saved.date)
+
+    // Convert ISO date string to local datetime format for the input
+    const date = new Date(saved.date)
+    const localDateTime = date.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:mm
+    setTargetDate(localDateTime)
+
     setSettings(saved.settings)
     setCustomTheme(saved.theme || null)
     setShowSaved(false)
+    onLoad?.(saved)
   }
 
   const deleteCountdown = (id: string): void => {
-    const updated = savedCountdowns.filter(c => c.id !== id)
-    setSavedCountdowns(updated)
-    localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updated }))
+    // setSavedCountdowns(savedCountdowns.filter(c => c.id !== id)) // This state is now managed by parent
+    // localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updated })) // This state is now managed by parent
 
     // Clean up widget configurations that reference this deleted item
     WidgetConfigManager.cleanupDeletedItemReferences(id, 'countdown')
@@ -313,11 +411,11 @@ export default function CountdownTimer({
 
   const clearSavedCountdowns = (): void => {
     // Clean up widget configurations for all countdown items before clearing
-    savedCountdowns.forEach(countdown => {
+    savedCountdowns?.forEach(countdown => {
       WidgetConfigManager.cleanupDeletedItemReferences(countdown.id, 'countdown')
     })
 
-    setSavedCountdowns([])
+    // setSavedCountdowns([]) // This state is now managed by parent
     localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: [] }))
   }
 
@@ -378,6 +476,7 @@ export default function CountdownTimer({
       {/* Audio element for completion sound */}
       <audio ref={audioRef} preload="auto" aria-label="Countdown completion sound">
         <source src="/sounds/disney-chime.mp3" type="audio/mpeg" />
+        Your browser does not support the audio element.
       </audio>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -387,14 +486,54 @@ export default function CountdownTimer({
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 flex items-center justify-center gap-2">
             <span className="bg-gradient-to-r from-disney-blue via-disney-purple to-disney-pink bg-clip-text text-transparent">
               Disney Countdown Timer
             </span>
           </h1>
+          {/* Editable Countdown Name */}
+          {name && (
+            <div className="flex items-center justify-center gap-2 mt-2">
+              {isEditingName ? (
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={handleNameChange}
+                  onBlur={handleNameBlur}
+                  onKeyDown={handleNameKeyDown}
+                  className="text-2xl md:text-3xl font-bold text-center border-b-2 border-disney-blue bg-transparent focus:outline-none px-2 min-w-[120px]"
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <span className="text-2xl md:text-3xl font-bold text-gray-800">{name}</span>
+                  <button
+                    type="button"
+                    className="ml-1 p-1 rounded hover:bg-gray-100"
+                    onClick={handleNameEdit}
+                    title="Edit name"
+                  >
+                    <Pencil className="w-5 h-5 text-gray-500" />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
             Count down to your magical Disney adventure with style and excitement
           </p>
+
+          {/* Auto-save indicator for widget editing */}
+          {widgetId && isEditMode && (
+            <div className="mt-4 flex justify-center">
+              <AutoSaveIndicator
+                isSaving={isSaving}
+                lastSaved={lastSaved}
+                error={error}
+                className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm"
+              />
+            </div>
+          )}
         </motion.div>
 
         {/* Control Panel with Better Layout */}
@@ -405,14 +544,7 @@ export default function CountdownTimer({
           className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 mb-8"
         >
           <div className="flex flex-wrap gap-3 justify-center items-center">
-            <button
-              onClick={() => setShowSaved(!showSaved)}
-              className={`btn-secondary flex items-center gap-2 ${showSaved ? 'bg-disney-blue text-white' : ''}`}
-            >
-              <Star className="w-4 h-4" />
-              Saved
-              <CountBadge count={savedCountdowns.length} />
-            </button>
+            {/* Removed Saved button as requested */}
             <button
               onClick={() => setShowSettings(!showSettings)}
               className={`btn-secondary flex items-center gap-2 ${showSettings ? 'bg-disney-blue text-white' : ''}`}
@@ -520,7 +652,7 @@ export default function CountdownTimer({
                               background: `linear-gradient(135deg, ${theme.gradient.split(' ')[1]} 0%, ${theme.gradient.split(' ')[3]} 100%)`
                             }}
                           >
-                            <span className="text-white font-medium drop-shadow-sm">
+                            <span className="text-gray-800 font-medium">
                               {theme.name}
                             </span>
                           </button>
@@ -733,6 +865,8 @@ export default function CountdownTimer({
                       const date = option.days()
                       date.setHours(9, 0, 0, 0)
                       setTargetDate(date.toISOString().slice(0, 16))
+                      // Automatically start countdown when quick date is selected
+                      setIsActive(true)
                     }}
                   >
                     {option.label}
@@ -749,54 +883,25 @@ export default function CountdownTimer({
                                  <input
                    type="datetime-local"
                    value={targetDate}
-                   onChange={(e) => setTargetDate(e.target.value)}
+                   onChange={(e) => {
+                     setTargetDate(e.target.value)
+                     if (e.target.value) {
+                       // Automatically start countdown when date is selected
+                       const selectedDate = new Date(e.target.value)
+                       if (selectedDate > new Date()) {
+                         setIsActive(true)
+                       }
+                     }
+                   }}
                    min={new Date().toISOString().slice(0, 16)}
                    className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-disney-blue focus:border-disney-blue transition-all duration-300 text-lg"
                    aria-label="Select your Disney trip date and time"
                  />
               </div>
-              <div className="flex gap-3 w-full md:w-auto">
-                                 <button
-                   onClick={handleStartCountdown}
-                   disabled={!targetDate}
-                   className="flex-1 md:flex-none btn-disney disabled:opacity-50 disabled:cursor-not-allowed"
-                   aria-label={targetDate ? "Start the Disney countdown timer" : "Please select a date first to start countdown"}
-                 >
-                   Start Countdown
-                 </button>
-                <button
-                  onClick={resetCountdown}
-                  className="px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
-              </div>
+
             </div>
 
-            {/* Save Countdown */}
-            {targetDate && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="mt-6 flex gap-3"
-              >
-                                 <input
-                   type="text"
-                   placeholder={isEditMode ? "Update countdown name..." : "Name this countdown..."}
-                   value={countdownName}
-                   onChange={(e) => setCountdownName(e.target.value)}
-                   className="flex-1 p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
-                   aria-label={isEditMode ? "Update the name of your countdown" : "Enter a name for your countdown to save it"}
-                 />
-                <button
-                  onClick={saveCountdown}
-                  disabled={!countdownName.trim()}
-                  className="btn-disney-small disabled:opacity-50"
-                >
-                  {isEditMode ? 'Update' : 'Save'}
-                </button>
-              </motion.div>
-            )}
+
           </motion.div>
 
           {/* Enhanced Countdown Display */}
@@ -879,7 +984,7 @@ export default function CountdownTimer({
                     animate={{ opacity: 1 }}
                     className="mb-8"
                   >
-                                         <p className="text-xl md:text-2xl">Click &ldquo;Start Countdown&rdquo; to begin the magic! ✨</p>
+                                         <p className="text-xl md:text-2xl">Select a date to start your countdown! ✨</p>
                   </motion.div>
                 )}
 
@@ -913,25 +1018,75 @@ export default function CountdownTimer({
                 <h3 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">
                   🎢 Must-Do Attractions at {selectedPark.name}
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(selectedPark.popularAttractions || []).map((attraction, index) => (
-                    <motion.div
-                      key={attraction}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.6 + index * 0.1 }}
-                      className={`p-5 rounded-xl bg-gradient-to-r ${selectedPark.gradient} text-white shadow-lg hover:shadow-xl transition-all duration-300`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <CountBadge
-                          count={index + 1}
-                          className="bg-white/20 text-white border-white/30 text-lg font-bold"
-                        />
-                        <span className="font-semibold text-lg">{attraction}</span>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                {selectedPark.subParks ? (
+                  // Show grouped attractions for resort complexes
+                  <div className="space-y-6">
+                    {selectedPark.subParks.map((subPark, parkIndex) => (
+                      <motion.div
+                        key={subPark.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 + parkIndex * 0.2 }}
+                        className="bg-white/60 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden"
+                      >
+                        {/* Park Header */}
+                        <div className={`p-4 bg-gradient-to-r ${subPark.gradient} text-white`}>
+                          <div className="flex items-center gap-3">
+                            <div className="text-2xl">{subPark.icon}</div>
+                            <div>
+                              <h4 className="font-bold text-lg">{subPark.name}</h4>
+                              <p className="text-sm opacity-90">{subPark.description}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Attractions Grid */}
+                        <div className="p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {subPark.popularAttractions.map((attraction, index) => (
+                              <motion.div
+                                key={attraction}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.8 + parkIndex * 0.2 + index * 0.1 }}
+                                className={`p-4 rounded-lg bg-gradient-to-r ${subPark.gradient} text-white shadow-lg hover:shadow-xl transition-all duration-300`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <CountBadge
+                                    count={index + 1}
+                                    className="bg-white/30 text-white border-white/50 text-base font-bold drop-shadow-sm"
+                                  />
+                                  <span className="font-semibold text-base drop-shadow-sm">{attraction}</span>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  // Show regular attractions for individual parks
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(selectedPark.popularAttractions || []).map((attraction, index) => (
+                      <motion.div
+                        key={attraction}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.6 + index * 0.1 }}
+                        className={`p-5 rounded-xl bg-gradient-to-r ${selectedPark.gradient} text-white shadow-lg hover:shadow-xl transition-all duration-300`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <CountBadge
+                            count={index + 1}
+                            className="bg-white/20 text-white border-white/30 text-lg font-bold"
+                          />
+                          <span className="font-semibold text-lg">{attraction}</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
 

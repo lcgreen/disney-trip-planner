@@ -59,6 +59,9 @@ export {
 // Overlays
 export { Modal, ConfirmModal } from './Modal'
 
+// Plugin Components
+export { default as PluginHeader } from './PluginHeader'
+
 // Feedback
 export {
   Tooltip,
@@ -78,3 +81,6 @@ export { Toggle, SettingToggle, FeatureToggle, NotificationToggle } from './Togg
 
 // Utility functions
 export { cn } from '@/lib/utils'
+
+// Auto-save Components
+export { default as AutoSaveIndicator } from './AutoSaveIndicator'

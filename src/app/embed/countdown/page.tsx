@@ -11,7 +11,7 @@ import {
   getParkById,
   getThemeById,
   type DisneyPark,
-  type CountdownTheme
+  type CountdownPalette
 } from '@/config'
 
 interface CountdownData {
@@ -107,7 +107,9 @@ function EmbedCountdown(): JSX.Element {
 
           // Play completion sound
           if (settings.playSound && audioRef.current) {
-            audioRef.current.play()
+            audioRef.current.play().catch(error => {
+              console.warn('Failed to play completion sound:', error)
+            })
           }
         }
       }
@@ -201,6 +203,7 @@ function EmbedCountdown(): JSX.Element {
       {/* Audio element for completion sound */}
       <audio ref={audioRef} preload="auto">
         <source src="/sounds/disney-chime.mp3" type="audio/mpeg" />
+        Your browser does not support the audio element.
       </audio>
 
       <div className="max-w-5xl mx-auto flex items-center justify-center min-h-screen">

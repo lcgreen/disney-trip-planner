@@ -39,10 +39,11 @@ export default function CountdownWidget({
       // Get the widget configuration to see if a specific item is selected
       const widgetConfig = WidgetConfigManager.getConfig(id)
       const selectedItemId = widgetConfig?.selectedItemId
-
+      console.log('[Widget] Widget config for', id, widgetConfig)
       if (selectedItemId) {
         // Load the specific selected countdown
         const countdown = countdownPlugin.getItem(selectedItemId)
+        console.log('[Widget] Loading countdown for selectedItemId', selectedItemId, countdown)
         setSelectedCountdown(countdown)
       } else {
         // Load live/default data

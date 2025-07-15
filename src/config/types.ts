@@ -2,6 +2,16 @@
 // This file defines all TypeScript interfaces for configuration data
 
 // Parks Configuration
+export interface DisneySubPark {
+  id: string
+  name: string
+  color: string
+  gradient: string
+  icon: string
+  description: string
+  popularAttractions: string[]
+}
+
 export interface DisneyPark {
   id: string
   name: string
@@ -12,7 +22,8 @@ export interface DisneyPark {
   openingTime: string
   icon: string
   description: string
-  popularAttractions: string[]
+  popularAttractions?: string[] // Optional for backward compatibility
+  subParks?: DisneySubPark[] // New structure for resort complexes
 }
 
 export interface ParksConfig {
@@ -20,13 +31,32 @@ export interface ParksConfig {
 }
 
 // Themes Configuration
-export interface CountdownTheme {
+export interface CountdownPalette {
   id: string
   name: string
+  description: string
   gradient: string
   textColor: string
+  font: string
   digitBg: string
-  description: string
+}
+
+export interface GradientOption {
+  id: string
+  name: string
+  value: string
+}
+
+export interface TextColorOption {
+  id: string
+  name: string
+  value: string
+}
+
+export interface FontOption {
+  id: string
+  name: string
+  value: string
 }
 
 export interface QuickDateOption {
@@ -37,7 +67,10 @@ export interface QuickDateOption {
 }
 
 export interface ThemesConfig {
-  themes: CountdownTheme[]
+  palettes: CountdownPalette[]
+  gradients: GradientOption[]
+  textColors: TextColorOption[]
+  fonts: FontOption[]
   quickDateOptions: QuickDateOption[]
 }
 

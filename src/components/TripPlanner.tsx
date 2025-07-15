@@ -20,60 +20,58 @@ import {
   getPriorityOptions,
   getActivityTypeById,
   getPriorityById,
-  getParkById,
-  type ActivityType,
-  type Priority
+  getParkById
 } from '@/config'
 import {
   tripPlanStorage,
   storageUtils,
-  type StoredTripPlan,
-  type TripPlanStorage
+  type StoredTripPlan
 } from '@/lib/storage'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 
-interface Activity {
-  id: string
-  time: string
-  title: string
-  location: string
-  type: 'ride' | 'dining' | 'show' | 'character' | 'shopping' | 'break' | 'other'
-  notes?: string
-  priority: 'low' | 'medium' | 'high'
-}
-
-interface DayPlan {
-  id: string
-  date: string
-  park: string
-  activities: Activity[]
-}
-
-// Get configuration data
-const activityTypes = getAllActivityTypes()
-const priorities = getAllPriorities()
-const parkOptions = getParkOptions()
+// Remove local Activity and DayPlan types, use storage types only
 
 interface TripPlannerProps {
   createdItemId?: string | null
   widgetId?: string | null
   isEditMode?: boolean
+  name?: string
+  onNameChange?: (name: string) => void
+  onSave?: (data: Partial<StoredTripPlan>) => void
+  onLoad?: (plan: StoredTripPlan) => void
+  onNew?: () => void
+  savedPlans?: StoredTripPlan[]
+  activePlan?: StoredTripPlan | null
+  setCanSave?: (canSave: boolean) => void
 }
 
 export default function TripPlanner({
   createdItemId = null,
   widgetId = null,
-  isEditMode = false
-}: TripPlannerProps = {}) {
-  const [days, setDays] = useState<DayPlan[]>([])
-  const [editingActivity, setEditingActivity] = useState<{dayId: string, activity: Activity} | null>(null)
-  const [editFormData, setEditFormData] = useState<Activity | null>(null)
+  isEditMode = false,
+  name = '',
+  onNameChange,
+  onSave,
+  onLoad,
+  onNew,
+  savedPlans = [],
+  activePlan = null,
+  setCanSave
+}: TripPlannerProps) {
+  // Config data for UI
+  const activityTypes = getAllActivityTypes();
+  const priorities = getAllPriorities();
+  const parkOptions = getParkOptions();
+
+  // Use storage types for all state that interacts with parent/page
+  const [days, setDays] = useState<StoredTripPlan['days']>([])
+  const [editingActivity, setEditingActivity] = useState<{dayId: string, activity: StoredTripPlan['days'][number]['activities'][number]} | null>(null)
+  const [editFormData, setEditFormData] = useState<StoredTripPlan['days'][number]['activities'][number] | null>(null)
   const [showAddDay, setShowAddDay] = useState(false)
   const [newDayForm, setNewDayForm] = useState({ date: '', park: '' })
   const [formErrors, setFormErrors] = useState({ date: '', park: '' })
 
   // Local storage state
-  const [savedPlans, setSavedPlans] = useState<StoredTripPlan[]>([])
   const [currentPlanName, setCurrentPlanName] = useState<string>('')
   const [activePlanId, setActivePlanId] = useState<string | null>(null)
   const [showSavePlan, setShowSavePlan] = useState(false)
@@ -83,7 +81,6 @@ export default function TripPlanner({
   // Load saved plans on component mount
   useEffect(() => {
     const storage = storageUtils.initializeTripPlanStorage()
-    setSavedPlans(storage.plans)
 
     // Only load active plan if we're in edit mode
     // This prevents new plans from inheriting existing data
@@ -114,14 +111,7 @@ export default function TripPlanner({
     if (isEditMode && createdItemId) {
       const tripPlan = WidgetConfigManager.getSelectedItemData('planner', createdItemId) as StoredTripPlan
       if (tripPlan) {
-        setDays(tripPlan.days.map(day => ({
-          ...day,
-          activities: day.activities.map(activity => ({
-            ...activity,
-            type: activity.type as 'ride' | 'dining' | 'show' | 'character' | 'shopping' | 'break' | 'other',
-            priority: activity.priority as 'low' | 'medium' | 'high'
-          }))
-        })))
+        setDays(tripPlan.days)
         setCurrentPlanName(tripPlan.name)
         setActivePlanId(tripPlan.id)
         setPlanToSave(tripPlan.name)
@@ -154,7 +144,7 @@ export default function TripPlanner({
     }
 
     // Create new day
-    const newDay: DayPlan = {
+    const newDay: StoredTripPlan['days'][number] = {
       id: Date.now().toString(),
       date: newDayForm.date,
       park: newDayForm.park,
@@ -168,7 +158,7 @@ export default function TripPlanner({
   }
 
   const addActivity = (dayId: string) => {
-    const newActivity: Activity = {
+    const newActivity: StoredTripPlan['days'][number]['activities'][number] = {
       id: Date.now().toString(),
       time: '09:00',
       title: 'New Activity',
@@ -188,7 +178,7 @@ export default function TripPlanner({
     setEditFormData({ ...newActivity })
   }
 
-  const updateActivity = (dayId: string, activityId: string, updates: Partial<Activity>) => {
+  const updateActivity = (dayId: string, activityId: string, updates: Partial<StoredTripPlan['days'][number]['activities'][number]>) => {
     setDays(days.map(day =>
       day.id === dayId
         ? {
@@ -230,11 +220,11 @@ export default function TripPlanner({
     return getActivityTypeById(type) || activityTypes[0]
   }
 
-  const getPriorityInfo = (priority: Activity['priority']) => {
+  const getPriorityInfo = (priority: StoredTripPlan['days'][number]['activities'][number]['priority']) => {
     return getPriorityById(priority) || priorities[0]
   }
 
-  const getPriorityVariant = (priority: Activity['priority']) => {
+  const getPriorityVariant = (priority: StoredTripPlan['days'][number]['activities'][number]['priority']) => {
     const priorityInfo = getPriorityInfo(priority)
     return priorityInfo.badgeVariant as any
   }
@@ -287,8 +277,6 @@ export default function TripPlanner({
     })
 
     // Update local state
-    const storage = tripPlanStorage.get()!
-    setSavedPlans(storage.plans)
     setActivePlanId(planData.id)
     setCurrentPlanName(planData.name)
 
@@ -311,9 +299,9 @@ export default function TripPlanner({
         time: activity.time,
         title: activity.title,
         location: activity.location,
-        type: activity.type as Activity['type'],
+        type: activity.type as StoredTripPlan['days'][number]['activities'][number]['type'],
         notes: activity.notes,
-        priority: activity.priority as Activity['priority']
+        priority: activity.priority as StoredTripPlan['days'][number]['activities'][number]['priority']
       }))
     })))
 
@@ -337,9 +325,6 @@ export default function TripPlanner({
       return { plans, activePlanId }
     })
 
-    const storage = tripPlanStorage.get()!
-    setSavedPlans(storage.plans)
-
     if (activePlanId === planId) {
       setActivePlanId(null)
       setCurrentPlanName('')
@@ -362,7 +347,7 @@ export default function TripPlanner({
     }))
   }
 
-  const getActivityTypeVariant = (type: Activity['type']) => {
+  const getActivityTypeVariant = (type: StoredTripPlan['days'][number]['activities'][number]['type']) => {
     switch (type) {
       case 'ride': return 'info'
       case 'dining': return 'success'
@@ -399,60 +384,7 @@ export default function TripPlanner({
             Plan your perfect Disney days with detailed itineraries, dining reservations, and attraction priorities.
           </motion.p>
 
-          {/* Save/Load Controls */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white p-4 md:p-6 rounded-2xl mb-8 shadow-lg border border-gray-100"
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                {currentPlanName ? (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-disney-blue" />
-                    <span className="font-medium text-gray-700">Current Plan: {currentPlanName}</span>
-                    <Badge variant="success" size="sm">Saved</Badge>
-                  </div>
-                ) : (
-                  <span className="text-gray-500">No plan loaded</span>
-                )}
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={() => setShowLoadPlan(true)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  Load Plan
-                </Button>
-
-                <Button
-                  onClick={() => setShowSavePlan(true)}
-                  variant="disney"
-                  size="sm"
-                  className="flex items-center gap-2"
-                  disabled={days.length === 0}
-                >
-                  <Save className="w-4 h-4" />
-                  Save Plan
-                </Button>
-
-                <Button
-                  onClick={startNewPlan}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  New Plan
-                </Button>
-              </div>
-            </div>
-          </motion.div>
 
           <motion.button
             initial={{ opacity: 0, y: 20 }}
@@ -735,7 +667,7 @@ export default function TripPlanner({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
                   <Select
                     value={editFormData.type}
-                    onValueChange={(value) => setEditFormData({ ...editFormData, type: value as Activity['type'] })}
+                    onValueChange={(value) => setEditFormData({ ...editFormData, type: value as StoredTripPlan['days'][number]['activities'][number]['type'] })}
                     options={activityTypeOptions}
                   />
                 </div>
@@ -744,7 +676,7 @@ export default function TripPlanner({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
                   <Select
                     value={editFormData.priority}
-                    onValueChange={(value) => setEditFormData({ ...editFormData, priority: value as Activity['priority'] })}
+                    onValueChange={(value) => setEditFormData({ ...editFormData, priority: value as StoredTripPlan['days'][number]['activities'][number]['priority'] })}
                     options={prioritySelectOptions}
                   />
                 </div>
@@ -779,117 +711,7 @@ export default function TripPlanner({
           </div>
         </Modal>
 
-        {/* Save Plan Modal */}
-        <Modal
-          isOpen={showSavePlan}
-          onClose={() => {
-            setShowSavePlan(false)
-            setPlanToSave('')
-          }}
-          title="Save Trip Plan"
-          size="md"
-        >
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Save your current trip plan to access it later. Your plan will be stored locally in your browser.
-            </p>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Plan Name</label>
-              <input
-                type="text"
-                value={planToSave}
-                onChange={(e) => setPlanToSave(e.target.value)}
-                placeholder={isEditMode ? "Update trip plan name..." : "Enter a name for your trip plan..."}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
-                autoFocus
-              />
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowSavePlan(false)
-                  setPlanToSave('')
-                }}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => saveCurrentPlan(true)}
-                disabled={!planToSave.trim()}
-                className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-              >
-                {isEditMode ? 'Update Plan' : 'Save Plan'}
-              </button>
-            </div>
-          </div>
-        </Modal>
-
-        {/* Load Plan Modal */}
-        <Modal
-          isOpen={showLoadPlan}
-          onClose={() => setShowLoadPlan(false)}
-          title="Load Trip Plan"
-          size="lg"
-        >
-          <div className="space-y-4">
-            {savedPlans.length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No saved plans found.</p>
-                <p className="text-sm text-gray-400">Create and save a trip plan to see it here.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-gray-600">
-                  Select a saved trip plan to load. This will replace your current plan.
-                </p>
-
-                {savedPlans.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                      activePlanId === plan.id
-                        ? 'border-disney-blue bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1" onClick={() => loadPlan(plan)}>
-                        <h3 className="font-medium text-gray-900">{plan.name}</h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                          <span>{plan.days.length} {plan.days.length === 1 ? 'day' : 'days'}</span>
-                          <span>•</span>
-                          <span>Updated {new Date(plan.updatedAt).toLocaleDateString()}</span>
-                          {activePlanId === plan.id && (
-                            <>
-                              <span>•</span>
-                              <Badge variant="success" size="sm">Currently Loaded</Badge>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (confirm(`Are you sure you want to delete "${plan.name}"?`)) {
-                            deletePlan(plan.id)
-                          }
-                        }}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Modal>
       </div>
     </div>
   )

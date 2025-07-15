@@ -6,81 +6,82 @@ export default {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   safelist: [
-    'from-disney-blue',
-    'from-disney-gold',
-    'from-disney-purple',
-    'from-disney-green',
-    'from-disney-orange',
-    'from-disney-pink',
-    'from-disney-teal',
-    'to-disney-blue',
-    'to-disney-gold',
-    'to-disney-purple',
-    'to-disney-green',
-    'to-disney-orange',
-    'to-disney-pink',
-    'to-disney-teal',
-    'from-park-magic',
-    'from-park-epcot',
-    'from-park-hollywood',
-    'from-park-animal',
-    'from-park-california',
-    'to-park-magic',
-    'to-park-epcot',
-    'to-park-hollywood',
-    'to-park-animal',
-    'to-park-california',
-    'text-disney-blue',
-    'text-disney-gold',
-    'text-disney-purple',
-    'text-disney-green',
-    'text-disney-orange',
-    'text-disney-pink',
-    'text-disney-teal',
-    'border-disney-blue',
-    'border-disney-gold',
-    'border-disney-purple',
-    'border-disney-green',
-    'border-disney-orange',
-    'bg-disney-blue',
-    'bg-disney-gold',
-    'bg-disney-purple',
-    'bg-disney-green',
-    'bg-disney-orange',
-    'hover:border-disney-gold',
-    'hover:text-disney-blue',
-    'ring-disney-blue',
-    'ring-disney-gold',
-    'ring-disney-purple',
+    // Primary Disney Colors
+    'from-disney-blue', 'to-disney-blue',
+    'from-disney-purple', 'to-disney-purple',
+    'from-disney-gold', 'to-disney-gold',
+    'from-disney-red', 'to-disney-red',
+    'from-disney-green', 'to-disney-green',
+    'from-disney-orange', 'to-disney-orange',
+
+    // Secondary Colors
+    'from-disney-pink', 'to-disney-pink',
+    'from-disney-teal', 'to-disney-teal',
+
+    // Park Colors (using primary colors)
+    'from-park-magic', 'to-park-magic',
+    'from-park-epcot', 'to-park-epcot',
+    'from-park-hollywood', 'to-park-hollywood',
+    'from-park-animal', 'to-park-animal',
+    'from-park-california', 'to-park-california',
+    'from-park-paris', 'to-park-paris',
+    'from-park-tokyo', 'to-park-tokyo',
+    'from-park-tokyo-sea', 'to-park-tokyo-sea',
+    'from-park-shanghai', 'to-park-shanghai',
+    'from-park-hongkong', 'to-park-hongkong',
+
+    // Text and Background Colors
+    'text-disney-blue', 'text-disney-purple', 'text-disney-gold', 'text-disney-red', 'text-disney-green', 'text-disney-orange',
+    'bg-disney-blue', 'bg-disney-purple', 'bg-disney-gold', 'bg-disney-red', 'bg-disney-green', 'bg-disney-orange',
+    'border-disney-blue', 'border-disney-purple', 'border-disney-gold', 'border-disney-red', 'border-disney-green', 'border-disney-orange',
+    'ring-disney-blue', 'ring-disney-purple', 'ring-disney-gold', 'ring-disney-red', 'ring-disney-green', 'ring-disney-orange',
   ],
   theme: {
     extend: {
       colors: {
-        'disney-blue': '#003087',
+        // Primary Disney Colors (6)
+        'disney-blue': '#001F5C',
+        'disney-purple': '#4C1D95',
         'disney-gold': '#FFD700',
         'disney-red': '#CE1126',
-        'disney-purple': '#663399',
-        'disney-teal': '#00CED1',
-        'disney-pink': '#FF69B4',
         'disney-green': '#228B22',
         'disney-orange': '#FF8C00',
+
+        // Secondary Colors (6)
+        'disney-pink': '#FF69B4',
+        'disney-teal': '#00CED1',
+        'disney-yellow': '#FFD700',
+        'disney-brown': '#8B4513',
+        'disney-silver': '#C0C0C0',
+        'disney-black': '#000000',
+
         disney: {
-          blue: '#003087',
+          blue: '#001F5C',
+          purple: '#4C1D95',
           gold: '#FFD700',
           red: '#CE1126',
-          purple: '#663399',
-          teal: '#00CED1',
-          pink: '#FF69B4',
           green: '#228B22',
           orange: '#FF8C00',
+          pink: '#FF69B4',
+          teal: '#00CED1',
+          yellow: '#FFD700',
+          brown: '#8B4513',
+          silver: '#C0C0C0',
+          black: '#000000',
         },
+
+        // Simplified Park Colors - using primary colors
         park: {
-          magic: '#4169E1',
-          epcot: '#9370DB',
-          hollywood: '#DC143C',
-          animal: '#228B22',
-          california: '#FF4500',
-          paris: '#8A2BE2',
+          magic: '#001F5C',      // disney-blue
+          epcot: '#4C1D95',      // disney-purple
+          hollywood: '#CE1126',  // disney-red
+          animal: '#228B22',     // disney-green
+          california: '#FF8C00', // disney-orange
+          paris: '#4C1D95',      // disney-purple
+          tokyo: '#FF69B4',      // disney-pink
+          'tokyo-sea': '#00CED1', // disney-teal
+          shanghai: '#001F5C',   // disney-blue
+          hongkong: '#228B22',   // disney-green
         }
       },
       zIndex: {
