@@ -90,7 +90,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-min"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-min"
         >
           {widgets.map((widget, index) => {
             const WidgetComponent = widgetComponents[widget.type]
@@ -100,8 +100,13 @@ export default function DashboardPage() {
               switch (size) {
                 case 'large':
                   return 'col-span-1 lg:col-span-2'
+                case 'wide':
+                  return 'col-span-1 sm:col-span-2'
+                case 'full':
+                  return 'col-span-1 sm:col-span-2 xl:col-span-3'
                 case 'small':
                 case 'medium':
+                case 'tall':
                 default:
                   return 'col-span-1'
               }

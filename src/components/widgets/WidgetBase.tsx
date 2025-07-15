@@ -6,7 +6,7 @@ import { Settings, X, Plus, LucideIcon } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
 import ItemSelector from './ItemSelector'
 
-export type WidgetSize = 'small' | 'medium' | 'large'
+export type WidgetSize = 'small' | 'medium' | 'large' | 'wide' | 'tall' | 'full'
 
 interface WidgetBaseProps {
   id: string
@@ -25,15 +25,21 @@ interface WidgetBaseProps {
 }
 
 const sizeClasses = {
-  small: 'h-60',
-  medium: 'h-80',
-  large: 'h-96'
+  small: 'h-56',
+  medium: 'h-72',
+  large: 'h-96',
+  wide: 'h-72',
+  tall: 'h-[28rem]',
+  full: 'h-96'
 }
 
 const gridSpanClasses = {
   small: 'col-span-1',
-  medium: 'col-span-1 lg:col-span-1',
-  large: 'col-span-1 lg:col-span-2'
+  medium: 'col-span-1',
+  large: 'col-span-1 lg:col-span-2',
+  wide: 'col-span-1 md:col-span-2',
+  tall: 'col-span-1',
+  full: 'col-span-1 md:col-span-2 xl:col-span-3'
 }
 
 export default function WidgetBase({
@@ -61,43 +67,53 @@ export default function WidgetBase({
       className={`
         ${sizeClasses[size]}
         ${gridSpanClasses[size]}
-        bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20
-        hover:shadow-xl transition-shadow duration-200
+        bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-white/30
+        hover:shadow-lg hover:bg-white/95 transition-all duration-200
         ${className}
       `}
     >
       <div className="h-full flex flex-col">
         {/* Widget Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <div className="flex items-center space-x-3">
-            <div className={`${iconColor} p-2 rounded-lg shadow-sm`}>
-              <Icon className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100/50">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <div className={`${iconColor} p-2 rounded-lg shadow-sm flex-shrink-0`}>
+              <Icon className="w-4 h-4 text-white" />
             </div>
-            <div className="flex items-center space-x-2">
-              <h3 className="font-semibold text-gray-800 text-sm">{title}</h3>
+            <div className="flex items-center space-x-2 min-w-0">
+              <h3 className="font-semibold text-gray-800 text-sm truncate">{title}</h3>
               {isPremium && <PremiumBadge />}
             </div>
           </div>
 
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 flex-shrink-0">
             {/* Size selector */}
             {onSizeChange && (
-              <div className="flex items-center bg-gray-100 rounded-md p-1">
-                {(['small', 'medium', 'large'] as WidgetSize[]).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => onSizeChange(s)}
-                    className={`
-                      px-2 py-1 rounded text-xs font-medium transition-all duration-150
-                      ${size === s
-                        ? 'bg-white text-disney-blue shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                      }
-                    `}
-                  >
-                    {s.charAt(0).toUpperCase()}
-                  </button>
-                ))}
+              <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5">
+                {(['small', 'medium', 'large', 'wide', 'tall'] as WidgetSize[]).map((s) => {
+                  const sizeIcons = {
+                    small: '◦',
+                    medium: '◯',
+                    large: '⬜',
+                    wide: '▬',
+                    tall: '▯'
+                  }
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => onSizeChange(s)}
+                      title={s.charAt(0).toUpperCase() + s.slice(1)}
+                      className={`
+                        w-6 h-6 rounded flex items-center justify-center text-xs font-medium transition-all duration-150
+                        ${size === s
+                          ? 'bg-white text-disney-blue shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                        }
+                      `}
+                    >
+                      {sizeIcons[s as keyof typeof sizeIcons]}
+                    </button>
+                  )
+                })}
               </div>
             )}
 
@@ -208,7 +224,7 @@ export default function WidgetBase({
         </div>
 
         {/* Widget Content */}
-        <div className="flex-1 p-4 widget-scroll">
+        <div className="flex-1 p-3 widget-scroll overflow-hidden">
           {children}
         </div>
       </div>

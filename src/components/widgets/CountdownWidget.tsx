@@ -117,17 +117,17 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
   const renderCountdown = () => {
     if (!selectedCountdown) {
       return (
-        <div className="h-full flex flex-col items-center justify-center text-center">
-          <Clock className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">No Countdown Selected</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Create a new countdown or select an existing one from settings
+        <div className="h-full flex flex-col items-center justify-center text-center p-2">
+          <Clock className="w-10 h-10 text-gray-300 mb-3" />
+          <h3 className="text-base font-medium text-gray-600 mb-1">No Countdown Selected</h3>
+          <p className="text-xs text-gray-500 mb-3 max-w-[200px]">
+            Create a new countdown or select one from settings
           </p>
           <button
             onClick={() => window.location.href = `/countdown/new?widgetId=${id}`}
-            className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+            className="px-3 py-1.5 bg-disney-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium"
           >
-            Create New Countdown
+            Create New
           </button>
         </div>
       )
@@ -184,7 +184,69 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
       )
     }
 
-    // Large size - show all units with park-specific colors
+    if (size === 'wide') {
+      return (
+        <div className="h-full flex flex-col justify-center">
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-1">{selectedCountdown.name}</h3>
+            <p className="text-sm text-gray-600">
+              {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+              <div className="text-xl font-bold">{timeLeft.days}</div>
+              <div className="text-xs opacity-90">Days</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+              <div className="text-xl font-bold">{formatTime(timeLeft.hours)}</div>
+              <div className="text-xs opacity-90">Hours</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+              <div className="text-xl font-bold">{formatTime(timeLeft.minutes)}</div>
+              <div className="text-xs opacity-90">Minutes</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+              <div className="text-xl font-bold">{formatTime(timeLeft.seconds)}</div>
+              <div className="text-xs opacity-90">Seconds</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (size === 'tall') {
+      return (
+        <div className="h-full flex flex-col justify-center">
+          <div className="text-center mb-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
+            <p className="text-gray-600">
+              {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-6`}>
+              <div className="text-4xl font-bold">{timeLeft.days}</div>
+              <div className="text-lg opacity-90">Days</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-6`}>
+              <div className="text-4xl font-bold">{formatTime(timeLeft.hours)}</div>
+              <div className="text-lg opacity-90">Hours</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-6`}>
+              <div className="text-4xl font-bold">{formatTime(timeLeft.minutes)}</div>
+              <div className="text-lg opacity-90">Minutes</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-6`}>
+              <div className="text-4xl font-bold">{formatTime(timeLeft.seconds)}</div>
+              <div className="text-lg opacity-90">Seconds</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Large size and default - show all units with park-specific colors
     return (
       <div className="h-full flex flex-col justify-center">
         <div className="text-center mb-6">

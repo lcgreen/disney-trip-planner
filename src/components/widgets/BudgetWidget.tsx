@@ -156,17 +156,17 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
 
     if (!selectedBudget) {
       return (
-        <div className="h-full flex flex-col items-center justify-center text-center">
-          <DollarSign className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">No Budget Selected</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Create a new budget or select an existing one from settings
+        <div className="h-full flex flex-col items-center justify-center text-center p-2">
+          <DollarSign className="w-10 h-10 text-gray-300 mb-3" />
+          <h3 className="text-base font-medium text-gray-600 mb-1">No Budget Selected</h3>
+          <p className="text-xs text-gray-500 mb-3 max-w-[200px]">
+            Create a new budget or select one from settings
           </p>
           <button
             onClick={() => window.location.href = `/budget/new?widgetId=${id}`}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
           >
-            Create New Budget
+            Create New
           </button>
         </div>
       )
