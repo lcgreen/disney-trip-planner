@@ -72,18 +72,10 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
         }
       }
     } else {
-      // No item selected, use live app state as fallback
-      const currentState = WidgetConfigManager.getCurrentPackingState()
-      if (currentState?.items) {
-        setPackingItems(currentState.items)
-        setSelectedPackingList(null)
-        const completed = currentState.items.filter((item: any) => item.checked).length
-        setCompletionStats({ completed, total: currentState.items.length })
-      } else {
-        setPackingItems([])
-        setSelectedPackingList(null)
-        setCompletionStats({ completed: 0, total: 0 })
-      }
+      // No item selected, show empty state
+      setPackingItems([])
+      setSelectedPackingList(null)
+      setCompletionStats({ completed: 0, total: 0 })
     }
   }, [config, id])
 

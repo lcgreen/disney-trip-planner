@@ -114,37 +114,9 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
         }
       }
     } else {
-      // No item selected, use live app state as fallback
-      const currentState = WidgetConfigManager.getCurrentTripPlanState()
-      if (currentState?.days && currentState.days.length > 0) {
-        const livePlan: SavedTripPlan = {
-          id: 'live',
-          name: 'Current Trip Plan',
-          days: currentState.days,
-          createdAt: new Date().toISOString(),
-          updatedAt: currentState.updatedAt || new Date().toISOString()
-        }
-        setSelectedTripPlan(livePlan)
-
-        const today = new Date().toISOString().split('T')[0]
-        const todaysDay = livePlan.days.find(day =>
-          new Date(day.date).toISOString().split('T')[0] === today
-        )
-
-        if (todaysDay) {
-          setTodaysActivities(todaysDay.activities)
-        } else {
-          const firstDay = livePlan.days[0]
-          if (firstDay) {
-            setTodaysActivities(firstDay.activities)
-          } else {
-            setTodaysActivities([])
-          }
-        }
-      } else {
-        setSelectedTripPlan(null)
-        setTodaysActivities([])
-      }
+      // No item selected, show empty state
+      setSelectedTripPlan(null)
+      setTodaysActivities([])
     }
   }, [config, id])
 

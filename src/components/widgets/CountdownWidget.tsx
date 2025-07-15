@@ -69,21 +69,8 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
         }
       }
     } else {
-      // No item selected, use live app state as fallback
-      const currentState = WidgetConfigManager.getCurrentCountdownState()
-      if (currentState?.tripDate) {
-        const liveCountdown: SavedCountdown = {
-          id: 'live',
-          name: currentState.title || 'My Disney Trip',
-          park: currentState.park || { name: 'Disney World' },
-          date: currentState.tripDate,
-          settings: {},
-          createdAt: new Date().toISOString()
-        }
-        setSelectedCountdown(liveCountdown)
-      } else {
-        setSelectedCountdown(null)
-      }
+      // No item selected, show empty state
+      setSelectedCountdown(null)
     }
   }, [config, id])
 

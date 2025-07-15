@@ -87,25 +87,9 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
         }
       }
     } else {
-      // No item selected, use live app state as fallback
-      const currentState = WidgetConfigManager.getCurrentBudgetState()
-      if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
-        const liveBudget: SavedBudget = {
-          id: 'live',
-          name: 'Current Budget',
-          totalBudget: currentState.totalBudget,
-          categories: currentState.categories,
-          expenses: currentState.expenses,
-          createdAt: new Date().toISOString(),
-          updatedAt: currentState.updatedAt || new Date().toISOString()
-        }
-        setSelectedBudget(liveBudget)
-        const spent = currentState.expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0)
-        setTotalSpent(spent)
-      } else {
-        setSelectedBudget(null)
-        setTotalSpent(0)
-      }
+      // No item selected, show empty state
+      setSelectedBudget(null)
+      setTotalSpent(0)
     }
   }, [config, id])
 
