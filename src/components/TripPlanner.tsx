@@ -85,14 +85,15 @@ export default function TripPlanner({
     const storage = storageUtils.initializeTripPlanStorage()
     setSavedPlans(storage.plans)
 
-    // Load active plan if exists
-    if (storage.activePlanId) {
+    // Only load active plan if we're in edit mode
+    // This prevents new plans from inheriting existing data
+    if (isEditMode && storage.activePlanId) {
       const activePlan = storage.plans.find(plan => plan.id === storage.activePlanId)
       if (activePlan) {
         loadPlan(activePlan)
       }
     }
-  }, [])
+  }, [isEditMode])
 
   // Auto-save current plan when days change (if we have an active plan)
   useEffect(() => {
@@ -101,12 +102,12 @@ export default function TripPlanner({
     }
   }, [days, activePlanId, currentPlanName])
 
-  // Auto-save current state for widgets (always save live state)
+  // Auto-save current state for widgets (only when editing or when we have a valid plan)
   useEffect(() => {
-    if (days.length > 0) {
+    if ((isEditMode || createdItemId) && days.length > 0) {
       WidgetConfigManager.saveCurrentTripPlanState(days)
     }
-  }, [days])
+  }, [days, isEditMode, createdItemId])
 
   // Load created item in edit mode
   useEffect(() => {

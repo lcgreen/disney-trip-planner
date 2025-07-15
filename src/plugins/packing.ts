@@ -105,24 +105,8 @@ export class PackingPlugin implements PluginInterface {
       return this.getItem(itemId)
     }
 
-    // Return current/live data if no specific item selected
-    const currentData = PluginStorage.getData<{
-      items: PackingItem[]
-      selectedWeather: string[]
-      updatedAt?: string
-    } | null>(this.getStorageKeys().current, null)
-
-    if (currentData && currentData.items && currentData.items.length > 0) {
-      return {
-        id: 'live',
-        name: 'Current Packing List',
-        items: currentData.items,
-        selectedWeather: currentData.selectedWeather || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: currentData.updatedAt || new Date().toISOString()
-      }
-    }
-
+    // For new widgets without a selected item, return null to show empty state
+    // This prevents new widgets from displaying existing data
     return null
   }
 

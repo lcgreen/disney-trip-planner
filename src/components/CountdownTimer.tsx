@@ -122,23 +122,32 @@ export default function CountdownTimer({
       }
     }
 
-    const savedSettings = localStorage.getItem('disney-countdown-settings')
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings))
+    // Only load saved settings if we're not creating a new countdown
+    // This prevents new countdowns from inheriting previous settings
+    if (isEditMode) {
+      const savedSettings = localStorage.getItem('disney-countdown-settings')
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings))
+      }
     }
-  }, [])
+  }, [isEditMode])
 
   // Save settings to localStorage
   useEffect(() => {
     localStorage.setItem('disney-countdown-settings', JSON.stringify(settings))
   }, [settings])
 
-  // Auto-save current state for widgets
+  // Auto-save current state for widgets (only when editing or when we have a valid countdown)
   useEffect(() => {
-    if (targetDate) {
-      WidgetConfigManager.saveCurrentCountdownState(targetDate, 'My Disney Trip', selectedPark)
+    if (targetDate && (isEditMode || createdItemId)) {
+      // Convert the datetime-local format to a proper ISO string
+      const date = new Date(targetDate)
+      if (!isNaN(date.getTime())) {
+        const isoString = date.toISOString()
+        WidgetConfigManager.saveCurrentCountdownState(isoString, 'My Disney Trip', selectedPark)
+      }
     }
-  }, [targetDate, selectedPark])
+  }, [targetDate, selectedPark, isEditMode, createdItemId])
 
   // Load created item in edit mode
   useEffect(() => {
@@ -163,6 +172,14 @@ export default function CountdownTimer({
       const updateCountdown = () => {
         const now = new Date()
         const target = new Date(targetDate)
+
+        // Check if the date is valid
+        if (isNaN(target.getTime())) {
+          setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+          setMilliseconds(0)
+          setIsActive(false)
+          return
+        }
 
         if (target > now) {
           const days = differenceInDays(target, now)
@@ -209,6 +226,7 @@ export default function CountdownTimer({
   const formatTargetDate = (): string => {
     if (!targetDate) return ''
     const date = new Date(targetDate)
+    if (isNaN(date.getTime())) return 'Invalid Date'
     return format(date, 'EEEE, do MMMM yyyy \'at\' HH:mm')
   }
 
@@ -239,7 +257,11 @@ export default function CountdownTimer({
       localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updated }))
 
       // Also update widget config manager data
-      WidgetConfigManager.saveCurrentCountdownState(targetDate, countdownName.trim(), selectedPark)
+      const date = new Date(targetDate)
+      if (!isNaN(date.getTime())) {
+        const isoString = date.toISOString()
+        WidgetConfigManager.saveCurrentCountdownState(isoString, countdownName.trim(), selectedPark)
+      }
     } else {
       // Creating a new countdown
       const newCountdown: SavedCountdown = {
@@ -258,6 +280,13 @@ export default function CountdownTimer({
 
       // Check for pending widget links and auto-link if needed
       WidgetConfigManager.checkAndApplyPendingLinks(newCountdown.id, 'countdown')
+
+      // Also update widget config manager data
+      const date = new Date(targetDate)
+      if (!isNaN(date.getTime())) {
+        const isoString = date.toISOString()
+        WidgetConfigManager.saveCurrentCountdownState(isoString, countdownName.trim(), selectedPark)
+      }
     }
 
     setCountdownName('')
@@ -440,7 +469,10 @@ export default function CountdownTimer({
                           <ParkBadge park={saved.park.name} />
                         </div>
                         <p className="text-sm text-gray-500 mb-4">
-                          {format(new Date(saved.date), 'do MMM yyyy \'at\' HH:mm')}
+                          {(() => {
+                            const date = new Date(saved.date)
+                            return isNaN(date.getTime()) ? 'Invalid Date' : format(date, 'do MMM yyyy \'at\' HH:mm')
+                          })()}
                         </p>
                         <button
                           onClick={() => loadCountdown(saved)}

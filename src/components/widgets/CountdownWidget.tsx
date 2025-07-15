@@ -83,7 +83,15 @@ export default function CountdownWidget({
 
     const updateCountdown = () => {
       const now = new Date().getTime()
-      const target = new Date(selectedCountdown.tripDate).getTime()
+      const targetDate = new Date(selectedCountdown.tripDate)
+
+      // Check if the date is valid
+      if (isNaN(targetDate.getTime())) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+        return
+      }
+
+      const target = targetDate.getTime()
       const difference = target - now
 
       if (difference > 0) {
@@ -146,7 +154,10 @@ export default function CountdownWidget({
           <div className="text-center mb-4">
             <h3 className="font-semibold text-gray-800 mb-1 truncate">{selectedCountdown.name}</h3>
             <p className="text-xs text-gray-500 truncate">
-              {selectedCountdown.park?.name} • {new Date(selectedCountdown.tripDate).toLocaleDateString()}
+              {selectedCountdown.park?.name} • {(() => {
+                const date = new Date(selectedCountdown.tripDate)
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
+              })()}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-center">
@@ -169,7 +180,10 @@ export default function CountdownWidget({
           <div className="text-center mb-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-1">{selectedCountdown.name}</h3>
             <p className="text-sm text-gray-600">
-              {selectedCountdown.park?.name} • {new Date(selectedCountdown.tripDate).toLocaleDateString()}
+              {selectedCountdown.park?.name} • {(() => {
+                const date = new Date(selectedCountdown.tripDate)
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
+              })()}
             </p>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center">
@@ -200,7 +214,10 @@ export default function CountdownWidget({
         <div className="text-center mb-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
           <p className="text-sm text-gray-600">
-            {selectedCountdown.park?.name} • {new Date(selectedCountdown.tripDate).toLocaleDateString()}
+            {selectedCountdown.park?.name} • {(() => {
+              const date = new Date(selectedCountdown.tripDate)
+              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
+            })()}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4 text-center">

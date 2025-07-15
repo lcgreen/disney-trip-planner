@@ -99,26 +99,8 @@ export class BudgetPlugin implements PluginInterface {
       return this.getItem(itemId)
     }
 
-    // Return current/live data if no specific item selected
-    const currentData = PluginStorage.getData<{
-      totalBudget: number
-      categories: any[]
-      expenses: any[]
-      updatedAt?: string
-    } | null>(this.getStorageKeys().current, null)
-
-    if (currentData && (currentData.totalBudget > 0 || currentData.expenses.length > 0)) {
-      return {
-        id: 'live',
-        name: 'Current Budget',
-        totalBudget: currentData.totalBudget || 0,
-        categories: currentData.categories || [],
-        expenses: currentData.expenses || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: currentData.updatedAt || new Date().toISOString()
-      }
-    }
-
+    // For new widgets without a selected item, return null to show empty state
+    // This prevents new widgets from displaying existing data
     return null
   }
 

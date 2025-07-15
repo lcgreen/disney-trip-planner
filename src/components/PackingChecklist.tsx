@@ -88,14 +88,15 @@ export default function PackingChecklist({
     const storage = storageUtils.initializePackingStorage()
     setSavedLists(storage.lists)
 
-    // Load active list if exists
-    if (storage.activeListId) {
+    // Only load active list if we're in edit mode
+    // This prevents new lists from inheriting existing data
+    if (isEditMode && storage.activeListId) {
       const activeList = storage.lists.find(list => list.id === storage.activeListId)
       if (activeList) {
         loadList(activeList)
       }
     }
-  }, [])
+  }, [isEditMode])
 
   // Auto-save current list when items or weather change (if we have an active list)
   useEffect(() => {
@@ -104,12 +105,12 @@ export default function PackingChecklist({
     }
   }, [items, selectedWeather, activeListId, currentListName])
 
-  // Auto-save current state for widgets (always save live state)
+  // Auto-save current state for widgets (only when editing or when we have a valid list)
   useEffect(() => {
-    if (items.length > 0) {
+    if ((isEditMode || createdItemId) && items.length > 0) {
       WidgetConfigManager.saveCurrentPackingState(items, selectedWeather)
     }
-  }, [items, selectedWeather])
+  }, [items, selectedWeather, isEditMode, createdItemId])
 
   // Load created item in edit mode
   useEffect(() => {

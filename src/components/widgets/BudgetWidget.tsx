@@ -57,7 +57,15 @@ export default function BudgetWidget({
       if (budget?.expenses) {
         // Get recent expenses (last 5)
         const sortedExpenses = budget.expenses
-          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .sort((a: any, b: any) => {
+            const dateA = new Date(a.date)
+            const dateB = new Date(b.date)
+            // Handle invalid dates by putting them at the end
+            if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0
+            if (isNaN(dateA.getTime())) return 1
+            if (isNaN(dateB.getTime())) return -1
+            return dateB.getTime() - dateA.getTime()
+          })
           .slice(0, 5)
         setRecentExpenses(sortedExpenses)
       } else {
@@ -85,7 +93,15 @@ export default function BudgetWidget({
 
         if (budget?.expenses) {
           const sortedExpenses = budget.expenses
-            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .sort((a: any, b: any) => {
+              const dateA = new Date(a.date)
+              const dateB = new Date(b.date)
+              // Handle invalid dates by putting them at the end
+              if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0
+              if (isNaN(dateA.getTime())) return 1
+              if (isNaN(dateB.getTime())) return -1
+              return dateB.getTime() - dateA.getTime()
+            })
             .slice(0, 5)
           setRecentExpenses(sortedExpenses)
         } else {
@@ -212,7 +228,10 @@ export default function BudgetWidget({
                       </span>
                     </div>
                     <span className="text-xs text-gray-500">
-                      {new Date(expense.date).toLocaleDateString()}
+                      {(() => {
+                        const date = new Date(expense.date)
+                        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
+                      })()}
                     </span>
                   </div>
                   <span className="text-sm font-semibold text-gray-800">

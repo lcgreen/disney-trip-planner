@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Layout, Settings, Sparkles, GripVertical } from 'lucide-react'
+import { Plus, Layout, Settings, Sparkles, GripVertical, Trash2 } from 'lucide-react'
+import { clearInvalidCountdownData, validateAndCleanCountdownData, inspectLocalStorageData } from '@/lib/clearInvalidData'
 import {
   DndContext,
   closestCenter,
@@ -221,6 +222,38 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center space-x-3">
+              {process.env.NODE_ENV === 'development' && (
+                <div className="relative group">
+                  <button
+                    className="bg-gray-500 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-gray-600 transition-all duration-200 text-sm"
+                    title="Debug menu"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Debug</span>
+                  </button>
+                  <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-2 min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="text-xs font-semibold text-gray-600 mb-2 px-2">Debug Tools</div>
+                    <button
+                      onClick={() => {
+                        inspectLocalStorageData()
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 rounded text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      🔍 Inspect Data
+                    </button>
+                    <button
+                      onClick={() => {
+                        clearInvalidCountdownData()
+                        validateAndCleanCountdownData()
+                        window.location.reload()
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 rounded text-red-600 hover:text-red-700 transition-colors"
+                    >
+                      🗑️ Clear Invalid Data
+                    </button>
+                  </div>
+                </div>
+              )}
               <button
                 onClick={() => setIsAddingWidget(true)}
                 className="bg-gradient-to-r from-disney-blue to-disney-purple text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:shadow-lg transition-all duration-200"

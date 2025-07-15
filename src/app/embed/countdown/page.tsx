@@ -83,6 +83,14 @@ function EmbedCountdown(): JSX.Element {
         const now = new Date()
         const target = new Date(targetDate)
 
+        // Check if the date is valid
+        if (isNaN(target.getTime())) {
+          setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+          setMilliseconds(0)
+          setIsActive(false)
+          return
+        }
+
         if (target > now) {
           const days = differenceInDays(target, now)
           const hours = differenceInHours(target, now) % 24
@@ -116,6 +124,7 @@ function EmbedCountdown(): JSX.Element {
   const formatTargetDate = (): string => {
     if (!targetDate) return ''
     const date = new Date(targetDate)
+    if (isNaN(date.getTime())) return 'Invalid Date'
     return format(date, 'EEEE, do MMMM yyyy \'at\' HH:mm')
   }
 

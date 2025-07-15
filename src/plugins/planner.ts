@@ -111,22 +111,8 @@ export class PlannerPlugin implements PluginInterface {
       return this.getItem(itemId)
     }
 
-    // Return current/live data if no specific item selected
-    const currentData = PluginStorage.getData<{
-      days: DayPlan[]
-      updatedAt?: string
-    } | null>(this.getStorageKeys().current, null)
-
-    if (currentData && currentData.days && currentData.days.length > 0) {
-      return {
-        id: 'live',
-        name: 'Current Trip Plan',
-        days: currentData.days,
-        createdAt: new Date().toISOString(),
-        updatedAt: currentData.updatedAt || new Date().toISOString()
-      }
-    }
-
+    // For new widgets without a selected item, return null to show empty state
+    // This prevents new widgets from displaying existing data
     return null
   }
 

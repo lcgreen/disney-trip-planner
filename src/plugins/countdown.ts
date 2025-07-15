@@ -77,12 +77,31 @@ export class CountdownPlugin implements PluginInterface {
 
   getItems(): CountdownData[] {
     const data = PluginStorage.getData(this.getStorageKeys().items, { countdowns: [] })
-    return data.countdowns || []
+    const items = data.countdowns || []
+
+
+
+    return items
   }
 
   getItem(id: string): CountdownData | null {
     const items = this.getItems()
-    return items.find(item => item.id === id) || null
+    const item = items.find(item => item.id === id)
+
+    if (item) {
+      // Ensure the item has the correct structure for the widget
+      const normalizedItem = {
+        ...item,
+        tripDate: item.tripDate || item.date, // Use tripDate if available, fallback to date
+        park: item.park || { name: 'Disney World' }
+      }
+
+
+
+      return normalizedItem
+    }
+
+    return null
   }
 
   updateItem(id: string, data: Partial<CountdownData>): void {
@@ -115,26 +134,8 @@ export class CountdownPlugin implements PluginInterface {
       return this.getItem(itemId)
     }
 
-    // Return current/live data if no specific item selected
-    const currentData = PluginStorage.getData<{
-      tripDate: string
-      title?: string
-      park?: any
-      updatedAt?: string
-    } | null>(this.getStorageKeys().current, null)
-
-    if (currentData && currentData.tripDate) {
-      return {
-        id: 'live',
-        name: currentData.title || 'My Disney Trip',
-        park: currentData.park || { name: 'Disney World' },
-        tripDate: currentData.tripDate,
-        settings: {},
-        createdAt: new Date().toISOString(),
-        updatedAt: currentData.updatedAt || new Date().toISOString()
-      }
-    }
-
+    // For new widgets without a selected item, return null to show empty state
+    // This prevents new widgets from displaying existing data
     return null
   }
 

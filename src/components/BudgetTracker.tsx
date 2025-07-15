@@ -110,14 +110,15 @@ export default function BudgetTracker({
     const storage = storageUtils.initializeBudgetStorage()
     setSavedBudgets(storage.budgets)
 
-    // Load active budget if exists
-    if (storage.activeBudgetId) {
+    // Only load active budget if we're in edit mode
+    // This prevents new budgets from inheriting existing data
+    if (isEditMode && storage.activeBudgetId) {
       const activeBudget = storage.budgets.find(budget => budget.id === storage.activeBudgetId)
       if (activeBudget) {
         loadBudget(activeBudget)
       }
     }
-  }, [])
+  }, [isEditMode])
 
   // Auto-save current budget when data changes (if we have an active budget)
   useEffect(() => {
@@ -126,12 +127,12 @@ export default function BudgetTracker({
     }
   }, [totalBudget, categories, expenses, activeBudgetId, currentBudgetName])
 
-  // Auto-save current state for widgets (always save live state)
+  // Auto-save current state for widgets (only when editing or when we have a valid budget)
   useEffect(() => {
-    if (totalBudget > 0 || expenses.length > 0 || categories.some(cat => cat.budget > 0)) {
+    if ((isEditMode || createdItemId) && (totalBudget > 0 || expenses.length > 0 || categories.some(cat => cat.budget > 0))) {
       WidgetConfigManager.saveCurrentBudgetState(totalBudget, categories, expenses)
     }
-  }, [totalBudget, categories, expenses])
+  }, [totalBudget, categories, expenses, isEditMode, createdItemId])
 
   // Load created item in edit mode
   useEffect(() => {
