@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings, X, LucideIcon } from 'lucide-react'
+import { Settings, X, Plus, LucideIcon } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
 import ItemSelector from './ItemSelector'
 
@@ -140,6 +140,47 @@ export default function WidgetBase({
                                 setShowSettings(false)
                               }}
                             />
+                          </div>
+
+                          {/* Edit Configuration Button */}
+                          {selectedItemId && (
+                            <div>
+                              <button
+                                onClick={() => {
+                                  const appRoute = widgetType === 'countdown' ? 'countdown' :
+                                                 widgetType === 'planner' ? 'planner' :
+                                                 widgetType === 'budget' ? 'budget' :
+                                                 'packing'
+                                  window.location.href = `/${appRoute}/new?widgetId=${id}&editItemId=${selectedItemId}`
+                                  setShowSettings(false)
+                                }}
+                                className="w-full px-3 py-2 text-sm bg-disney-blue text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <Settings className="w-4 h-4" />
+                                Edit Configuration
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Create New Button */}
+                          <div>
+                            <button
+                              onClick={() => {
+                                const appRoute = widgetType === 'countdown' ? 'countdown' :
+                                               widgetType === 'planner' ? 'planner' :
+                                               widgetType === 'budget' ? 'budget' :
+                                               'packing'
+                                window.location.href = `/${appRoute}/new?widgetId=${id}`
+                                setShowSettings(false)
+                              }}
+                              className="w-full px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Create New {widgetType === 'countdown' ? 'Countdown' :
+                                          widgetType === 'planner' ? 'Trip Plan' :
+                                          widgetType === 'budget' ? 'Budget' :
+                                          'Packing List'}
+                            </button>
                           </div>
                         </div>
                       </motion.div>

@@ -260,6 +260,9 @@ export default function PackingChecklist({
       setItems(defaultItems)
       setSelectedWeather(['sunny'])
     }
+
+    // Clean up widget configurations that reference this deleted item
+    WidgetConfigManager.cleanupDeletedItemReferences(listId, 'packing')
   }
 
   const startNewList = () => {

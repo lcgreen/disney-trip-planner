@@ -122,6 +122,55 @@ export class WidgetConfigManager {
     this.saveConfigs(filtered)
   }
 
+  // Clean up widget configurations when an item is deleted
+  static cleanupDeletedItemReferences(deletedItemId: string, widgetType: WidgetConfig['type']): void {
+    const configs = this.getConfigs()
+    let updated = false
+
+    const cleanedConfigs = configs.map(config => {
+      if (config.type === widgetType && config.selectedItemId === deletedItemId) {
+        updated = true
+        return { ...config, selectedItemId: undefined }
+      }
+      return config
+    })
+
+    if (updated) {
+      this.saveConfigs(cleanedConfigs)
+    }
+  }
+
+  // Clean up all widget configurations for a specific widget type
+  static cleanupAllItemReferences(widgetType: WidgetConfig['type']): void {
+    const configs = this.getConfigs()
+    let updated = false
+
+    const cleanedConfigs = configs.map(config => {
+      if (config.type === widgetType && config.selectedItemId) {
+        updated = true
+        return { ...config, selectedItemId: undefined }
+      }
+      return config
+    })
+
+    if (updated) {
+      this.saveConfigs(cleanedConfigs)
+    }
+  }
+
+  // Check if a selected item still exists, and clean up widget config if not
+  static validateAndCleanupItemReference(widgetId: string, widgetType: WidgetConfig['type'], selectedItemId: string): boolean {
+    const itemExists = this.getSelectedItemData(widgetType, selectedItemId) !== null
+
+    if (!itemExists) {
+      // Item no longer exists, clean up the widget configuration
+      this.updateConfig(widgetId, { selectedItemId: undefined })
+      return false
+    }
+
+    return true
+  }
+
   static getData(): WidgetData {
     if (typeof window === 'undefined') return {}
     const saved = localStorage.getItem(WIDGET_DATA_KEY)

@@ -43,11 +43,16 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
   useEffect(() => {
     // Load selected countdown data
     if (config?.selectedItemId) {
-      const countdown = WidgetConfigManager.getSelectedItemData('countdown', config.selectedItemId) as SavedCountdown
-      if (countdown) {
+      // Validate that the selected item still exists
+      const itemExists = WidgetConfigManager.validateAndCleanupItemReference(id, 'countdown', config.selectedItemId)
+
+      if (itemExists) {
+        const countdown = WidgetConfigManager.getSelectedItemData('countdown', config.selectedItemId) as SavedCountdown
         setSelectedCountdown(countdown)
       } else {
-        // Selected item not found, fallback to live app state or default
+        // Item was deleted, update local config and fallback to live state
+        setConfig(prev => prev ? { ...prev, selectedItemId: undefined } : { size: 'medium', selectedItemId: undefined })
+
         const currentState = WidgetConfigManager.getCurrentCountdownState()
         if (currentState?.tripDate) {
           const fallbackCountdown: SavedCountdown = {
@@ -80,7 +85,7 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
         setSelectedCountdown(null)
       }
     }
-  }, [config])
+  }, [config, id])
 
   useEffect(() => {
     if (!selectedCountdown?.date) return

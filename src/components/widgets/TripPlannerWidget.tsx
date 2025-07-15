@@ -54,8 +54,11 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
   useEffect(() => {
     // Load selected trip plan data
     if (config?.selectedItemId) {
-      const tripPlan = WidgetConfigManager.getSelectedItemData('planner', config.selectedItemId) as SavedTripPlan
-      if (tripPlan) {
+      // Validate that the selected item still exists
+      const itemExists = WidgetConfigManager.validateAndCleanupItemReference(id, 'planner', config.selectedItemId)
+
+      if (itemExists) {
+        const tripPlan = WidgetConfigManager.getSelectedItemData('planner', config.selectedItemId) as SavedTripPlan
         setSelectedTripPlan(tripPlan)
 
         // Find today's activities
@@ -76,7 +79,9 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
           }
         }
       } else {
-        // Selected item not found, fallback to live app state
+        // Item was deleted, update local config and fallback to live state
+        setConfig(prev => prev ? { ...prev, selectedItemId: undefined } : { size: 'medium', selectedItemId: undefined })
+
         const currentState = WidgetConfigManager.getCurrentTripPlanState()
         if (currentState?.days && currentState.days.length > 0) {
           const livePlan: SavedTripPlan = {
@@ -141,7 +146,7 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
         setTodaysActivities([])
       }
     }
-  }, [config])
+  }, [config, id])
 
   const handleSizeChange = (newSize: WidgetSize) => {
     WidgetConfigManager.updateConfig(id, { size: newSize })

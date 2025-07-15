@@ -46,14 +46,19 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
   useEffect(() => {
     // Load selected packing list data
     if (config?.selectedItemId) {
-      const packingList = WidgetConfigManager.getSelectedItemData('packing', config.selectedItemId) as SavedPackingList
-      if (packingList) {
+      // Validate that the selected item still exists
+      const itemExists = WidgetConfigManager.validateAndCleanupItemReference(id, 'packing', config.selectedItemId)
+
+      if (itemExists) {
+        const packingList = WidgetConfigManager.getSelectedItemData('packing', config.selectedItemId) as SavedPackingList
         setSelectedPackingList(packingList)
         setPackingItems(packingList.items)
         const completed = packingList.items.filter(item => item.checked).length
         setCompletionStats({ completed, total: packingList.items.length })
       } else {
-        // Selected item not found, fallback to live app state
+        // Item was deleted, update local config and fallback to live state
+        setConfig(prev => prev ? { ...prev, selectedItemId: undefined } : { size: 'medium', selectedItemId: undefined })
+
         const currentState = WidgetConfigManager.getCurrentPackingState()
         if (currentState?.items) {
           setSelectedPackingList(null)
@@ -80,7 +85,7 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
         setCompletionStats({ completed: 0, total: 0 })
       }
     }
-  }, [config])
+  }, [config, id])
 
   const toggleItem = (itemId: string) => {
     const updatedItems = packingItems.map(item =>

@@ -55,13 +55,18 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
   useEffect(() => {
     // Load selected budget data
     if (config?.selectedItemId) {
-      const budget = WidgetConfigManager.getSelectedItemData('budget', config.selectedItemId) as SavedBudget
-      if (budget) {
+      // Validate that the selected item still exists
+      const itemExists = WidgetConfigManager.validateAndCleanupItemReference(id, 'budget', config.selectedItemId)
+
+      if (itemExists) {
+        const budget = WidgetConfigManager.getSelectedItemData('budget', config.selectedItemId) as SavedBudget
         setSelectedBudget(budget)
         const spent = budget.expenses.reduce((sum, expense) => sum + expense.amount, 0)
         setTotalSpent(spent)
       } else {
-        // Selected item not found, fallback to live app state
+        // Item was deleted, update local config and fallback to live state
+        setConfig(prev => prev ? { ...prev, selectedItemId: undefined } : { size: 'medium', selectedItemId: undefined })
+
         const currentState = WidgetConfigManager.getCurrentBudgetState()
         if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
           const liveBudget: SavedBudget = {
@@ -102,7 +107,7 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
         setTotalSpent(0)
       }
     }
-  }, [config])
+  }, [config, id])
 
   const handleSizeChange = (newSize: WidgetSize) => {
     WidgetConfigManager.updateConfig(id, { size: newSize })

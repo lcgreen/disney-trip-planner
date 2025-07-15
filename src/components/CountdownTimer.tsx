@@ -269,9 +269,17 @@ export default function CountdownTimer({
     const updated = savedCountdowns.filter(c => c.id !== id)
     setSavedCountdowns(updated)
     localStorage.setItem('disney-countdowns', JSON.stringify(updated))
+
+    // Clean up widget configurations that reference this deleted item
+    WidgetConfigManager.cleanupDeletedItemReferences(id, 'countdown')
   }
 
   const clearSavedCountdowns = (): void => {
+    // Clean up widget configurations for all countdown items before clearing
+    savedCountdowns.forEach(countdown => {
+      WidgetConfigManager.cleanupDeletedItemReferences(countdown.id, 'countdown')
+    })
+
     setSavedCountdowns([])
     localStorage.removeItem('disney-countdowns')
   }

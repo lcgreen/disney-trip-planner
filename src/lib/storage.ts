@@ -211,5 +211,16 @@ export const storageUtils = {
     tripPlanStorage.remove()
     budgetStorage.remove()
     packingStorage.remove()
+
+    // Also clear widget configuration references since all items are deleted
+    if (typeof window !== 'undefined') {
+      // Import WidgetConfigManager dynamically to avoid circular dependency
+      import('./widgetConfig').then(({ WidgetConfigManager }) => {
+        WidgetConfigManager.cleanupAllItemReferences('countdown')
+        WidgetConfigManager.cleanupAllItemReferences('packing')
+        WidgetConfigManager.cleanupAllItemReferences('planner')
+        WidgetConfigManager.cleanupAllItemReferences('budget')
+      })
+    }
   }
 }

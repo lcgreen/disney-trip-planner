@@ -11,11 +11,18 @@ function NewPlannerContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const widgetId = searchParams.get('widgetId')
+  const editItemId = searchParams.get('editItemId')
   const [isCreating, setIsCreating] = useState(false)
   const [createdItemId, setCreatedItemId] = useState<string | null>(null)
 
-  // Auto-create and link item if widgetId is provided
+  // Handle edit mode - load existing item for editing
   useEffect(() => {
+    if (editItemId) {
+      setCreatedItemId(editItemId)
+      return
+    }
+
+    // Auto-create and link item if widgetId is provided (but not editing)
     if (widgetId && !createdItemId && !isCreating) {
       setIsCreating(true)
 
@@ -28,7 +35,7 @@ function NewPlannerContent() {
         }
       }, 1500)
     }
-  }, [widgetId, createdItemId, isCreating])
+  }, [widgetId, editItemId, createdItemId, isCreating])
 
   // If widget ID is present and we're still creating, show loading
   if (widgetId && isCreating) {
@@ -73,10 +80,14 @@ function NewPlannerContent() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">
-                    {widgetId && createdItemId ? 'Edit Your Trip Plan' : 'Create New Trip Plan'}
+                    {editItemId ? 'Edit Trip Plan Configuration' :
+                     widgetId && createdItemId ? 'Edit Your Trip Plan' :
+                     'Create New Trip Plan'}
                   </h1>
                   <p className="text-purple-100 mt-1">
-                    {widgetId && createdItemId
+                    {editItemId
+                      ? 'Make changes to your trip plan configuration and they will be reflected in your dashboard widget.'
+                      : widgetId && createdItemId
                       ? 'Your trip plan has been created and linked to your dashboard widget. Make any changes you\'d like!'
                       : 'Plan your perfect Disney days with detailed itineraries!'
                     }
@@ -102,7 +113,7 @@ function NewPlannerContent() {
             <TripPlanner
               createdItemId={createdItemId}
               widgetId={widgetId}
-              isEditMode={!!createdItemId}
+              isEditMode={!!createdItemId || !!editItemId}
             />
           </div>
         </motion.div>

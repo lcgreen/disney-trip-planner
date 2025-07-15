@@ -344,6 +344,9 @@ export default function TripPlanner({
       setCurrentPlanName('')
       setDays([])
     }
+
+    // Clean up widget configurations that reference this deleted item
+    WidgetConfigManager.cleanupDeletedItemReferences(planId, 'planner')
   }
 
   const startNewPlan = () => {

@@ -323,6 +323,9 @@ export default function BudgetTracker({
       setCategories(defaultCategories)
       setExpenses([])
     }
+
+    // Clean up widget configurations that reference this deleted item
+    WidgetConfigManager.cleanupDeletedItemReferences(budgetId, 'budget')
   }
 
   const startNewBudget = () => {

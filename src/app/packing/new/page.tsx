@@ -11,11 +11,18 @@ function NewPackingContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const widgetId = searchParams.get('widgetId')
+  const editItemId = searchParams.get('editItemId')
   const [isCreating, setIsCreating] = useState(false)
   const [createdItemId, setCreatedItemId] = useState<string | null>(null)
 
-  // Auto-create and link item if widgetId is provided
+  // Handle edit mode - load existing item for editing
   useEffect(() => {
+    if (editItemId) {
+      setCreatedItemId(editItemId)
+      return
+    }
+
+    // Auto-create and link item if widgetId is provided (but not editing)
     if (widgetId && !createdItemId && !isCreating) {
       setIsCreating(true)
 
@@ -28,10 +35,10 @@ function NewPackingContent() {
         }
       }, 1500)
     }
-  }, [widgetId, createdItemId, isCreating])
+  }, [widgetId, editItemId, createdItemId, isCreating])
 
-  // If widget ID is present and we're still creating, show loading
-  if (widgetId && isCreating) {
+  // If widget ID is present and we're still creating, show loading (but not for edit mode)
+  if (widgetId && isCreating && !editItemId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-emerald-50 flex items-center justify-center">
         <motion.div
@@ -73,10 +80,14 @@ function NewPackingContent() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">
-                    {widgetId && createdItemId ? 'Edit Your Packing List' : 'Create New Packing List'}
+                    {editItemId ? 'Edit Packing List Configuration' :
+                     widgetId && createdItemId ? 'Edit Your Packing List' :
+                     'Create New Packing List'}
                   </h1>
                   <p className="text-green-100 mt-1">
-                    {widgetId && createdItemId
+                    {editItemId
+                      ? 'Make changes to your packing list and they will be reflected in your dashboard widget.'
+                      : widgetId && createdItemId
                       ? 'Your packing list has been created and linked to your dashboard widget. Make any changes you\'d like!'
                       : 'Create the perfect packing checklist for your Disney adventure!'
                     }
@@ -102,7 +113,7 @@ function NewPackingContent() {
             <PackingChecklist
               createdItemId={createdItemId}
               widgetId={widgetId}
-              isEditMode={!!createdItemId}
+              isEditMode={!!createdItemId || !!editItemId}
             />
           </div>
         </motion.div>
