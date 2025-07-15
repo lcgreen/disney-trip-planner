@@ -7,11 +7,21 @@ import { WidgetConfigManager, type SavedCountdown } from '@/lib/widgetConfig'
 
 interface CountdownWidgetProps {
   id: string
+  width?: string
   onRemove: () => void
   onSettings?: () => void
+  onWidthChange?: (width: string) => void
+  onItemSelect?: (itemId: string | null) => void
 }
 
-export default function CountdownWidget({ id, onRemove, onSettings }: CountdownWidgetProps) {
+export default function CountdownWidget({
+  id,
+  width,
+  onRemove,
+  onSettings,
+  onWidthChange,
+  onItemSelect
+}: CountdownWidgetProps) {
   const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
   const [selectedCountdown, setSelectedCountdown] = useState<SavedCountdown | null>(null)
   const [timeLeft, setTimeLeft] = useState({
@@ -34,6 +44,7 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
         id,
         type: 'countdown',
         size: 'medium',
+        order: 0,
         selectedItemId: undefined,
         settings: {}
       })
@@ -97,10 +108,7 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
     return () => clearInterval(interval)
   }, [selectedCountdown?.date])
 
-  const handleSizeChange = (newSize: WidgetSize) => {
-    WidgetConfigManager.updateConfig(id, { size: newSize })
-    setConfig(prev => prev ? { ...prev, size: newSize } : { size: newSize })
-  }
+
 
   const handleItemSelect = (itemId: string | null) => {
     WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
@@ -293,9 +301,10 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
       iconColor={getIconGradient()}
       widgetType="countdown"
       size={size}
+      width={width}
       selectedItemId={config.selectedItemId}
       onRemove={onRemove}
-      onSizeChange={handleSizeChange}
+      onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
     >
       {renderCountdown()}

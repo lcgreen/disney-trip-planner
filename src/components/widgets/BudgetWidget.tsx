@@ -7,8 +7,11 @@ import { WidgetConfigManager, type SavedBudget } from '@/lib/widgetConfig'
 
 interface BudgetWidgetProps {
   id: string
+  width?: string
   onRemove: () => void
   onSettings?: () => void
+  onWidthChange?: (width: string) => void
+  onItemSelect?: (itemId: string | null) => void
 }
 
 interface BudgetCategory {
@@ -28,7 +31,14 @@ interface Expense {
   isEstimate: boolean
 }
 
-export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetProps) {
+export default function BudgetWidget({
+  id,
+  width,
+  onRemove,
+  onSettings,
+  onWidthChange,
+  onItemSelect
+}: BudgetWidgetProps) {
   const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
   const [selectedBudget, setSelectedBudget] = useState<SavedBudget | null>(null)
   const [totalSpent, setTotalSpent] = useState(0)
@@ -46,6 +56,7 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
         id,
         type: 'budget',
         size: 'medium',
+        order: 0,
         selectedItemId: undefined,
         settings: {}
       })
@@ -93,10 +104,7 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
     }
   }, [config, id])
 
-  const handleSizeChange = (newSize: WidgetSize) => {
-    WidgetConfigManager.updateConfig(id, { size: newSize })
-    setConfig(prev => prev ? { ...prev, size: newSize } : { size: newSize })
-  }
+
 
   const handleItemSelect = (itemId: string | null) => {
     WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
@@ -261,10 +269,11 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
       iconColor="bg-gradient-to-r from-disney-gold to-disney-orange"
       widgetType="budget"
       size={size}
+      width={width}
       selectedItemId={config.selectedItemId}
       isPremium={true}
       onRemove={onRemove}
-      onSizeChange={handleSizeChange}
+      onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
     >
       {renderBudget()}

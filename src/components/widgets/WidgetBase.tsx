@@ -15,10 +15,11 @@ interface WidgetBaseProps {
   iconColor: string
   widgetType: 'countdown' | 'planner' | 'budget' | 'packing'
   size?: WidgetSize
+  width?: string // Custom width (1-4 columns)
   selectedItemId?: string
   isPremium?: boolean
   onRemove?: () => void
-  onSizeChange?: (size: WidgetSize) => void
+  onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
   children: ReactNode
   className?: string
@@ -42,6 +43,14 @@ const gridSpanClasses = {
   full: 'col-span-1 md:col-span-2 xl:col-span-3'
 }
 
+// Enhanced width options for more granular control
+const widthOptions = [
+  { value: '1', label: '1 Column', class: 'col-span-1' },
+  { value: '2', label: '2 Columns', class: 'col-span-1 md:col-span-2' },
+  { value: '3', label: '3 Columns', class: 'col-span-1 md:col-span-2 xl:col-span-3' },
+  { value: '4', label: '4 Columns', class: 'col-span-1 md:col-span-2 xl:col-span-4' }
+]
+
 export default function WidgetBase({
   id,
   title,
@@ -49,10 +58,11 @@ export default function WidgetBase({
   iconColor,
   widgetType,
   size = 'medium',
+  width,
   selectedItemId,
   isPremium = false,
   onRemove,
-  onSizeChange,
+  onWidthChange,
   onItemSelect,
   children,
   className = ''
@@ -66,7 +76,7 @@ export default function WidgetBase({
       transition={{ duration: 0.5 }}
       className={`
         ${sizeClasses[size]}
-        ${gridSpanClasses[size]}
+        ${width ? widthOptions.find(w => w.value === width)?.class || gridSpanClasses[size] : gridSpanClasses[size]}
         bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-white/30
         hover:shadow-lg hover:bg-white/95 transition-all duration-200
         ${className}
@@ -86,34 +96,25 @@ export default function WidgetBase({
           </div>
 
           <div className="flex items-center space-x-1 flex-shrink-0">
-            {/* Size selector */}
-            {onSizeChange && (
-              <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5">
-                {(['small', 'medium', 'large', 'wide', 'tall'] as WidgetSize[]).map((s) => {
-                  const sizeIcons = {
-                    small: '◦',
-                    medium: '◯',
-                    large: '⬜',
-                    wide: '▬',
-                    tall: '▯'
-                  }
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => onSizeChange(s)}
-                      title={s.charAt(0).toUpperCase() + s.slice(1)}
-                      className={`
-                        w-6 h-6 rounded flex items-center justify-center text-xs font-medium transition-all duration-150
-                        ${size === s
-                          ? 'bg-white text-disney-blue shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                        }
-                      `}
-                    >
-                      {sizeIcons[s as keyof typeof sizeIcons]}
-                    </button>
-                  )
-                })}
+            {/* Width selector */}
+            {onWidthChange && (
+              <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {widthOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => onWidthChange(option.value)}
+                    title={option.label}
+                    className={`
+                      w-6 h-6 rounded flex items-center justify-center text-xs font-medium transition-all duration-150
+                      ${width === option.value
+                        ? 'bg-white text-disney-blue shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                      }
+                    `}
+                  >
+                    {option.value}
+                  </button>
+                ))}
               </div>
             )}
 

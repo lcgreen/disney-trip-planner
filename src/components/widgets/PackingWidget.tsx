@@ -14,11 +14,21 @@ interface PackingItem {
 
 interface PackingWidgetProps {
   id: string
+  width?: string
   onRemove: () => void
   onSettings?: () => void
+  onWidthChange?: (width: string) => void
+  onItemSelect?: (itemId: string | null) => void
 }
 
-export default function PackingWidget({ id, onRemove, onSettings }: PackingWidgetProps) {
+export default function PackingWidget({
+  id,
+  width,
+  onRemove,
+  onSettings,
+  onWidthChange,
+  onItemSelect
+}: PackingWidgetProps) {
   const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
   const [selectedPackingList, setSelectedPackingList] = useState<SavedPackingList | null>(null)
   const [packingItems, setPackingItems] = useState<PackingItem[]>([])
@@ -37,6 +47,7 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
         id,
         type: 'packing',
         size: 'medium',
+        order: 0,
         selectedItemId: undefined,
         settings: {}
       })
@@ -116,10 +127,7 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
     setCompletionStats({ completed, total: updatedItems.length })
   }
 
-  const handleSizeChange = (newSize: WidgetSize) => {
-    WidgetConfigManager.updateConfig(id, { size: newSize })
-    setConfig(prev => prev ? { ...prev, size: newSize } : { size: newSize })
-  }
+
 
   const handleItemSelect = (itemId: string | null) => {
     WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
@@ -228,9 +236,10 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
       iconColor="bg-gradient-to-r from-disney-green to-disney-teal"
       widgetType="packing"
       size={size}
+      width={width}
       selectedItemId={config.selectedItemId}
       onRemove={onRemove}
-      onSizeChange={handleSizeChange}
+      onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
     >
       {renderPackingList()}

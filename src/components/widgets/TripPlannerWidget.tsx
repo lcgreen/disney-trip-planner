@@ -7,8 +7,11 @@ import { WidgetConfigManager, type SavedTripPlan } from '@/lib/widgetConfig'
 
 interface TripPlannerWidgetProps {
   id: string
+  width?: string
   onRemove: () => void
   onSettings?: () => void
+  onWidthChange?: (width: string) => void
+  onItemSelect?: (itemId: string | null) => void
 }
 
 interface Activity {
@@ -27,7 +30,14 @@ interface DayPlan {
   activities: Activity[]
 }
 
-export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlannerWidgetProps) {
+export default function TripPlannerWidget({
+  id,
+  width,
+  onRemove,
+  onSettings,
+  onWidthChange,
+  onItemSelect
+}: TripPlannerWidgetProps) {
   const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
   const [selectedTripPlan, setSelectedTripPlan] = useState<SavedTripPlan | null>(null)
   const [todaysActivities, setTodaysActivities] = useState<Activity[]>([])
@@ -45,6 +55,7 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
         id,
         type: 'planner',
         size: 'medium',
+        order: 0,
         selectedItemId: undefined,
         settings: {}
       })
@@ -120,10 +131,7 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
     }
   }, [config, id])
 
-  const handleSizeChange = (newSize: WidgetSize) => {
-    WidgetConfigManager.updateConfig(id, { size: newSize })
-    setConfig(prev => prev ? { ...prev, size: newSize } : { size: newSize })
-  }
+
 
   const handleItemSelect = (itemId: string | null) => {
     WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
@@ -249,10 +257,11 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
       iconColor="bg-gradient-to-r from-park-magic to-park-epcot"
       widgetType="planner"
       size={size}
+      width={width}
       selectedItemId={config.selectedItemId}
       isPremium={true}
       onRemove={onRemove}
-      onSizeChange={handleSizeChange}
+      onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
     >
       {renderTripPlanner()}

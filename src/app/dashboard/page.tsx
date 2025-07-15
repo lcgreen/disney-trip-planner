@@ -2,7 +2,27 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Layout, Settings, Sparkles } from 'lucide-react'
+import { Plus, Layout, Settings, Sparkles, GripVertical } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { DragOverlay } from '@dnd-kit/core'
 import CountdownWidget from '@/components/widgets/CountdownWidget'
 import TripPlannerWidget from '@/components/widgets/TripPlannerWidget'
 import BudgetWidget from '@/components/widgets/BudgetWidget'
@@ -23,9 +43,106 @@ const widgetOptions = [
   { type: 'packing' as const, name: 'Packing List', description: 'Track packing progress' },
 ]
 
+// Sortable Widget Wrapper Component
+function SortableWidget({
+  widget,
+  onRemove,
+  onSettings,
+  onWidthChange,
+  onItemSelect
+}: {
+  widget: WidgetConfig
+  onRemove: (id: string) => void
+  onSettings: (id: string) => void
+  onWidthChange: (id: string, width: string) => void
+  onItemSelect: (id: string, itemId: string | null) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: widget.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  const WidgetComponent = widgetComponents[widget.type]
+
+  // Helper function to get grid classes based on widget size and width
+  const getGridClasses = (size: string, width?: string) => {
+    if (width) {
+      const widthOptions = [
+        { value: '1', class: 'col-span-1' },
+        { value: '2', class: 'col-span-1 md:col-span-2' },
+        { value: '3', class: 'col-span-1 md:col-span-2 xl:col-span-3' },
+        { value: '4', class: 'col-span-1 md:col-span-2 xl:col-span-4' }
+      ]
+      return widthOptions.find(w => w.value === width)?.class || 'col-span-1'
+    }
+
+    switch (size) {
+      case 'large':
+        return 'col-span-1 lg:col-span-2'
+      case 'wide':
+        return 'col-span-1 sm:col-span-2'
+      case 'full':
+        return 'col-span-1 sm:col-span-2 xl:col-span-3'
+      case 'small':
+      case 'medium':
+      case 'tall':
+      default:
+        return 'col-span-1'
+    }
+  }
+
+            return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+      className={`${getGridClasses(widget.size, widget.width)} relative group ${isDragging ? 'opacity-30' : ''}`}
+    >
+      <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white hover:shadow-lg cursor-grab active:cursor-grabbing transition-all duration-200"
+        >
+          <GripVertical className="w-4 h-4 text-gray-600" />
+        </button>
+      </div>
+
+                        <WidgetComponent
+                    id={widget.id}
+                    width={widget.width}
+                    onRemove={() => onRemove(widget.id)}
+                    onSettings={() => onSettings(widget.id)}
+                    onWidthChange={(width) => onWidthChange(widget.id, width)}
+                    onItemSelect={(itemId) => onItemSelect(widget.id, itemId)}
+                  />
+    </motion.div>
+  )
+}
+
 export default function DashboardPage() {
   const [widgets, setWidgets] = useState<WidgetConfig[]>([])
   const [isAddingWidget, setIsAddingWidget] = useState(false)
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => {
     // Load widget configs
@@ -38,6 +155,7 @@ export default function DashboardPage() {
       id: `${type}-${Date.now()}`,
       type,
       size: 'medium',
+      order: widgets.length, // Set order to be at the end
       selectedItemId: undefined, // No item selected by default
       settings: {}
     }
@@ -50,6 +168,41 @@ export default function DashboardPage() {
   const removeWidget = (id: string) => {
     WidgetConfigManager.removeConfig(id)
     setWidgets(prev => prev.filter(w => w.id !== id))
+  }
+
+
+
+  const handleWidthChange = (id: string, width: string) => {
+    WidgetConfigManager.updateConfig(id, { width })
+    setWidgets(prev => prev.map(w => w.id === id ? { ...w, width } : w))
+  }
+
+  const handleItemSelect = (id: string, itemId: string | null) => {
+    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    setWidgets(prev => prev.map(w => w.id === id ? { ...w, selectedItemId: itemId || undefined } : w))
+  }
+
+  const handleDragStart = (event: DragEndEvent) => {
+    setActiveId(event.active.id as string)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveId(null)
+
+    if (active.id !== over?.id) {
+      const oldIndex = widgets.findIndex(w => w.id === active.id)
+      const newIndex = widgets.findIndex(w => w.id === over?.id)
+
+      const newOrder = arrayMove(widgets, oldIndex, newIndex)
+      const reorderedWidgets = newOrder.map((widget, index) => ({
+        ...widget,
+        order: index
+      }))
+
+      setWidgets(reorderedWidgets)
+      WidgetConfigManager.reorderWidgets(reorderedWidgets.map(w => w.id))
+    }
   }
 
   return (
@@ -86,76 +239,88 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Widgets Grid */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-min"
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
-          {widgets.map((widget, index) => {
-            const WidgetComponent = widgetComponents[widget.type]
-
-            // Helper function to get grid classes based on widget size
-            const getGridClasses = (size: string) => {
-              switch (size) {
-                case 'large':
-                  return 'col-span-1 lg:col-span-2'
-                case 'wide':
-                  return 'col-span-1 sm:col-span-2'
-                case 'full':
-                  return 'col-span-1 sm:col-span-2 xl:col-span-3'
-                case 'small':
-                case 'medium':
-                case 'tall':
-                default:
-                  return 'col-span-1'
-              }
-            }
-
-            return (
-              <motion.div
-                key={widget.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className={getGridClasses(widget.size)}
-              >
-                <WidgetComponent
-                  id={widget.id}
-                  onRemove={() => removeWidget(widget.id)}
-                  onSettings={() => {
-                    // Widget settings functionality
-                    console.log('Settings for', widget.type)
-                  }}
-                />
-              </motion.div>
-            )
-          })}
-
-          {/* Empty State */}
-          {widgets.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="col-span-full flex flex-col items-center justify-center py-16 text-center"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-min"
+          >
+            <SortableContext
+              items={widgets.sort((a, b) => a.order - b.order).map(w => w.id)}
+              strategy={verticalListSortingStrategy}
             >
-              <Sparkles className="w-16 h-16 text-gray-300 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                Welcome to your Dashboard!
-              </h3>
-              <p className="text-gray-500 mb-6 max-w-md">
-                Add widgets to create your personalized Disney planning experience
-              </p>
-              <button
-                onClick={() => setIsAddingWidget(true)}
-                className="bg-gradient-to-r from-disney-blue to-disney-purple text-white px-6 py-3 rounded-lg flex items-center space-x-2 hover:shadow-lg transition-all duration-200"
-              >
-                <Plus className="w-5 h-5" />
-                <span>Add Your First Widget</span>
-              </button>
-            </motion.div>
-          )}
-        </motion.div>
+              {widgets
+                .sort((a, b) => a.order - b.order)
+                .map((widget, index) => (
+                  <SortableWidget
+                    key={widget.id}
+                    widget={widget}
+                    onRemove={removeWidget}
+                    onSettings={(id) => {
+                      // Widget settings functionality
+                      console.log('Settings for', widget.type)
+                    }}
+                    onWidthChange={handleWidthChange}
+                    onItemSelect={handleItemSelect}
+                  />
+                ))}
+            </SortableContext>
+          </motion.div>
+
+          {/* Drag Overlay */}
+          <DragOverlay>
+            {activeId ? (
+              <div className="transform rotate-3 scale-105 shadow-2xl">
+                {(() => {
+                  const activeWidget = widgets.find(w => w.id === activeId)
+                  if (!activeWidget) return null
+
+                  const WidgetComponent = widgetComponents[activeWidget.type]
+                  return (
+                    <WidgetComponent
+                      id={activeWidget.id}
+                      width={activeWidget.width}
+                      onRemove={() => {}}
+                      onSettings={() => {}}
+                      onWidthChange={() => {}}
+                      onItemSelect={() => {}}
+                    />
+                  )
+                })()}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+
+        {/* Empty State */}
+        {widgets.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="col-span-full flex flex-col items-center justify-center py-16 text-center"
+          >
+            <Sparkles className="w-16 h-16 text-gray-300 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+              Welcome to your Dashboard!
+            </h3>
+            <p className="text-gray-500 mb-6 max-w-md">
+              Add widgets to create your personalized Disney planning experience
+            </p>
+            <button
+              onClick={() => setIsAddingWidget(true)}
+              className="bg-gradient-to-r from-disney-blue to-disney-purple text-white px-6 py-3 rounded-lg flex items-center space-x-2 hover:shadow-lg transition-all duration-200"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Your First Widget</span>
+            </button>
+          </motion.div>
+        )}
 
         {/* Add Widget Modal */}
         {isAddingWidget && (

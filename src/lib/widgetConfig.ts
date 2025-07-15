@@ -4,6 +4,8 @@ export interface WidgetConfig {
   id: string
   type: 'countdown' | 'planner' | 'budget' | 'packing'
   size: WidgetSize
+  order: number // Position in the dashboard grid
+  width?: string // Custom width (1-4 columns)
   selectedItemId?: string // ID of the specific saved item to display
   settings: Record<string, any>
 }
@@ -112,14 +114,30 @@ export class WidgetConfigManager {
 
   static addConfig(config: WidgetConfig): void {
     const configs = this.getConfigs()
-    configs.push(config)
+    // Set order to be at the end
+    const newConfig = { ...config, order: configs.length }
+    configs.push(newConfig)
     this.saveConfigs(configs)
   }
 
   static removeConfig(id: string): void {
     const configs = this.getConfigs()
     const filtered = configs.filter(c => c.id !== id)
-    this.saveConfigs(filtered)
+    // Reorder remaining widgets
+    const reordered = filtered.map((config, index) => ({
+      ...config,
+      order: index
+    }))
+    this.saveConfigs(reordered)
+  }
+
+  static reorderWidgets(newOrder: string[]): void {
+    const configs = this.getConfigs()
+    const reordered = newOrder.map((id, index) => {
+      const config = configs.find(c => c.id === id)
+      return config ? { ...config, order: index } : null
+    }).filter(Boolean) as WidgetConfig[]
+    this.saveConfigs(reordered)
   }
 
   // Clean up widget configurations when an item is deleted
