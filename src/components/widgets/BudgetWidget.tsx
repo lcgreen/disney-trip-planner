@@ -5,10 +5,13 @@ import { motion } from 'framer-motion'
 import { DollarSign, TrendingUp, Settings, Crown } from 'lucide-react'
 import Link from 'next/link'
 import { PremiumBadge } from '@/components/ui'
+import WidgetBase, { WidgetSize } from './WidgetBase'
 
 interface BudgetWidgetProps {
+  size?: WidgetSize
   onRemove?: () => void
   onSettings?: () => void
+  onSizeChange?: (size: WidgetSize) => void
 }
 
 interface BudgetData {
@@ -23,7 +26,7 @@ interface BudgetData {
   }
 }
 
-export default function BudgetWidget({ onRemove, onSettings }: BudgetWidgetProps) {
+export default function BudgetWidget({ size = 'medium', onRemove, onSettings, onSizeChange }: BudgetWidgetProps) {
   const [budget, setBudget] = useState<BudgetData>({
     total: 3000,
     spent: 1250,
@@ -45,41 +48,28 @@ export default function BudgetWidget({ onRemove, onSettings }: BudgetWidgetProps
 
   if (!isPremiumUser()) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-gradient-to-br from-disney-gold/10 to-disney-orange/10 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-disney-gold/20 h-full"
+      <WidgetBase
+        id="budget"
+        title="Budget"
+        icon={DollarSign}
+        iconColor="bg-gradient-to-br from-disney-gold to-disney-orange"
+        size={size}
+        isPremium={true}
+        onRemove={onRemove}
+        onSettings={onSettings}
+        onSizeChange={onSizeChange}
+        className="bg-gradient-to-br from-disney-gold/10 to-disney-orange/10 border-disney-gold/20"
       >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <div className="bg-gradient-to-br from-disney-gold to-disney-orange p-2 rounded-lg">
-              <DollarSign className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-semibold text-gray-800 flex items-center space-x-2">
-              <span>Budget</span>
-              <PremiumBadge />
-            </h3>
-          </div>
-          {onRemove && (
-            <button
-              onClick={onRemove}
-              className="p-1 text-gray-400 hover:text-red-500 rounded"
-            >
-              ×
-            </button>
-          )}
-        </div>
-
-        <div className="text-center py-4">
-          <Crown className="w-8 h-8 text-disney-gold mx-auto mb-2" />
-          <p className="text-sm text-gray-600 mb-3">
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <Crown className="w-12 h-12 text-disney-gold mb-4" />
+          <p className="text-sm text-gray-600 mb-4">
             Upgrade to Premium to track your budget
           </p>
           <button className="btn-premium text-xs py-2 px-4">
             Upgrade Now
           </button>
         </div>
-      </motion.div>
+      </WidgetBase>
     )
   }
 

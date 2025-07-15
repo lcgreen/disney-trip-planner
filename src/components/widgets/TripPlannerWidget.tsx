@@ -5,10 +5,13 @@ import { motion } from 'framer-motion'
 import { Calendar, MapPin, Settings, Crown } from 'lucide-react'
 import Link from 'next/link'
 import { PremiumBadge } from '@/components/ui'
+import WidgetBase, { WidgetSize } from './WidgetBase'
 
 interface TripPlannerWidgetProps {
+  size?: WidgetSize
   onRemove?: () => void
   onSettings?: () => void
+  onSizeChange?: (size: WidgetSize) => void
 }
 
 interface PlanItem {
@@ -18,7 +21,7 @@ interface PlanItem {
   park: string
 }
 
-export default function TripPlannerWidget({ onRemove, onSettings }: TripPlannerWidgetProps) {
+export default function TripPlannerWidget({ size = 'medium', onRemove, onSettings, onSizeChange }: TripPlannerWidgetProps) {
   const [todaysPlan, setTodaysPlan] = useState<PlanItem[]>([])
   const [selectedDate, setSelectedDate] = useState<string>('')
 

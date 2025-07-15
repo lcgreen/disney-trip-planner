@@ -7,12 +7,13 @@ import CountdownWidget from '@/components/widgets/CountdownWidget'
 import TripPlannerWidget from '@/components/widgets/TripPlannerWidget'
 import BudgetWidget from '@/components/widgets/BudgetWidget'
 import PackingWidget from '@/components/widgets/PackingWidget'
+import { WidgetSize } from '@/components/widgets/WidgetBase'
 
 interface DashboardWidget {
   id: string
   type: 'countdown' | 'planner' | 'budget' | 'packing'
+  size: WidgetSize
   position: { x: number; y: number }
-  size: { width: number; height: number }
 }
 
 const widgetComponents = {
@@ -45,13 +46,13 @@ export default function DashboardPage() {
           id: 'countdown-1',
           type: 'countdown',
           position: { x: 0, y: 0 },
-          size: { width: 1, height: 1 }
+          size: 'medium'
         },
         {
           id: 'packing-1',
           type: 'packing',
           position: { x: 1, y: 0 },
-          size: { width: 1, height: 1 }
+          size: 'medium'
         }
       ]
       setWidgets(defaultWidgets)
@@ -64,7 +65,7 @@ export default function DashboardPage() {
       id: `${type}-${Date.now()}`,
       type,
       position: { x: widgets.length % 3, y: Math.floor(widgets.length / 3) },
-      size: { width: 1, height: 1 }
+      size: 'medium'
     }
 
     const updatedWidgets = [...widgets, newWidget]
@@ -75,6 +76,14 @@ export default function DashboardPage() {
 
   const removeWidget = (id: string) => {
     const updatedWidgets = widgets.filter(w => w.id !== id)
+    setWidgets(updatedWidgets)
+    localStorage.setItem('dashboard-widgets', JSON.stringify(updatedWidgets))
+  }
+
+  const updateWidgetSize = (id: string, newSize: WidgetSize) => {
+    const updatedWidgets = widgets.map(w =>
+      w.id === id ? { ...w, size: newSize } : w
+    )
     setWidgets(updatedWidgets)
     localStorage.setItem('dashboard-widgets', JSON.stringify(updatedWidgets))
   }
@@ -117,7 +126,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-min"
         >
           {widgets.map((widget, index) => {
             const WidgetComponent = widgetComponents[widget.type]
@@ -127,10 +136,12 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="h-80"
+                className={widget.size === 'large' ? 'md:col-span-2' : ''}
               >
                 <WidgetComponent
+                  size={widget.size}
                   onRemove={() => removeWidget(widget.id)}
+                  onSizeChange={(newSize) => updateWidgetSize(widget.id, newSize)}
                   onSettings={() => {
                     // Widget settings functionality
                     console.log('Settings for', widget.type)
