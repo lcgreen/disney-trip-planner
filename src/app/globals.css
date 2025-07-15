@@ -21,7 +21,7 @@ body {
   font-family: 'Poppins', sans-serif;
 }
 
-/* Disney Magic Effects */
+/* Enhanced Disney Magic Effects */
 .sparkle-bg {
   background-image:
     radial-gradient(2px 2px at 20px 30px, #ffd700, transparent),
@@ -30,6 +30,11 @@ body {
     radial-gradient(1px 1px at 130px 80px, #ffd700, transparent),
     radial-gradient(2px 2px at 160px 30px, #ff69b4, transparent);
   animation: sparkle 4s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
 }
 
 .disney-shadow {
@@ -43,57 +48,123 @@ body {
   background-clip: text;
 }
 
-/* Premium Badge */
+/* Enhanced Premium Badge with Animation */
 .premium-badge {
   background: linear-gradient(45deg, #FFD700, #FFA500);
   border: 2px solid #FF8C00;
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  animation: premiumGlow 2s ease-in-out infinite alternate;
 }
 
-/* Tool Cards */
+@keyframes premiumGlow {
+  from { box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+  to { box-shadow: 0 0 30px rgba(255, 215, 0, 0.6); }
+}
+
+/* Enhanced Tool Cards with Better Hover Effects */
 .tool-card {
   @apply bg-white rounded-xl shadow-lg border-2 border-transparent transition-all duration-300 hover:shadow-xl;
+  transform: translateY(0);
 }
 
 .tool-card:hover {
   border-color: #FFD700; /* disney-gold */
+  transform: translateY(-4px);
 }
 
 .tool-card-premium {
   @apply bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl;
   border-color: #FFD700; /* disney-gold */
   box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+  transform: translateY(0);
 }
 
-/* Button Styles */
+.tool-card-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 40px rgba(255, 215, 0, 0.3);
+}
+
+/* Enhanced Button Styles with Better Accessibility */
 .btn-disney {
   @apply text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
   background: linear-gradient(to right, #003087, #663399);
+  transform: translateY(0);
+}
+
+.btn-disney:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 48, 135, 0.3);
+}
+
+.btn-disney:active {
+  transform: translateY(0);
+}
+
+.btn-disney:focus {
+  outline: 2px solid #FFD700;
+  outline-offset: 2px;
 }
 
 .btn-disney-small {
   @apply text-white font-medium py-2 px-4 rounded-full shadow-md hover:shadow-lg transition-all duration-300 text-sm;
   background: linear-gradient(to right, #003087, #663399);
+  transform: translateY(0);
+}
+
+.btn-disney-small:hover {
+  transform: translateY(-1px);
+}
+
+.btn-disney-small:focus {
+  outline: 2px solid #FFD700;
+  outline-offset: 2px;
 }
 
 .btn-secondary {
   @apply bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-full shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-300 text-sm;
+  transform: translateY(0);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.btn-secondary:focus {
+  outline: 2px solid #003087;
+  outline-offset: 2px;
 }
 
 .btn-premium {
   @apply font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
   background: linear-gradient(to right, #FFD700, #FF8C00);
   color: #003087;
+  transform: translateY(0);
 }
 
-/* Countdown Timer Styles */
+.btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 215, 0, 0.4);
+}
+
+.btn-premium:focus {
+  outline: 2px solid #003087;
+  outline-offset: 2px;
+}
+
+/* Enhanced Countdown Timer Styles */
 .countdown-digit {
-  @apply text-white rounded-lg p-4 text-center shadow-lg;
+  @apply text-white rounded-xl p-4 text-center shadow-lg;
   background: linear-gradient(to bottom right, #003087, #663399);
   font-family: 'Fredoka One', cursive;
+  transform: scale(1);
+  transition: transform 0.3s ease;
 }
 
-/* Loading Animation */
+.countdown-digit:hover {
+  transform: scale(1.05);
+}
+
+/* Improved Loading Animation */
 .loading-dots {
   animation: loading 1.4s infinite ease-in-out both;
 }
@@ -107,5 +178,180 @@ body {
   }
   40% {
     transform: scale(1);
+  }
+}
+
+/* Enhanced Glass Effect for Panels */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth Fade-in Animation for Content */
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced Responsive Design */
+@media (max-width: 640px) {
+  .btn-disney,
+  .btn-disney-small,
+  .btn-secondary,
+  .btn-premium {
+    @apply w-full justify-center;
+  }
+
+  .countdown-digit {
+    @apply p-3;
+  }
+
+  .tool-card,
+  .tool-card-premium {
+    @apply mx-2;
+  }
+}
+
+/* Focus Styles for Better Accessibility */
+*:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  @apply ring-2 ring-blue-500 ring-offset-2 border-blue-500;
+}
+
+/* Enhanced Animation for Magic Moments */
+@keyframes celebrationBounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  40%, 43% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  70% {
+    transform: scale(1.05) rotate(5deg);
+  }
+  90% {
+    transform: scale(1.02) rotate(-2deg);
+  }
+}
+
+.celebration-animation {
+  animation: celebrationBounce 2s ease-in-out infinite;
+}
+
+/* Improved Card Hover States */
+.interactive-card {
+  @apply transition-all duration-300 cursor-pointer;
+  transform: translateY(0) scale(1);
+}
+
+.interactive-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced Gradient Backgrounds */
+.gradient-background-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-background-secondary {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.gradient-background-tertiary {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Improved Typography Hierarchy */
+.text-display {
+  @apply text-4xl md:text-5xl lg:text-6xl font-bold;
+  line-height: 1.1;
+}
+
+.text-headline {
+  @apply text-2xl md:text-3xl lg:text-4xl font-bold;
+  line-height: 1.2;
+}
+
+.text-title {
+  @apply text-xl md:text-2xl font-semibold;
+  line-height: 1.3;
+}
+
+.text-body {
+  @apply text-base md:text-lg;
+  line-height: 1.6;
+}
+
+/* Enhanced Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .glass-panel {
+    background: rgba(31, 41, 55, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-secondary {
+    @apply bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700;
+  }
+}
+
+/* Reduced Motion for Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .sparkle-bg {
+    animation: none;
+  }
+
+  .premium-badge {
+    animation: none;
+  }
+
+  .celebration-animation {
+    animation: none;
+  }
+}
+
+/* Enhanced Print Styles */
+@media print {
+  .btn-disney,
+  .btn-disney-small,
+  .btn-secondary,
+  .btn-premium {
+    @apply bg-gray-200 text-gray-800 shadow-none;
+  }
+
+  .glass-panel {
+    background: white;
+    border: 1px solid #e5e7eb;
+  }
+
+  .gradient-text {
+    color: #1f2937;
+    background: none;
+    -webkit-text-fill-color: initial;
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, MapPin, Sparkles, Settings, Share2, Code, Copy, Download, Upload, Palette, Volume2, VolumeX, RefreshCw, Star } from 'lucide-react'
+import { Calendar, MapPin, Sparkles, Settings, Share2, Code, Copy, Download, Upload, Palette, Volume2, VolumeX, RefreshCw, Star, ChevronDown, ChevronUp } from 'lucide-react'
 import { format, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds, addDays, addHours } from 'date-fns'
 import {
   Panel,
@@ -220,7 +220,7 @@ export default function CountdownTimer(): JSX.Element {
   }
 
   const getDigitClassName = (): string => {
-    const base = "p-4 rounded-lg backdrop-blur-sm"
+    const base = "p-4 rounded-xl backdrop-blur-sm"
     const style = settings.digitStyle
 
     let classes = base
@@ -237,7 +237,7 @@ export default function CountdownTimer(): JSX.Element {
         classes += ` bg-transparent border-b-2 border-white/50`
         break
       default: // modern
-        classes += ` ${currentTheme.digitBg} shadow-lg`
+        classes += ` ${currentTheme.digitBg} shadow-xl`
     }
 
     return classes
@@ -252,489 +252,641 @@ export default function CountdownTimer(): JSX.Element {
       case 'grid':
         return 'grid grid-cols-2 gap-4'
       default: // horizontal
-        return 'grid grid-cols-2 md:grid-cols-4 gap-4'
+        return 'grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6'
     }
   }
 
   const getFontSizeClass = (): string => {
     switch (settings.fontSize) {
-      case 'small': return 'text-2xl'
-      case 'large': return 'text-6xl'
-      case 'xl': return 'text-8xl'
-      default: return 'text-4xl'
+      case 'small': return 'text-2xl md:text-3xl'
+      case 'large': return 'text-5xl md:text-6xl'
+      case 'xl': return 'text-6xl md:text-8xl'
+      default: return 'text-3xl md:text-4xl lg:text-5xl'
     }
   }
 
   return (
-    <div className="max-w-6xl mx-auto text-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       {/* Audio element for completion sound */}
-      <audio ref={audioRef} preload="auto">
+      <audio ref={audioRef} preload="auto" aria-label="Countdown completion sound">
         <source src="/sounds/disney-chime.mp3" type="audio/mpeg" />
       </audio>
 
-      {/* Header with Controls */}
-      <div className="flex flex-wrap gap-4 mb-8 justify-between items-center">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-disney-blue to-disney-purple bg-clip-text text-transparent">
-          Disney Countdown Timer
-        </h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowSaved(!showSaved)}
-            className="btn-secondary flex items-center gap-2"
-          >
-            <Star className="w-4 h-4" />
-            Saved
-            <CountBadge count={savedCountdowns.length} />
-          </button>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="btn-secondary flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            Customise
-          </button>
-          <button
-            onClick={() => setShowEmbed(!showEmbed)}
-            className="btn-secondary flex items-center gap-2"
-          >
-            <Share2 className="w-4 h-4" />
-            Embed
-          </button>
-        </div>
-      </div>
-
-      {/* Saved Countdowns Panel */}
-      <SavedItemsPanel
-        title="Saved Countdowns"
-        count={savedCountdowns.length}
-        defaultExpanded={showSaved}
-        onClearAll={clearSavedCountdowns}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {savedCountdowns.map((saved) => (
-            <div key={saved.id} className="p-4 border rounded-lg">
-              <div className="flex justify-between items-start mb-2">
-                <h4 className="font-semibold">{saved.name}</h4>
-                <button
-                  onClick={() => deleteCountdown(saved.id)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <ParkBadge park={saved.park.name} />
-              </div>
-              <p className="text-sm text-gray-500 mb-3">
-                {format(new Date(saved.date), 'do MMM yyyy')}
-              </p>
-              <button
-                onClick={() => loadCountdown(saved)}
-                className="btn-disney-small"
-              >
-                Load Countdown
-              </button>
-            </div>
-          ))}
-        </div>
-      </SavedItemsPanel>
-
-      {/* Settings Panel */}
-      <SettingsPanel
-        title="Customisation Options"
-        defaultExpanded={showSettings}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Theme Selection */}
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-800">Theme</label>
-            <div className="space-y-2">
-              {customThemes.map((theme) => (
-                <button
-                  key={theme.id}
-                  onClick={() => setCustomTheme(theme)}
-                  className={`w-full p-3 rounded-lg text-left transition-all ${
-                    customTheme?.id === theme.id
-                      ? 'ring-2 ring-disney-blue'
-                      : 'hover:bg-gray-50'
-                  }`}
-                  style={{
-                    background: `linear-gradient(135deg, ${theme.gradient.split(' ')[1]} 0%, ${theme.gradient.split(' ')[3]} 100%)`
-                  }}
-                >
-                  <span className="text-gray-900 font-medium">
-                    {theme.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Display Options */}
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-800">Display Options</label>
-            <div className="space-y-3">
-              <SettingToggle
-                setting="Show milliseconds"
-                checked={settings.showMilliseconds}
-                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showMilliseconds: checked }))}
-              />
-              <SettingToggle
-                setting="Show timezone"
-                checked={settings.showTimezone}
-                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTimezone: checked }))}
-              />
-              <SettingToggle
-                setting="Show planning tips"
-                checked={settings.showTips}
-                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTips: checked }))}
-              />
-              <SettingToggle
-                setting="Show attractions"
-                checked={settings.showAttractions}
-                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showAttractions: checked }))}
-              />
-              <SettingToggle
-                setting="Play completion sound"
-                checked={settings.playSound}
-                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, playSound: checked }))}
-              />
-            </div>
-          </div>
-
-          {/* Style Options */}
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-800">Style Options</label>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Digit Style</label>
-                <Select
-                  value={settings.digitStyle}
-                  onValueChange={(value: string) => setSettings(prev => ({ ...prev, digitStyle: value as CountdownSettings['digitStyle'] }))}
-                  options={[
-                    { value: 'modern', label: 'Modern' },
-                    { value: 'classic', label: 'Classic' },
-                    { value: 'neon', label: 'Neon' },
-                    { value: 'minimal', label: 'Minimal' }
-                  ]}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Layout</label>
-                <Select
-                  value={settings.layout}
-                  onValueChange={(value: string) => setSettings(prev => ({ ...prev, layout: value as CountdownSettings['layout'] }))}
-                  options={[
-                    { value: 'horizontal', label: 'Horizontal' },
-                    { value: 'vertical', label: 'Vertical' },
-                    { value: 'compact', label: 'Compact' },
-                    { value: 'grid', label: 'Grid' }
-                  ]}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Font Size</label>
-                <Select
-                  value={settings.fontSize}
-                  onValueChange={(value: string) => setSettings(prev => ({ ...prev, fontSize: value as CountdownSettings['fontSize'] }))}
-                  options={[
-                    { value: 'small', label: 'Small' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'large', label: 'Large' },
-                    { value: 'xl', label: 'Extra Large' }
-                  ]}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </SettingsPanel>
-
-      {/* Embed Panel */}
-      <Panel
-        title="Embed on Your Website"
-        icon={<Code className="w-5 h-5" />}
-        variant="disney"
-        defaultExpanded={showEmbed}
-      >
-        <p className="text-gray-600 mb-4">
-          Copy this code to embed your countdown timer on any website or blog:
-        </p>
-        <div className="bg-gray-100 p-4 rounded-lg font-mono text-sm mb-4 relative">
-          <pre className="whitespace-pre-wrap break-all">{getEmbedCode()}</pre>
-          <button
-            onClick={() => navigator.clipboard.writeText(getEmbedCode())}
-            className="absolute top-2 right-2 p-2 bg-white rounded-lg shadow hover:bg-gray-50"
-            title="Copy to clipboard"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <h4 className="font-semibold text-blue-800 mb-1">Responsive</h4>
-            <p className="text-blue-600">Automatically adapts to any screen size</p>
-          </div>
-          <div className="p-3 bg-green-50 rounded-lg">
-            <h4 className="font-semibold text-green-800 mb-1">Live Updates</h4>
-            <p className="text-green-600">Real-time countdown updates every second</p>
-          </div>
-          <div className="p-3 bg-purple-50 rounded-lg">
-            <h4 className="font-semibold text-purple-800 mb-1">Customisable</h4>
-            <p className="text-purple-600">All your settings and themes included</p>
-          </div>
-        </div>
-      </Panel>
-
-      {/* Park Selection */}
-      <div className="mb-8">
-        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-gray-800">
-          <MapPin className="w-5 h-5" />
-          Choose Your Disney Destination
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {disneyParks.map((park) => (
-            <motion.button
-              key={park.id}
-              onClick={() => setSelectedPark(park)}
-              className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-                selectedPark.id === park.id
-                  ? `border-${park.color} bg-gradient-to-r ${park.gradient} text-white`
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="text-left">
-                <div className="font-semibold text-sm">{park.name}</div>
-                <div className={`text-xs ${selectedPark.id === park.id ? 'text-white opacity-90' : 'text-gray-500'}`}>
-                  {park.location}
-                </div>
-                {settings.showTimezone && (
-                  <div className={`text-xs mt-1 ${selectedPark.id === park.id ? 'text-white opacity-75' : 'text-gray-400'}`}>
-                    Opens: {park.openingTime} ({park.timezone.split('/')[1]})
-                  </div>
-                )}
-              </div>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* Date Selection */}
-      <div className="mb-8">
-        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-gray-800">
-          <Calendar className="w-5 h-5" />
-          When is your magical trip?
-        </h3>
-
-        {/* Quick Date Options */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Quick Select
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {quickDateOptions.map((option) => (
-              <Badge
-                key={option.label}
-                variant="disney"
-                size="sm"
-                className="cursor-pointer hover:bg-disney-blue/90"
-                onClick={() => {
-                  const date = option.days()
-                  date.setHours(9, 0, 0, 0)
-                  setTargetDate(date.toISOString().slice(0, 16))
-                }}
-              >
-                {option.label}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex gap-4 items-end">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trip Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              min={new Date().toISOString().slice(0, 16)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleStartCountdown}
-              disabled={!targetDate}
-              className="btn-disney disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Start Countdown
-            </button>
-            <button
-              onClick={resetCountdown}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-full hover:bg-gray-50 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Save Countdown */}
-        {targetDate && (
-          <div className="mt-4 flex gap-2">
-            <input
-              type="text"
-              placeholder="Name this countdown..."
-              value={countdownName}
-              onChange={(e) => setCountdownName(e.target.value)}
-              className="flex-1 p-2 border border-gray-300 rounded-lg text-sm"
-            />
-            <button
-              onClick={saveCountdown}
-              disabled={!countdownName.trim()}
-              className="btn-disney-small disabled:opacity-50"
-            >
-              Save
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Countdown Display */}
-      {targetDate && (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Modern Header with Improved Typography */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`text-center p-8 rounded-xl bg-gradient-to-r ${currentTheme.gradient} ${currentTheme.textColor} relative overflow-hidden`}
+          className="text-center mb-12"
         >
-          {/* Background decorations */}
-          <div className="absolute top-4 left-4">
-            <Sparkles className="w-6 h-6 opacity-60" />
-          </div>
-          <div className="absolute top-4 right-4">
-            <Sparkles className="w-6 h-6 opacity-60" />
-          </div>
-          <div className="absolute bottom-4 left-1/4">
-            <Sparkles className="w-4 h-4 opacity-40" />
-          </div>
-          <div className="absolute bottom-4 right-1/4">
-            <Sparkles className="w-4 h-4 opacity-40" />
-          </div>
-
-          <div className="relative z-10">
-            <h2 className="text-2xl font-bold mb-2">Your Trip to</h2>
-            <h1 className="text-4xl font-bold mb-2">{selectedPark.name}</h1>
-            <p className="text-lg opacity-90 mb-6">{formatTargetDate()}</p>
-
-            {isActive ? (
-              <div className={`${getLayoutClassName()} mb-6`}>
-                <div className={getDigitClassName()}>
-                  <div className={`${getFontSizeClass()} font-bold`}>{countdown.days}</div>
-                  <div className="text-sm opacity-80">Days</div>
-                </div>
-                <div className={getDigitClassName()}>
-                  <div className={`${getFontSizeClass()} font-bold`}>{countdown.hours}</div>
-                  <div className="text-sm opacity-80">Hours</div>
-                </div>
-                <div className={getDigitClassName()}>
-                  <div className={`${getFontSizeClass()} font-bold`}>{countdown.minutes}</div>
-                  <div className="text-sm opacity-80">Minutes</div>
-                </div>
-                <div className={getDigitClassName()}>
-                  <div className={`${getFontSizeClass()} font-bold`}>{countdown.seconds}</div>
-                  <div className="text-sm opacity-80">Seconds</div>
-                </div>
-                {settings.showMilliseconds && (
-                  <div className={getDigitClassName()}>
-                    <div className={`${getFontSizeClass()} font-bold`}>{Math.floor(milliseconds / 10)}</div>
-                    <div className="text-sm opacity-80">Centiseconds</div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="mb-6">
-                <p className="text-xl">Click &ldquo;Start Countdown&rdquo; to begin the magic! ✨</p>
-              </div>
-            )}
-
-            {countdown.days === 0 && countdown.hours === 0 && countdown.minutes === 0 && countdown.seconds === 0 && isActive && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-center"
-              >
-                <h2 className="text-3xl font-bold mb-2">🎉 IT&rsquo;S DISNEY DAY! 🎉</h2>
-                <p className="text-xl">Your magical adventure begins now!</p>
-              </motion.div>
-            )}
-          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+            <span className="bg-gradient-to-r from-disney-blue via-disney-purple to-disney-pink bg-clip-text text-transparent">
+              Disney Countdown Timer
+            </span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+            Count down to your magical Disney adventure with style and excitement
+          </p>
         </motion.div>
-      )}
 
-      {/* Popular Attractions */}
-      {settings.showAttractions && targetDate && (
+        {/* Control Panel with Better Layout */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mt-8 bg-white rounded-xl p-6 shadow-lg"
+          className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 mb-8"
         >
-          <h3 className="text-xl font-semibold mb-4 text-gray-800">🎢 Must-Do Attractions at {selectedPark.name}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {selectedPark.popularAttractions.map((attraction, index) => (
-              <div key={attraction} className={`p-4 rounded-lg bg-gradient-to-r ${selectedPark.gradient} text-white`}>
-                <div className="flex items-center gap-3">
-                  <CountBadge
-                    count={index + 1}
-                    className="bg-white/20 text-white border-white/30"
-                  />
-                  <span className="font-medium">{attraction}</span>
+          <div className="flex flex-wrap gap-3 justify-center items-center">
+            <button
+              onClick={() => setShowSaved(!showSaved)}
+              className={`btn-secondary flex items-center gap-2 ${showSaved ? 'bg-disney-blue text-white' : ''}`}
+            >
+              <Star className="w-4 h-4" />
+              Saved
+              <CountBadge count={savedCountdowns.length} />
+            </button>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`btn-secondary flex items-center gap-2 ${showSettings ? 'bg-disney-blue text-white' : ''}`}
+            >
+              <Settings className="w-4 h-4" />
+              Customise
+            </button>
+            <button
+              onClick={() => setShowEmbed(!showEmbed)}
+              className={`btn-secondary flex items-center gap-2 ${showEmbed ? 'bg-disney-blue text-white' : ''}`}
+            >
+              <Share2 className="w-4 h-4" />
+              Embed
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Collapsible Panels */}
+        <div className="space-y-6 mb-8">
+          {/* Saved Countdowns Panel */}
+          <AnimatePresence>
+            {showSaved && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <SavedItemsPanel
+                  title="Saved Countdowns"
+                  count={savedCountdowns.length}
+                  defaultExpanded={true}
+                  onClearAll={clearSavedCountdowns}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {savedCountdowns.map((saved) => (
+                      <motion.div
+                        key={saved.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="p-4 bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <h4 className="font-semibold text-gray-800 truncate">{saved.name}</h4>
+                          <button
+                            onClick={() => deleteCountdown(saved.id)}
+                            className="text-red-400 hover:text-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <ParkBadge park={saved.park.name} />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-4">
+                          {format(new Date(saved.date), 'do MMM yyyy \'at\' HH:mm')}
+                        </p>
+                        <button
+                          onClick={() => loadCountdown(saved)}
+                          className="btn-disney-small w-full"
+                        >
+                          Load Countdown
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </SavedItemsPanel>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Settings Panel */}
+          <AnimatePresence>
+            {showSettings && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <SettingsPanel
+                  title="Customisation Options"
+                  defaultExpanded={true}
+                >
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Theme Selection */}
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-4">Theme</h4>
+                      <div className="space-y-3">
+                        {customThemes.map((theme) => (
+                          <button
+                            key={theme.id}
+                            onClick={() => setCustomTheme(theme)}
+                            className={`w-full p-4 rounded-xl text-left transition-all duration-300 ${
+                              customTheme?.id === theme.id
+                                ? 'ring-2 ring-disney-blue shadow-lg'
+                                : 'hover:shadow-md'
+                            }`}
+                            style={{
+                              background: `linear-gradient(135deg, ${theme.gradient.split(' ')[1]} 0%, ${theme.gradient.split(' ')[3]} 100%)`
+                            }}
+                          >
+                            <span className="text-white font-medium drop-shadow-sm">
+                              {theme.name}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Display Options */}
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-4">Display Options</h4>
+                      <div className="space-y-4">
+                        <SettingToggle
+                          setting="Show milliseconds"
+                          checked={settings.showMilliseconds}
+                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showMilliseconds: checked }))}
+                        />
+                        <SettingToggle
+                          setting="Show timezone"
+                          checked={settings.showTimezone}
+                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTimezone: checked }))}
+                        />
+                        <SettingToggle
+                          setting="Show planning tips"
+                          checked={settings.showTips}
+                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTips: checked }))}
+                        />
+                        <SettingToggle
+                          setting="Show attractions"
+                          checked={settings.showAttractions}
+                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showAttractions: checked }))}
+                        />
+                        <SettingToggle
+                          setting="Play completion sound"
+                          checked={settings.playSound}
+                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, playSound: checked }))}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Style Options */}
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-4">Style Options</h4>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Digit Style</label>
+                          <Select
+                            value={settings.digitStyle}
+                            onValueChange={(value: string) => setSettings(prev => ({ ...prev, digitStyle: value as CountdownSettings['digitStyle'] }))}
+                            options={[
+                              { value: 'modern', label: 'Modern' },
+                              { value: 'classic', label: 'Classic' },
+                              { value: 'neon', label: 'Neon' },
+                              { value: 'minimal', label: 'Minimal' }
+                            ]}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Layout</label>
+                          <Select
+                            value={settings.layout}
+                            onValueChange={(value: string) => setSettings(prev => ({ ...prev, layout: value as CountdownSettings['layout'] }))}
+                            options={[
+                              { value: 'horizontal', label: 'Horizontal' },
+                              { value: 'vertical', label: 'Vertical' },
+                              { value: 'compact', label: 'Compact' },
+                              { value: 'grid', label: 'Grid' }
+                            ]}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Font Size</label>
+                          <Select
+                            value={settings.fontSize}
+                            onValueChange={(value: string) => setSettings(prev => ({ ...prev, fontSize: value as CountdownSettings['fontSize'] }))}
+                            options={[
+                              { value: 'small', label: 'Small' },
+                              { value: 'medium', label: 'Medium' },
+                              { value: 'large', label: 'Large' },
+                              { value: 'xl', label: 'Extra Large' }
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </SettingsPanel>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Embed Panel */}
+          <AnimatePresence>
+            {showEmbed && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <Panel
+                  title="Embed on Your Website"
+                  icon={<Code className="w-5 h-5" />}
+                  variant="disney"
+                  defaultExpanded={true}
+                >
+                  <p className="text-gray-600 mb-6">
+                    Copy this code to embed your countdown timer on any website or blog:
+                  </p>
+                  <div className="bg-gray-50 p-6 rounded-xl font-mono text-sm mb-6 relative border border-gray-200">
+                    <pre className="whitespace-pre-wrap break-all text-gray-800">{getEmbedCode()}</pre>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(getEmbedCode())}
+                      className="absolute top-3 right-3 p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition-colors"
+                      title="Copy to clipboard"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
+                      <h4 className="font-semibold text-blue-800 mb-2">📱 Responsive</h4>
+                      <p className="text-blue-600 text-sm">Automatically adapts to any screen size</p>
+                    </div>
+                    <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+                      <h4 className="font-semibold text-green-800 mb-2">⚡ Live Updates</h4>
+                      <p className="text-green-600 text-sm">Real-time countdown updates every second</p>
+                    </div>
+                    <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
+                      <h4 className="font-semibold text-purple-800 mb-2">🎨 Customisable</h4>
+                      <p className="text-purple-600 text-sm">All your settings and themes included</p>
+                    </div>
+                  </div>
+                </Panel>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Main Content Container */}
+        <div className="space-y-8">
+          {/* Park Selection with Improved Layout */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 md:p-8"
+          >
+            <h3 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-3 text-gray-800">
+              <MapPin className="w-6 h-6 text-disney-blue" />
+              Choose Your Disney Destination
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {disneyParks.map((park) => (
+                <motion.button
+                  key={park.id}
+                  onClick={() => setSelectedPark(park)}
+                  className={`group p-5 rounded-xl border-2 transition-all duration-300 ${
+                    selectedPark.id === park.id
+                      ? `border-transparent bg-gradient-to-r ${park.gradient} text-white shadow-xl`
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-lg'
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="text-left">
+                    <div className="font-bold text-lg mb-1">{park.name}</div>
+                    <div className={`text-sm mb-2 ${selectedPark.id === park.id ? 'text-white/90' : 'text-gray-600'}`}>
+                      {park.location}
+                    </div>
+                    {settings.showTimezone && (
+                      <div className={`text-xs ${selectedPark.id === park.id ? 'text-white/75' : 'text-gray-500'}`}>
+                        Opens: {park.openingTime} ({park.timezone.split('/')[1]})
+                      </div>
+                    )}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Date Selection with Enhanced UI */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 md:p-8"
+          >
+            <h3 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-3 text-gray-800">
+              <Calendar className="w-6 h-6 text-disney-purple" />
+              When is your magical trip?
+            </h3>
+
+            {/* Quick Date Options */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Quick Select
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {quickDateOptions.map((option) => (
+                  <Badge
+                    key={option.label}
+                    variant="disney"
+                    size="sm"
+                    className="cursor-pointer hover:scale-105 transition-transform"
+                    onClick={() => {
+                      const date = option.days()
+                      date.setHours(9, 0, 0, 0)
+                      setTargetDate(date.toISOString().slice(0, 16))
+                    }}
+                  >
+                    {option.label}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Trip Date & Time
+                </label>
+                                 <input
+                   type="datetime-local"
+                   value={targetDate}
+                   onChange={(e) => setTargetDate(e.target.value)}
+                   min={new Date().toISOString().slice(0, 16)}
+                   className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-disney-blue focus:border-disney-blue transition-all duration-300 text-lg"
+                   aria-label="Select your Disney trip date and time"
+                 />
+              </div>
+              <div className="flex gap-3 w-full md:w-auto">
+                                 <button
+                   onClick={handleStartCountdown}
+                   disabled={!targetDate}
+                   className="flex-1 md:flex-none btn-disney disabled:opacity-50 disabled:cursor-not-allowed"
+                   aria-label={targetDate ? "Start the Disney countdown timer" : "Please select a date first to start countdown"}
+                 >
+                   Start Countdown
+                 </button>
+                <button
+                  onClick={resetCountdown}
+                  className="px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Save Countdown */}
+            {targetDate && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mt-6 flex gap-3"
+              >
+                                 <input
+                   type="text"
+                   placeholder="Name this countdown..."
+                   value={countdownName}
+                   onChange={(e) => setCountdownName(e.target.value)}
+                   className="flex-1 p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
+                   aria-label="Enter a name for your countdown to save it"
+                 />
+                <button
+                  onClick={saveCountdown}
+                  disabled={!countdownName.trim()}
+                  className="btn-disney-small disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </motion.div>
+            )}
+          </motion.div>
+
+          {/* Enhanced Countdown Display */}
+          {targetDate && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              className={`text-center p-8 md:p-12 rounded-2xl bg-gradient-to-r ${currentTheme.gradient} ${currentTheme.textColor} relative overflow-hidden shadow-2xl`}
+             role="timer"
+             aria-live="polite"
+             aria-label={`Disney countdown timer showing ${countdown.days} days, ${countdown.hours} hours, ${countdown.minutes} minutes, and ${countdown.seconds} seconds until your trip to ${selectedPark.name}`}
+            >
+              {/* Enhanced Background decorations */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-8 left-8">
+                  <Sparkles className="w-8 h-8" />
+                </div>
+                <div className="absolute top-8 right-8">
+                  <Sparkles className="w-8 h-8" />
+                </div>
+                <div className="absolute bottom-8 left-1/4">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div className="absolute bottom-8 right-1/4">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div className="absolute top-1/2 left-8">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div className="absolute top-1/2 right-8">
+                  <Sparkles className="w-4 h-4" />
                 </div>
               </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
 
-      {/* Tips Section */}
-      {settings.showTips && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mt-8 bg-white rounded-xl p-6 shadow-lg"
-        >
-          <h3 className="text-xl font-semibold mb-4 text-gray-800">💡 Disney Planning Timeline</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-disney-blue mb-2">60+ Days Before</h4>
-              <p className="text-sm text-gray-600">Book dining reservations, plan your itinerary, book Genie+ if desired</p>
-            </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <h4 className="font-semibold text-disney-purple mb-2">30 Days Before</h4>
-              <p className="text-sm text-gray-600">Check park hours, book Lightning Lanes for popular attractions</p>
-            </div>
-            <div className="p-4 bg-green-50 rounded-lg">
-              <h4 className="font-semibold text-disney-green mb-2">7 Days Before</h4>
-              <p className="text-sm text-gray-600">Check weather forecast, finalise packing list, mobile order setup</p>
-            </div>
-            <div className="p-4 bg-orange-50 rounded-lg">
-              <h4 className="font-semibold text-disney-orange mb-2">Day Before</h4>
-              <p className="text-sm text-gray-600">Download Disney app, check park opening times, prepare for early start</p>
-            </div>
-          </div>
+              <div className="relative z-10">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <h2 className="text-xl md:text-2xl font-semibold mb-2 opacity-90">Your Trip to</h2>
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{selectedPark.name}</h1>
+                  <p className="text-lg md:text-xl opacity-90 mb-8">{formatTargetDate()}</p>
+                </motion.div>
 
-          <div className="mt-6 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
-            <h4 className="font-semibold text-yellow-800 mb-2">💰 Money-Saving Tip</h4>
-            <p className="text-sm text-yellow-700">
-              Book your trip during off-peak times (mid-January to mid-March, late April to mid-May) for cheaper accommodation and shorter queues!
-            </p>
+                {isActive ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className={`${getLayoutClassName()} mb-8`}
+                  >
+                    <div className={getDigitClassName()}>
+                      <div className={`${getFontSizeClass()} font-bold`}>{countdown.days}</div>
+                      <div className="text-sm md:text-base opacity-80 mt-2">Days</div>
+                    </div>
+                    <div className={getDigitClassName()}>
+                      <div className={`${getFontSizeClass()} font-bold`}>{countdown.hours}</div>
+                      <div className="text-sm md:text-base opacity-80 mt-2">Hours</div>
+                    </div>
+                    <div className={getDigitClassName()}>
+                      <div className={`${getFontSizeClass()} font-bold`}>{countdown.minutes}</div>
+                      <div className="text-sm md:text-base opacity-80 mt-2">Minutes</div>
+                    </div>
+                    <div className={getDigitClassName()}>
+                      <div className={`${getFontSizeClass()} font-bold`}>{countdown.seconds}</div>
+                      <div className="text-sm md:text-base opacity-80 mt-2">Seconds</div>
+                    </div>
+                    {settings.showMilliseconds && (
+                      <div className={getDigitClassName()}>
+                        <div className={`${getFontSizeClass()} font-bold`}>{Math.floor(milliseconds / 10)}</div>
+                        <div className="text-sm md:text-base opacity-80 mt-2">Centiseconds</div>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mb-8"
+                  >
+                                         <p className="text-xl md:text-2xl">Click &ldquo;Start Countdown&rdquo; to begin the magic! ✨</p>
+                  </motion.div>
+                )}
+
+                {countdown.days === 0 && countdown.hours === 0 && countdown.minutes === 0 && countdown.seconds === 0 && isActive && (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="text-center"
+                  >
+                                         <h2 className="text-3xl md:text-4xl font-bold mb-4">🎉 IT&rsquo;S DISNEY DAY! 🎉</h2>
+                    <p className="text-xl md:text-2xl">Your magical adventure begins now!</p>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Bottom Content with Improved Layout */}
+        {targetDate && (
+          <div className="space-y-8 mt-8">
+            {/* Popular Attractions */}
+            {settings.showAttractions && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 md:p-8"
+              >
+                <h3 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">
+                  🎢 Must-Do Attractions at {selectedPark.name}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedPark.popularAttractions.map((attraction, index) => (
+                    <motion.div
+                      key={attraction}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 + index * 0.1 }}
+                      className={`p-5 rounded-xl bg-gradient-to-r ${selectedPark.gradient} text-white shadow-lg hover:shadow-xl transition-all duration-300`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <CountBadge
+                          count={index + 1}
+                          className="bg-white/20 text-white border-white/30 text-lg font-bold"
+                        />
+                        <span className="font-semibold text-lg">{attraction}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Tips Section */}
+            {settings.showTips && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 md:p-8"
+              >
+                <h3 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">
+                  💡 Disney Planning Timeline
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 }}
+                    className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl"
+                  >
+                    <h4 className="font-bold text-disney-blue mb-3 text-lg">60+ Days Before</h4>
+                    <p className="text-sm text-gray-700 leading-relaxed">Book dining reservations, plan your itinerary, book Genie+ if desired</p>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8 }}
+                    className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl"
+                  >
+                    <h4 className="font-bold text-disney-purple mb-3 text-lg">30 Days Before</h4>
+                    <p className="text-sm text-gray-700 leading-relaxed">Check park hours, book Lightning Lanes for popular attractions</p>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 }}
+                    className="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl"
+                  >
+                    <h4 className="font-bold text-disney-green mb-3 text-lg">7 Days Before</h4>
+                    <p className="text-sm text-gray-700 leading-relaxed">Check weather forecast, finalise packing list, mobile order setup</p>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.0 }}
+                    className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl"
+                  >
+                    <h4 className="font-bold text-disney-orange mb-3 text-lg">Day Before</h4>
+                    <p className="text-sm text-gray-700 leading-relaxed">Download Disney app, check park opening times, prepare for early start</p>
+                  </motion.div>
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.1 }}
+                  className="mt-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border-l-4 border-yellow-400"
+                >
+                  <h4 className="font-bold text-yellow-800 mb-3 text-lg">💰 Money-Saving Tip</h4>
+                  <p className="text-yellow-700 leading-relaxed">
+                    Book your trip during off-peak times (mid-January to mid-March, late April to mid-May) for cheaper accommodation and shorter queues!
+                  </p>
+                </motion.div>
+              </motion.div>
+            )}
           </div>
-        </motion.div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

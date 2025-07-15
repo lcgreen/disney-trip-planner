@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { DollarSign, Plus, Trash2, PiggyBank, Target, TrendingUp, AlertTriangle, Save, FolderOpen } from 'lucide-react'
 import {
   Modal,
@@ -304,478 +304,568 @@ export default function BudgetTracker() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-4 gradient-text">Disney Budget Tracker</h2>
-        <p className="text-gray-600 mb-6">
-          Keep track of your Disney vacation expenses and stay within budget for the most magical trip ever!
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4 md:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8 md:mb-12">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 gradient-text"
+          >
+            Disney Budget Tracker
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-lg md:text-xl text-gray-600 mb-8"
+          >
+            Keep track of your Disney vacation expenses and stay within budget for the most magical trip ever!
+          </motion.p>
 
-        {/* Save/Load Controls */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {currentBudgetName ? (
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-disney-blue" />
-                  <span className="font-medium text-gray-700">Current Budget: {currentBudgetName}</span>
-                  <Badge variant="success" size="sm">Saved</Badge>
-                </div>
-              ) : (
-                <span className="text-gray-500">No budget loaded</span>
-              )}
+          {/* Save/Load Controls */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white p-4 md:p-6 rounded-2xl mb-8 shadow-lg border border-gray-100"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                {currentBudgetName ? (
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-disney-blue" />
+                    <span className="font-medium text-gray-700">Current Budget: {currentBudgetName}</span>
+                    <Badge variant="success" size="sm">Saved</Badge>
+                  </div>
+                ) : (
+                  <span className="text-gray-500">No budget loaded</span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => setShowLoadBudget(true)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  Load Budget
+                </Button>
+
+                <Button
+                  onClick={() => setShowSaveBudget(true)}
+                  variant="disney"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={totalBudget === 0 && expenses.length === 0}
+                >
+                  <Save className="w-4 h-4" />
+                  Save Budget
+                </Button>
+
+                <Button
+                  onClick={startNewBudget}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Budget
+                </Button>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setShowLoadBudget(true)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <FolderOpen className="w-4 h-4" />
-                Load Budget
-              </Button>
-
-              <Button
-                onClick={() => setShowSaveBudget(true)}
-                variant="disney"
-                size="sm"
-                className="flex items-center gap-2"
-                disabled={totalBudget === 0 && expenses.length === 0}
-              >
-                <Save className="w-4 h-4" />
-                Save Budget
-              </Button>
-
-              <Button
-                onClick={startNewBudget}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                New Budget
-              </Button>
-            </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
 
-            {/* Budget Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard
-          title="Total Budget"
-          value={totalBudget}
-          icon={<Target className="w-5 h-5" />}
-          variant="disney"
-          description="Set your total trip budget"
-        />
-
-        <StatCard
-          title="Total Spent"
-          value={getTotalSpent()}
-          icon={<DollarSign className="w-5 h-5" />}
-          variant="warning"
-          description={`${getOverallProgress().toFixed(1)}% of budget used`}
-        />
-
-        <StatCard
-          title="Remaining"
-          value={getRemainingBudget()}
-          icon={<PiggyBank className="w-5 h-5" />}
-          variant={getRemainingBudget() < 0 ? "error" : "success"}
-          description={getRemainingBudget() < 0 ? "Over budget!" : "Available to spend"}
-        />
-      </div>
-
-      {/* Total Budget Progress */}
-      {totalBudget > 0 && (
+        {/* Budget Overview Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          transition={{ delay: 0.3 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
         >
-          <BudgetProgress
-            budget={totalBudget}
-            spent={getTotalSpent()}
-            category="Overall Budget"
-            currency="£"
+          <StatCard
+            title="Total Budget"
+            value={totalBudget}
+            icon={<Target className="w-5 h-5" />}
+            variant="disney"
+            description="Set your total trip budget"
+          />
+
+          <StatCard
+            title="Total Spent"
+            value={getTotalSpent()}
+            icon={<DollarSign className="w-5 h-5" />}
+            variant="warning"
+            description={`${getOverallProgress().toFixed(1)}% of budget used`}
+          />
+
+          <StatCard
+            title="Remaining"
+            value={getRemainingBudget()}
+            icon={<PiggyBank className="w-5 h-5" />}
+            variant={getRemainingBudget() < 0 ? "error" : "success"}
+            description={getRemainingBudget() < 0 ? "Over budget!" : "Available to spend"}
           />
         </motion.div>
-      )}
 
-      {/* Category Budgets */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white rounded-xl shadow-lg p-6 mb-8"
-      >
-        <h3 className="text-2xl font-bold mb-6">Budget by Category</h3>
+        {/* Total Budget Progress */}
+        {totalBudget > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-8"
+          >
+            <BudgetProgress
+              budget={totalBudget}
+              spent={getTotalSpent()}
+              category="Overall Budget"
+              currency="£"
+            />
+          </motion.div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => (
-            <div key={category.id} className="border rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">{category.icon}</span>
-                <h4 className="font-semibold">{category.name}</h4>
-              </div>
+        {/* Total Budget Input */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-2xl p-6 md:p-8 mb-8 shadow-xl border border-gray-100"
+        >
+          <h3 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-3">
+            <Target className="w-6 h-6 md:w-8 md:h-8" />
+            Set Total Budget
+          </h3>
 
-              <div className="mb-3">
-                <label className="block text-sm text-gray-600 mb-1">Budget</label>
-                <div className="flex items-center">
-                  <span className="text-sm mr-2">£</span>
-                  <input
-                    type="number"
-                    value={category.budget || ''}
-                    onChange={(e) => updateCategoryBudget(category.id, parseFloat(e.target.value) || 0)}
-                    className="flex-1 border border-gray-300 rounded px-3 py-2"
-                    placeholder="0"
+          <div className="max-w-md">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Total Trip Budget (£)</label>
+            <div className="flex items-center">
+              <span className="text-lg mr-2">£</span>
+              <input
+                type="number"
+                value={totalBudget || ''}
+                onChange={(e) => setTotalBudget(parseFloat(e.target.value) || 0)}
+                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue text-lg"
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Category Budgets */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-white rounded-2xl p-6 md:p-8 mb-8 shadow-xl border border-gray-100"
+        >
+          <h3 className="text-2xl md:text-3xl font-bold mb-8 flex items-center gap-3">
+            💰 Budget by Category
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {categories.map((category, index) => (
+              <motion.div
+                key={category.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.7 + index * 0.1 }}
+                className="bg-white rounded-xl p-4 md:p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl md:text-3xl">{category.icon}</span>
+                  <h4 className="font-semibold text-lg">{category.name}</h4>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-600 mb-2">Budget</label>
+                  <div className="flex items-center">
+                    <span className="text-sm mr-2">£</span>
+                    <input
+                      type="number"
+                      value={category.budget || ''}
+                      onChange={(e) => updateCategoryBudget(category.id, parseFloat(e.target.value) || 0)}
+                      className="flex-1 border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <BudgetProgress
+                    spent={getCategorySpent(category.id)}
+                    budget={category.budget}
+                    category={category.name}
+                    currency="£"
                   />
                 </div>
-              </div>
 
-              <div className="mb-3">
-                <BudgetProgress
-                  spent={getCategorySpent(category.id)}
-                  budget={category.budget}
-                  category={category.name}
-                  currency="£"
-                />
-              </div>
+                <div className="text-sm text-gray-600">
+                  Remaining: £{(category.budget - getCategorySpent(category.id)).toFixed(2)}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
 
-              <div className="text-sm text-gray-600">
-                Remaining: £{(category.budget - getCategorySpent(category.id)).toFixed(2)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Expenses */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="bg-white rounded-xl shadow-lg p-6 mb-8"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-bold">Expenses</h3>
-          <button
-            onClick={() => setShowAddExpense(true)}
-            className="btn-disney flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Add Expense
-          </button>
-        </div>
-
-        {expenses.length === 0 ? (
-          <div className="text-center py-8">
-            <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h4 className="text-xl font-semibold text-gray-600 mb-2">No expenses yet</h4>
-            <p className="text-gray-500 mb-6">Start tracking your Disney spending!</p>
+        {/* Expenses */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="bg-white rounded-2xl p-6 md:p-8 mb-8 shadow-xl border border-gray-100"
+        >
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+              💳 Expenses
+            </h3>
             <button
               onClick={() => setShowAddExpense(true)}
-              className="btn-disney"
+              className="btn-disney flex items-center gap-2 transform hover:scale-105 transition-all duration-200"
             >
-              Add Your First Expense
+              <Plus className="w-5 h-5" />
+              Add Expense
             </button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {expenses
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-              .map((expense) => (
-                <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'
-                    }`}>
-                      <span className={`text-sm ${
-                        getSafeTextColor(
-                          colorMap[categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'] || '#6b7280'
-                        )
-                      }`}>
-                        {categories.find(c => c.id === expense.category)?.icon || '💰'}
-                      </span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{expense.description}</h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span>{getCategoryName(expense.category)}</span>
-                        <span>•</span>
-                        <span>{new Date(expense.date).toLocaleDateString()}</span>
-                        {expense.isEstimate && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="warning" size="xs">
-                              Estimate
-                            </Badge>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl font-bold">£{expense.amount.toFixed(2)}</span>
-                    <button
-                      onClick={() => deleteExpense(expense.id)}
-                      className="text-gray-400 hover:text-red-600 transition-colors"
+
+          {expenses.length === 0 ? (
+            <div className="text-center py-12">
+              <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-6" />
+              <h4 className="text-xl md:text-2xl font-semibold text-gray-600 mb-4">No expenses yet</h4>
+              <p className="text-lg text-gray-500 mb-8">Start tracking your Disney spending!</p>
+              <button
+                onClick={() => setShowAddExpense(true)}
+                className="btn-disney transform hover:scale-105 transition-all duration-200"
+              >
+                Add Your First Expense
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <AnimatePresence>
+                {expenses
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map((expense, index) => (
+                    <motion.div
+                      key={expense.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="flex items-center justify-between p-4 md:p-6 bg-white rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] border border-gray-100"
                     >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-      </motion.div>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center ${
+                          categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'
+                        }`}>
+                          <span className={`text-sm md:text-base ${
+                            getSafeTextColor(
+                              colorMap[categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'] || '#6b7280'
+                            )
+                          }`}>
+                            {categories.find(c => c.id === expense.category)?.icon || '💰'}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-lg">{expense.description}</h4>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span>{getCategoryName(expense.category)}</span>
+                            <span>•</span>
+                            <span>{new Date(expense.date).toLocaleDateString()}</span>
+                            {expense.isEstimate && (
+                              <>
+                                <span>•</span>
+                                <Badge variant="warning" size="xs">
+                                  Estimate
+                                </Badge>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-xl md:text-2xl font-bold">£{expense.amount.toFixed(2)}</span>
+                        <button
+                          onClick={() => deleteExpense(expense.id)}
+                          className="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </motion.div>
 
-      {/* Add Expense Modal */}
-      <Modal
-        isOpen={showAddExpense}
-        onClose={() => setShowAddExpense(false)}
-        title="Add Expense"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-            <Select
-              value={newExpense.category}
-              onValueChange={(value) => setNewExpense({...newExpense, category: value})}
-              options={categoryOptions}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <input
-              type="text"
-              value={newExpense.description}
-              onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-              placeholder="e.g., Park tickets, Hotel booking"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Amount (£)</label>
-            <input
-              type="number"
-              value={newExpense.amount}
-              onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-              placeholder="0.00"
-              step="0.01"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-            <input
-              type="date"
-              value={newExpense.date}
-              onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-            />
-          </div>
-
-          <Checkbox
-            checked={newExpense.isEstimate}
-            onCheckedChange={(checked) => setNewExpense({...newExpense, isEstimate: Boolean(checked)})}
-            label="This is an estimate"
-          />
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <button onClick={addExpense} className="btn-disney flex-1">
-            Add Expense
-          </button>
-          <button
-            onClick={() => setShowAddExpense(false)}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-        </div>
-      </Modal>
-
-      {/* Money Saving Tips */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="bg-white rounded-xl shadow-lg p-6"
-      >
-        <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <PiggyBank className="w-6 h-6 text-disney-gold" />
-          💡 Money-Saving Tips for Disney
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Add Expense Modal */}
+        <Modal
+          isOpen={showAddExpense}
+          onClose={() => setShowAddExpense(false)}
+          title="Add Expense"
+          size="md"
+        >
           <div className="space-y-4">
-            <div className="p-4 bg-green-50 rounded-lg">
-              <h4 className="font-semibold text-green-800 mb-2">🍔 Dining</h4>
-              <ul className="text-sm text-green-700 space-y-1">
-                <li>• Bring snacks and water bottles</li>
-                <li>• Share meals - portions are huge!</li>
-                <li>• Look for character dining deals</li>
-                <li>• Use Disney dining plan if staying on-site</li>
-              </ul>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <Select
+                value={newExpense.category}
+                onValueChange={(value) => setNewExpense({...newExpense, category: value})}
+                options={categoryOptions}
+              />
             </div>
 
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-800 mb-2">🎫 Tickets</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Buy multi-day tickets for better value</li>
-                <li>• Book in advance for discounts</li>
-                <li>• Consider park hopper carefully</li>
-                <li>• Check for seasonal promotions</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <h4 className="font-semibold text-purple-800 mb-2">🛍️ Shopping</h4>
-              <ul className="text-sm text-purple-700 space-y-1">
-                <li>• Set a souvenir budget per person</li>
-                <li>• Buy Disney items before your trip</li>
-                <li>• Ship purchases home to save space</li>
-                <li>• Look for Disney outlet stores nearby</li>
-              </ul>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <input
+                type="text"
+                value={newExpense.description}
+                onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+                placeholder="e.g., Park tickets, Hotel booking"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+              />
             </div>
 
-            <div className="p-4 bg-orange-50 rounded-lg">
-              <h4 className="font-semibold text-orange-800 mb-2">🏨 Accommodation</h4>
-              <ul className="text-sm text-orange-700 space-y-1">
-                <li>• Stay off-site for budget savings</li>
-                <li>• Book with kitchen for meal prep</li>
-                <li>• Consider value Disney resorts</li>
-                <li>• Split costs with family/friends</li>
-              </ul>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Amount (£)</label>
+              <input
+                type="number"
+                value={newExpense.amount}
+                onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                placeholder="0.00"
+                step="0.01"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+              />
             </div>
-          </div>
-        </div>
-      </motion.div>
 
-      {/* Save Budget Modal */}
-      <Modal
-        isOpen={showSaveBudget}
-        onClose={() => {
-          setShowSaveBudget(false)
-          setBudgetToSave('')
-        }}
-        title="Save Budget"
-        size="md"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-600">
-            Save your current budget to access it later. Your budget data will be stored locally in your browser.
-          </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+              <input
+                type="date"
+                value={newExpense.date}
+                onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Budget Name</label>
-            <input
-              type="text"
-              value={budgetToSave}
-              onChange={(e) => setBudgetToSave(e.target.value)}
-              placeholder="Enter a name for your budget..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
-              autoFocus
+            <Checkbox
+              checked={newExpense.isEstimate}
+              onCheckedChange={(checked) => setNewExpense({...newExpense, isEstimate: Boolean(checked)})}
+              label="This is an estimate"
             />
           </div>
 
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-3 mt-6">
+            <button onClick={addExpense} className="btn-disney flex-1">
+              Add Expense
+            </button>
             <button
-              onClick={() => {
-                setShowSaveBudget(false)
-                setBudgetToSave('')
-              }}
+              onClick={() => setShowAddExpense(false)}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               Cancel
             </button>
-            <button
-              onClick={() => saveCurrentBudget(true)}
-              disabled={!budgetToSave.trim()}
-              className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-            >
-              Save Budget
-            </button>
           </div>
-        </div>
-      </Modal>
+        </Modal>
 
-      {/* Load Budget Modal */}
-      <Modal
-        isOpen={showLoadBudget}
-        onClose={() => setShowLoadBudget(false)}
-        title="Load Budget"
-        size="lg"
-      >
-        <div className="space-y-4">
-          {savedBudgets.length === 0 ? (
-            <div className="text-center py-8">
-              <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">No saved budgets found.</p>
-              <p className="text-sm text-gray-400">Create and save a budget to see it here.</p>
+        {/* Money Saving Tips */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0 }}
+          className="bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100"
+        >
+          <h3 className="text-2xl md:text-3xl font-bold mb-8 flex items-center gap-3">
+            <PiggyBank className="w-6 h-6 md:w-8 md:h-8 text-disney-gold" />
+            💡 Money-Saving Tips for Disney
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.1 }}
+                className="p-4 md:p-6 bg-green-50 rounded-xl border border-green-200"
+              >
+                <h4 className="font-semibold text-green-800 mb-3 text-lg">🍔 Dining</h4>
+                <ul className="text-sm md:text-base text-green-700 space-y-2">
+                  <li>• Bring snacks and water bottles</li>
+                  <li>• Share meals - portions are huge!</li>
+                  <li>• Look for character dining deals</li>
+                  <li>• Use Disney dining plan if staying on-site</li>
+                </ul>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.2 }}
+                className="p-4 md:p-6 bg-blue-50 rounded-xl border border-blue-200"
+              >
+                <h4 className="font-semibold text-blue-800 mb-3 text-lg">🎫 Tickets</h4>
+                <ul className="text-sm md:text-base text-blue-700 space-y-2">
+                  <li>• Buy multi-day tickets for better value</li>
+                  <li>• Book in advance for discounts</li>
+                  <li>• Consider park hopper carefully</li>
+                  <li>• Check for seasonal promotions</li>
+                </ul>
+              </motion.div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-gray-600">
-                Select a saved budget to load. This will replace your current budget data.
-              </p>
 
-              {savedBudgets.map((budget) => (
-                <div
-                  key={budget.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                    activeBudgetId === budget.id
-                      ? 'border-disney-blue bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1" onClick={() => loadBudget(budget)}>
-                      <h3 className="font-medium text-gray-900">{budget.name}</h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                        <span>£{budget.totalBudget.toLocaleString()} total budget</span>
-                        <span>•</span>
-                        <span>{budget.expenses.length} {budget.expenses.length === 1 ? 'expense' : 'expenses'}</span>
-                        <span>•</span>
-                        <span>Updated {new Date(budget.updatedAt).toLocaleDateString()}</span>
-                        {activeBudgetId === budget.id && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="success" size="sm">Currently Loaded</Badge>
-                          </>
-                        )}
+            <div className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.3 }}
+                className="p-4 md:p-6 bg-purple-50 rounded-xl border border-purple-200"
+              >
+                <h4 className="font-semibold text-purple-800 mb-3 text-lg">🛍️ Shopping</h4>
+                <ul className="text-sm md:text-base text-purple-700 space-y-2">
+                  <li>• Set a souvenir budget per person</li>
+                  <li>• Buy Disney items before your trip</li>
+                  <li>• Ship purchases home to save space</li>
+                  <li>• Look for Disney outlet stores nearby</li>
+                </ul>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.4 }}
+                className="p-4 md:p-6 bg-orange-50 rounded-xl border border-orange-200"
+              >
+                <h4 className="font-semibold text-orange-800 mb-3 text-lg">🏨 Accommodation</h4>
+                <ul className="text-sm md:text-base text-orange-700 space-y-2">
+                  <li>• Stay off-site for budget savings</li>
+                  <li>• Book with kitchen for meal prep</li>
+                  <li>• Consider value Disney resorts</li>
+                  <li>• Split costs with family/friends</li>
+                </ul>
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Save Budget Modal */}
+        <Modal
+          isOpen={showSaveBudget}
+          onClose={() => {
+            setShowSaveBudget(false)
+            setBudgetToSave('')
+          }}
+          title="Save Budget"
+          size="md"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Save your current budget to access it later. Your budget data will be stored locally in your browser.
+            </p>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Budget Name</label>
+              <input
+                type="text"
+                value={budgetToSave}
+                onChange={(e) => setBudgetToSave(e.target.value)}
+                placeholder="Enter a name for your budget..."
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowSaveBudget(false)
+                  setBudgetToSave('')
+                }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => saveCurrentBudget(true)}
+                disabled={!budgetToSave.trim()}
+                className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+              >
+                Save Budget
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Load Budget Modal */}
+        <Modal
+          isOpen={showLoadBudget}
+          onClose={() => setShowLoadBudget(false)}
+          title="Load Budget"
+          size="lg"
+        >
+          <div className="space-y-4">
+            {savedBudgets.length === 0 ? (
+              <div className="text-center py-8">
+                <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No saved budgets found.</p>
+                <p className="text-sm text-gray-400">Create and save a budget to see it here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-gray-600">
+                  Select a saved budget to load. This will replace your current budget data.
+                </p>
+
+                {savedBudgets.map((budget) => (
+                  <div
+                    key={budget.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      activeBudgetId === budget.id
+                        ? 'border-disney-blue bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1" onClick={() => loadBudget(budget)}>
+                        <h3 className="font-medium text-gray-900">{budget.name}</h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                          <span>£{budget.totalBudget.toLocaleString()} total budget</span>
+                          <span>•</span>
+                          <span>{budget.expenses.length} {budget.expenses.length === 1 ? 'expense' : 'expenses'}</span>
+                          <span>•</span>
+                          <span>Updated {new Date(budget.updatedAt).toLocaleDateString()}</span>
+                          {activeBudgetId === budget.id && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="success" size="sm">Currently Loaded</Badge>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (confirm(`Are you sure you want to delete "${budget.name}"?`)) {
-                          deleteBudget(budget.id)
-                        }
-                      }}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (confirm(`Are you sure you want to delete "${budget.name}"?`)) {
+                            deleteBudget(budget.id)
+                          }
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Modal>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
+      </div>
     </div>
   )
 }

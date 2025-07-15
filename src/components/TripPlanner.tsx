@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, Clock, MapPin, Plus, Star, Trash2, Edit, Save, FolderOpen, Download, Upload } from 'lucide-react'
 import {
   Modal,
@@ -334,490 +334,518 @@ export default function TripPlanner() {
   const prioritySelectOptions = getPriorityOptions()
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-4 gradient-text">Disney Trip Planner</h2>
-        <p className="text-gray-600 mb-6">
-          Plan your perfect Disney days with detailed itineraries, dining reservations, and attraction priorities.
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4 md:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8 md:mb-12">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 gradient-text"
+          >
+            Disney Trip Planner
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-lg md:text-xl text-gray-600 mb-8"
+          >
+            Plan your perfect Disney days with detailed itineraries, dining reservations, and attraction priorities.
+          </motion.p>
 
-        {/* Save/Load Controls */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {currentPlanName ? (
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-disney-blue" />
-                  <span className="font-medium text-gray-700">Current Plan: {currentPlanName}</span>
-                  <Badge variant="success" size="sm">Saved</Badge>
-                </div>
-              ) : (
-                <span className="text-gray-500">No plan loaded</span>
+          {/* Save/Load Controls */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white p-4 md:p-6 rounded-2xl mb-8 shadow-lg border border-gray-100"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                {currentPlanName ? (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-disney-blue" />
+                    <span className="font-medium text-gray-700">Current Plan: {currentPlanName}</span>
+                    <Badge variant="success" size="sm">Saved</Badge>
+                  </div>
+                ) : (
+                  <span className="text-gray-500">No plan loaded</span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => setShowLoadPlan(true)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  Load Plan
+                </Button>
+
+                <Button
+                  onClick={() => setShowSavePlan(true)}
+                  variant="disney"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={days.length === 0}
+                >
+                  <Save className="w-4 h-4" />
+                  Save Plan
+                </Button>
+
+                <Button
+                  onClick={startNewPlan}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Plan
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            onClick={() => setShowAddDay(true)}
+            className="btn-disney flex items-center gap-2 transform hover:scale-105 transition-all duration-200"
+          >
+            <Plus className="w-5 h-5" />
+            Add New Day
+          </motion.button>
+        </div>
+
+        {/* Add Day Modal */}
+        <Modal
+          isOpen={showAddDay}
+          onClose={() => {
+            setShowAddDay(false)
+            setNewDayForm({ date: '', park: '' })
+            setFormErrors({ date: '', park: '' })
+          }}
+          title="Add New Day"
+          size="md"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+              <input
+                type="date"
+                value={newDayForm.date}
+                onChange={(e) => {
+                  setNewDayForm({...newDayForm, date: e.target.value})
+                  if (formErrors.date) {
+                    setFormErrors({...formErrors, date: ''})
+                  }
+                }}
+                min={new Date().toISOString().split('T')[0]}
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue ${
+                  formErrors.date ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {formErrors.date && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setShowLoadPlan(true)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <FolderOpen className="w-4 h-4" />
-                Load Plan
-              </Button>
-
-              <Button
-                onClick={() => setShowSavePlan(true)}
-                variant="disney"
-                size="sm"
-                className="flex items-center gap-2"
-                disabled={days.length === 0}
-              >
-                <Save className="w-4 h-4" />
-                Save Plan
-              </Button>
-
-              <Button
-                onClick={startNewPlan}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                New Plan
-              </Button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
+              <Select
+                value={newDayForm.park}
+                onValueChange={(value) => {
+                  setNewDayForm({...newDayForm, park: value})
+                  if (formErrors.park) {
+                    setFormErrors({...formErrors, park: ''})
+                  }
+                }}
+                options={parkOptions}
+                placeholder="Select a park"
+                className="w-full"
+                error={formErrors.park}
+              />
+              {formErrors.park && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.park}</p>
+              )}
             </div>
           </div>
-        </div>
 
-        <button
-          onClick={() => setShowAddDay(true)}
-          className="btn-disney flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add New Day
-        </button>
-      </div>
-
-      {/* Add Day Modal */}
-      <Modal
-        isOpen={showAddDay}
-        onClose={() => {
-          setShowAddDay(false)
-          setNewDayForm({ date: '', park: '' })
-          setFormErrors({ date: '', park: '' })
-        }}
-        title="Add New Day"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-            <input
-              type="date"
-              value={newDayForm.date}
-              onChange={(e) => {
-                setNewDayForm({...newDayForm, date: e.target.value})
-                if (formErrors.date) {
-                  setFormErrors({...formErrors, date: ''})
-                }
-              }}
-              min={new Date().toISOString().split('T')[0]}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue ${
-                formErrors.date ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {formErrors.date && (
-              <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
-            <Select
-              value={newDayForm.park}
-              onValueChange={(value) => {
-                setNewDayForm({...newDayForm, park: value})
-                if (formErrors.park) {
-                  setFormErrors({...formErrors, park: ''})
-                }
-              }}
-              options={parkOptions}
-              placeholder="Select a park"
-              className="w-full"
-              error={formErrors.park}
-            />
-            {formErrors.park && (
-              <p className="text-red-500 text-sm mt-1">{formErrors.park}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={addNewDay}
-            className="btn-disney flex-1"
-            disabled={!newDayForm.date || !newDayForm.park}
-          >
-            Add Day
-          </button>
-          <button
-            onClick={() => {
-              setShowAddDay(false)
-              setNewDayForm({ date: '', park: '' })
-              setFormErrors({ date: '', park: '' })
-            }}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-        </div>
-      </Modal>
-
-      {/* Days List */}
-      {days.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center py-12 bg-white rounded-xl shadow-lg"
-        >
-          <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">No days planned yet</h3>
-          <p className="text-gray-500 mb-6">Start by adding your first Disney day!</p>
-          <button
-            onClick={() => setShowAddDay(true)}
-            className="btn-disney"
-          >
-            Add Your First Day
-          </button>
-        </motion.div>
-      ) : (
-        <div className="space-y-6">
-          {days.map((day, index) => (
-            <motion.div
-              key={day.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl shadow-lg overflow-hidden"
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={addNewDay}
+              className="btn-disney flex-1"
+              disabled={!newDayForm.date || !newDayForm.park}
             >
-              {/* Day Header */}
-              <div className="bg-gradient-to-r from-disney-blue to-disney-purple p-6 text-white">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2">
-                      Day {index + 1}: {new Date(day.date).toLocaleDateString('en-GB', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </h3>
-                    <p className="text-lg opacity-90 flex items-center gap-2">
-                      <MapPin className="w-5 h-5" />
-                      {getParkById(day.park)?.name || day.park}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => deleteDay(day.id)}
-                    className="text-white hover:text-red-200 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Activities */}
-              <div className="p-6">
-                {day.activities.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-500 mb-4">No activities planned for this day</p>
-                    <button
-                      onClick={() => addActivity(day.id)}
-                      className="btn-disney"
-                    >
-                      Add First Activity
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-3 mb-6">
-                      {day.activities
-                        .sort((a, b) => a.time.localeCompare(b.time))
-                        .map((activity) => (
-                        <div
-                          key={activity.id}
-                          className={`p-4 rounded-lg border-2 ${getPriorityVariant(activity.priority)} transition-all hover:shadow-md`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className="font-mono text-sm font-semibold bg-white px-2 py-1 rounded">
-                                  {activity.time}
-                                </span>
-                                <Badge
-                                  variant={getActivityTypeVariant(activity.type)}
-                                  size="sm"
-                                >
-                                  {getActivityTypeInfo(activity.type).label}
-                                </Badge>
-                                <Badge
-                                  variant={getPriorityVariant(activity.priority)}
-                                  size="sm"
-                                >
-                                  {activity.priority} priority
-                                </Badge>
-                              </div>
-                              <h4 className="font-semibold text-lg">{activity.title}</h4>
-                              {activity.location && (
-                                <p className="text-gray-600 text-sm flex items-center gap-1">
-                                  <MapPin className="w-4 h-4" />
-                                  {activity.location}
-                                </p>
-                              )}
-                              {activity.notes && (
-                                <p className="text-gray-600 text-sm mt-2">{activity.notes}</p>
-                              )}
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => {
-                                  setEditingActivity({ dayId: day.id, activity })
-                                  setEditFormData({ ...activity })
-                                }}
-                                className="text-gray-500 hover:text-disney-blue transition-colors"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => deleteActivity(day.id, activity.id)}
-                                className="text-gray-500 hover:text-red-600 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => addActivity(day.id)}
-                      className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-disney-blue hover:text-disney-blue transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Add Activity
-                    </button>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Edit Activity Modal */}
-      <Modal
-        isOpen={!!editingActivity}
-        onClose={handleCancelActivityEdit}
-        title="Edit Activity"
-        size="md"
-      >
-        {(() => {
-          return editFormData && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                <input
-                  type="time"
-                  value={editFormData.time}
-                  onChange={(e) => setEditFormData({ ...editFormData, time: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                <input
-                  type="text"
-                  value={editFormData.title}
-                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                <input
-                  type="text"
-                  value={editFormData.location}
-                  onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                  placeholder="e.g., Fantasyland, Main Street USA"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                <Select
-                  value={editFormData.type}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, type: value as Activity['type'] })}
-                  options={activityTypeOptions}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                <Select
-                  value={editFormData.priority}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, priority: value as Activity['priority'] })}
-                  options={prioritySelectOptions}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                <textarea
-                  value={editFormData.notes || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                  rows={3}
-                  placeholder="Additional notes, dining reservations, etc."
-                />
-              </div>
-            </div>
-          )
-        })()}
-
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={handleSaveActivityChanges}
-            className="btn-disney flex-1"
-          >
-            Save Changes
-          </button>
-          <button
-            onClick={handleCancelActivityEdit}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-        </div>
-      </Modal>
-
-      {/* Save Plan Modal */}
-      <Modal
-        isOpen={showSavePlan}
-        onClose={() => {
-          setShowSavePlan(false)
-          setPlanToSave('')
-        }}
-        title="Save Trip Plan"
-        size="md"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-600">
-            Save your current trip plan to access it later. Your plan will be stored locally in your browser.
-          </p>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Plan Name</label>
-            <input
-              type="text"
-              value={planToSave}
-              onChange={(e) => setPlanToSave(e.target.value)}
-              placeholder="Enter a name for your trip plan..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
-              autoFocus
-            />
-          </div>
-
-          <div className="flex gap-3 justify-end">
+              Add Day
+            </button>
             <button
               onClick={() => {
-                setShowSavePlan(false)
-                setPlanToSave('')
+                setShowAddDay(false)
+                setNewDayForm({ date: '', park: '' })
+                setFormErrors({ date: '', park: '' })
               }}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               Cancel
             </button>
+          </div>
+        </Modal>
+
+        {/* Days List */}
+        {days.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-center py-16 bg-white rounded-2xl shadow-xl border border-gray-100"
+          >
+            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-6" />
+            <h3 className="text-2xl md:text-3xl font-semibold text-gray-600 mb-4">No days planned yet</h3>
+            <p className="text-lg text-gray-500 mb-8">Start by adding your first Disney day!</p>
             <button
-              onClick={() => saveCurrentPlan(true)}
-              disabled={!planToSave.trim()}
-              className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+              onClick={() => setShowAddDay(true)}
+              className="btn-disney transform hover:scale-105 transition-all duration-200"
             >
-              Save Plan
+              Add Your First Day
+            </button>
+          </motion.div>
+        ) : (
+          <div className="space-y-8">
+            <AnimatePresence>
+              {days.map((day, index) => (
+                <motion.div
+                  key={day.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ delay: 0.4 + index * 0.1 }}
+                  className="bg-white rounded-2xl overflow-hidden shadow-xl border border-gray-100"
+                >
+                  {/* Day Header */}
+                  <div className="bg-gradient-to-r from-disney-blue to-disney-purple p-6 md:p-8 text-white">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3">
+                          Day {index + 1}: {new Date(day.date).toLocaleDateString('en-GB', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </h3>
+                        <p className="text-lg md:text-xl opacity-90 flex items-center gap-2">
+                          <MapPin className="w-5 h-5 md:w-6 md:h-6" />
+                          {getParkById(day.park)?.name || day.park}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => deleteDay(day.id)}
+                        className="text-white hover:text-red-200 transition-colors p-2 rounded-lg hover:bg-white/10"
+                      >
+                        <Trash2 className="w-5 h-5 md:w-6 md:h-6" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Activities */}
+                  <div className="p-6 md:p-8">
+                    {day.activities.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Clock className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-lg text-gray-500 mb-6">No activities planned for this day</p>
+                        <button
+                          onClick={() => addActivity(day.id)}
+                          className="btn-disney transform hover:scale-105 transition-all duration-200"
+                        >
+                          Add First Activity
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-4 mb-8">
+                          {day.activities
+                            .sort((a, b) => a.time.localeCompare(b.time))
+                            .map((activity, activityIndex) => (
+                            <motion.div
+                              key={activity.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.5 + index * 0.1 + activityIndex * 0.05 }}
+                              className={`p-4 md:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${getPriorityVariant(activity.priority)}`}
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="flex-1">
+                                  <div className="flex flex-wrap items-center gap-3 mb-3">
+                                    <span className="font-mono text-sm md:text-base font-semibold bg-white px-3 py-1 rounded-lg shadow-sm">
+                                      {activity.time}
+                                    </span>
+                                    <Badge
+                                      variant={getActivityTypeVariant(activity.type)}
+                                      size="sm"
+                                    >
+                                      {getActivityTypeInfo(activity.type).label}
+                                    </Badge>
+                                    <Badge
+                                      variant={getPriorityVariant(activity.priority)}
+                                      size="sm"
+                                    >
+                                      {activity.priority} priority
+                                    </Badge>
+                                  </div>
+                                  <h4 className="font-semibold text-lg md:text-xl mb-2">{activity.title}</h4>
+                                  {activity.location && (
+                                    <p className="text-gray-600 text-sm md:text-base flex items-center gap-2 mb-2">
+                                      <MapPin className="w-4 h-4" />
+                                      {activity.location}
+                                    </p>
+                                  )}
+                                  {activity.notes && (
+                                    <p className="text-gray-600 text-sm md:text-base mt-2">{activity.notes}</p>
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingActivity({ dayId: day.id, activity })
+                                      setEditFormData({ ...activity })
+                                    }}
+                                    className="text-gray-500 hover:text-disney-blue transition-colors p-2 rounded-lg hover:bg-blue-50"
+                                  >
+                                    <Edit className="w-4 h-4 md:w-5 md:h-5" />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteActivity(day.id, activity.id)}
+                                    className="text-gray-500 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => addActivity(day.id)}
+                          className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-disney-blue hover:text-disney-blue hover:bg-blue-50/50 transition-all duration-200 flex items-center justify-center gap-2"
+                        >
+                          <Plus className="w-5 h-5" />
+                          Add Activity
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Edit Activity Modal */}
+        <Modal
+          isOpen={!!editingActivity}
+          onClose={handleCancelActivityEdit}
+          title="Edit Activity"
+          size="md"
+        >
+          {(() => {
+            return editFormData && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                  <input
+                    type="time"
+                    value={editFormData.time}
+                    onChange={(e) => setEditFormData({ ...editFormData, time: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <input
+                    type="text"
+                    value={editFormData.title}
+                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <input
+                    type="text"
+                    value={editFormData.location}
+                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                    placeholder="e.g., Fantasyland, Main Street USA"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                  <Select
+                    value={editFormData.type}
+                    onValueChange={(value) => setEditFormData({ ...editFormData, type: value as Activity['type'] })}
+                    options={activityTypeOptions}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                  <Select
+                    value={editFormData.priority}
+                    onValueChange={(value) => setEditFormData({ ...editFormData, priority: value as Activity['priority'] })}
+                    options={prioritySelectOptions}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                  <textarea
+                    value={editFormData.notes || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                    rows={3}
+                    placeholder="Additional notes, dining reservations, etc."
+                  />
+                </div>
+              </div>
+            )
+          })()}
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={handleSaveActivityChanges}
+              className="btn-disney flex-1"
+            >
+              Save Changes
+            </button>
+            <button
+              onClick={handleCancelActivityEdit}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
             </button>
           </div>
-        </div>
-      </Modal>
+        </Modal>
 
-      {/* Load Plan Modal */}
-      <Modal
-        isOpen={showLoadPlan}
-        onClose={() => setShowLoadPlan(false)}
-        title="Load Trip Plan"
-        size="lg"
-      >
-        <div className="space-y-4">
-          {savedPlans.length === 0 ? (
-            <div className="text-center py-8">
-              <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">No saved plans found.</p>
-              <p className="text-sm text-gray-400">Create and save a trip plan to see it here.</p>
+        {/* Save Plan Modal */}
+        <Modal
+          isOpen={showSavePlan}
+          onClose={() => {
+            setShowSavePlan(false)
+            setPlanToSave('')
+          }}
+          title="Save Trip Plan"
+          size="md"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Save your current trip plan to access it later. Your plan will be stored locally in your browser.
+            </p>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Plan Name</label>
+              <input
+                type="text"
+                value={planToSave}
+                onChange={(e) => setPlanToSave(e.target.value)}
+                placeholder="Enter a name for your trip plan..."
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
+                autoFocus
+              />
             </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-gray-600">
-                Select a saved trip plan to load. This will replace your current plan.
-              </p>
 
-              {savedPlans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                    activePlanId === plan.id
-                      ? 'border-disney-blue bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1" onClick={() => loadPlan(plan)}>
-                      <h3 className="font-medium text-gray-900">{plan.name}</h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                        <span>{plan.days.length} {plan.days.length === 1 ? 'day' : 'days'}</span>
-                        <span>•</span>
-                        <span>Updated {new Date(plan.updatedAt).toLocaleDateString()}</span>
-                        {activePlanId === plan.id && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="success" size="sm">Currently Loaded</Badge>
-                          </>
-                        )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowSavePlan(false)
+                  setPlanToSave('')
+                }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => saveCurrentPlan(true)}
+                disabled={!planToSave.trim()}
+                className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+              >
+                Save Plan
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Load Plan Modal */}
+        <Modal
+          isOpen={showLoadPlan}
+          onClose={() => setShowLoadPlan(false)}
+          title="Load Trip Plan"
+          size="lg"
+        >
+          <div className="space-y-4">
+            {savedPlans.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No saved plans found.</p>
+                <p className="text-sm text-gray-400">Create and save a trip plan to see it here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-gray-600">
+                  Select a saved trip plan to load. This will replace your current plan.
+                </p>
+
+                {savedPlans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      activePlanId === plan.id
+                        ? 'border-disney-blue bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1" onClick={() => loadPlan(plan)}>
+                        <h3 className="font-medium text-gray-900">{plan.name}</h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                          <span>{plan.days.length} {plan.days.length === 1 ? 'day' : 'days'}</span>
+                          <span>•</span>
+                          <span>Updated {new Date(plan.updatedAt).toLocaleDateString()}</span>
+                          {activePlanId === plan.id && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="success" size="sm">Currently Loaded</Badge>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (confirm(`Are you sure you want to delete "${plan.name}"?`)) {
-                          deletePlan(plan.id)
-                        }
-                      }}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (confirm(`Are you sure you want to delete "${plan.name}"?`)) {
+                            deletePlan(plan.id)
+                          }
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Modal>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
+      </div>
     </div>
   )
 }

@@ -126,7 +126,7 @@ function EmbedCountdown(): JSX.Element {
   }
 
   const getDigitClassName = (): string => {
-    const base = "p-3 rounded-lg backdrop-blur-sm"
+    const base = "p-4 rounded-xl backdrop-blur-sm"
     const style = settings.digitStyle
 
     let classes = base
@@ -143,7 +143,7 @@ function EmbedCountdown(): JSX.Element {
         classes += ` bg-transparent border-b-2 border-white/50`
         break
       default: // modern
-        classes += ` ${currentTheme.digitBg} shadow-lg`
+        classes += ` ${currentTheme.digitBg} shadow-xl`
     }
 
     return classes
@@ -152,129 +152,194 @@ function EmbedCountdown(): JSX.Element {
   const getLayoutClassName = (): string => {
     switch (settings.layout) {
       case 'vertical':
-        return 'flex flex-col gap-3'
+        return 'flex flex-col gap-4'
       case 'compact':
         return 'flex gap-2 justify-center'
       case 'grid':
-        return 'grid grid-cols-2 gap-3'
+        return 'grid grid-cols-2 gap-4'
       default: // horizontal
-        return 'grid grid-cols-2 md:grid-cols-4 gap-3'
+        return 'grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6'
     }
   }
 
   const getFontSizeClass = (): string => {
     switch (settings.fontSize) {
-      case 'small': return 'text-lg md:text-xl'
-      case 'large': return 'text-3xl md:text-4xl'
-      case 'xl': return 'text-4xl md:text-5xl'
-      default: return 'text-2xl md:text-3xl'
+      case 'small': return 'text-xl md:text-2xl'
+      case 'large': return 'text-4xl md:text-5xl'
+      case 'xl': return 'text-5xl md:text-6xl'
+      default: return 'text-2xl md:text-3xl lg:text-4xl'
     }
   }
 
   if (!targetDate) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Disney Countdown Timer</h1>
-          <p className="text-gray-600">No countdown data provided.</p>
-          <p className="text-sm text-gray-500 mt-2">This embed requires valid URL parameters.</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 max-w-md"
+        >
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Disney Countdown Timer</h1>
+          <p className="text-gray-600 mb-4">No countdown data provided.</p>
+          <p className="text-sm text-gray-500">This embed requires valid URL parameters.</p>
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
       {/* Audio element for completion sound */}
       <audio ref={audioRef} preload="auto">
         <source src="/sounds/disney-chime.mp3" type="audio/mpeg" />
       </audio>
 
-      <div className="max-w-4xl mx-auto">
-        {/* Countdown Display */}
+      <div className="max-w-5xl mx-auto flex items-center justify-center min-h-screen">
+        {/* Enhanced Countdown Display */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`text-center p-6 rounded-xl bg-gradient-to-r ${currentTheme.gradient} ${currentTheme.textColor} relative overflow-hidden shadow-2xl`}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className={`text-center p-8 md:p-12 rounded-2xl bg-gradient-to-r ${currentTheme.gradient} ${currentTheme.textColor} relative overflow-hidden shadow-2xl w-full`}
         >
-          {/* Background decorations */}
-          <div className="absolute top-4 left-4">
-            <Sparkles className="w-6 h-6 opacity-60" />
-          </div>
-          <div className="absolute top-4 right-4">
-            <Sparkles className="w-6 h-6 opacity-60" />
-          </div>
-          <div className="absolute bottom-4 left-1/4">
-            <Sparkles className="w-4 h-4 opacity-40" />
-          </div>
-          <div className="absolute bottom-4 right-1/4">
-            <Sparkles className="w-4 h-4 opacity-40" />
+          {/* Enhanced Background decorations */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-8 left-8">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <div className="absolute top-8 right-8">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <div className="absolute bottom-8 left-1/4">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div className="absolute bottom-8 right-1/4">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div className="absolute top-1/2 left-8">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="absolute top-1/2 right-8">
+              <Sparkles className="w-4 h-4" />
+            </div>
           </div>
 
           <div className="relative z-10">
-            <h2 className="text-lg md:text-xl font-bold mb-2">Your Trip to</h2>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">{selectedPark.name}</h1>
-            <p className="text-sm md:text-base opacity-90 mb-6">{formatTargetDate()}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h2 className="text-lg md:text-xl font-semibold mb-2 opacity-90">Your Trip to</h2>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">{selectedPark.name}</h1>
+              <p className="text-sm md:text-base lg:text-lg opacity-90 mb-6">{formatTargetDate()}</p>
+            </motion.div>
 
             {settings.showTimezone && (
-              <p className="text-xs opacity-75 mb-4">
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-xs md:text-sm opacity-75 mb-6"
+              >
                 Park opens at {selectedPark.openingTime} ({selectedPark.timezone.split('/')[1]} time)
-              </p>
+              </motion.p>
             )}
 
             {isActive ? (
-              <div className={`${getLayoutClassName()} mb-6`}>
-                <div className={getDigitClassName()}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className={`${getLayoutClassName()} mb-8`}
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
+                  className={getDigitClassName()}
+                >
                   <div className={`${getFontSizeClass()} font-bold`}>{countdown.days}</div>
-                  <div className="text-xs opacity-80">Days</div>
-                </div>
-                <div className={getDigitClassName()}>
+                  <div className="text-xs md:text-sm opacity-80 mt-2">Days</div>
+                </motion.div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
+                  className={getDigitClassName()}
+                >
                   <div className={`${getFontSizeClass()} font-bold`}>{countdown.hours}</div>
-                  <div className="text-xs opacity-80">Hours</div>
-                </div>
-                <div className={getDigitClassName()}>
+                  <div className="text-xs md:text-sm opacity-80 mt-2">Hours</div>
+                </motion.div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.7, type: "spring", stiffness: 300 }}
+                  className={getDigitClassName()}
+                >
                   <div className={`${getFontSizeClass()} font-bold`}>{countdown.minutes}</div>
-                  <div className="text-xs opacity-80">Minutes</div>
-                </div>
-                <div className={getDigitClassName()}>
+                  <div className="text-xs md:text-sm opacity-80 mt-2">Minutes</div>
+                </motion.div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.8, type: "spring", stiffness: 300 }}
+                  className={getDigitClassName()}
+                >
                   <div className={`${getFontSizeClass()} font-bold`}>{countdown.seconds}</div>
-                  <div className="text-xs opacity-80">Seconds</div>
-                </div>
+                  <div className="text-xs md:text-sm opacity-80 mt-2">Seconds</div>
+                </motion.div>
                 {settings.showMilliseconds && (
-                  <div className={getDigitClassName()}>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.9, type: "spring", stiffness: 300 }}
+                    className={getDigitClassName()}
+                  >
                     <div className={`${getFontSizeClass()} font-bold`}>{Math.floor(milliseconds / 10)}</div>
-                    <div className="text-xs opacity-80">Centiseconds</div>
-                  </div>
+                    <div className="text-xs md:text-sm opacity-80 mt-2">Centiseconds</div>
+                  </motion.div>
                 )}
-              </div>
+              </motion.div>
             ) : (
-              <div className="mb-6">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="mb-8"
+              >
                 <p className="text-lg md:text-xl">The magic awaits! ✨</p>
-              </div>
+              </motion.div>
             )}
 
             {countdown.days === 0 && countdown.hours === 0 && countdown.minutes === 0 && countdown.seconds === 0 && isActive && (
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="text-center"
               >
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">🎉 IT'S DISNEY DAY! 🎉</h2>
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">🎉 IT&rsquo;S DISNEY DAY! 🎉</h2>
                 <p className="text-lg md:text-xl">Your magical adventure begins now!</p>
               </motion.div>
             )}
 
-            {/* Powered by link */}
-            <div className="mt-6 opacity-60">
+            {/* Enhanced Powered by link */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.0 }}
+              className="mt-8 opacity-60"
+            >
               <a
-                href={window.location.origin}
+                href={typeof window !== 'undefined' ? window.location.origin : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs hover:opacity-80 transition-opacity"
+                className="text-xs md:text-sm hover:opacity-80 transition-opacity duration-300 underline decoration-dotted underline-offset-4"
               >
-                Powered by Disney Trip Planner
+                Powered by Disney Trip Planner ✨
               </a>
-            </div>
+            </motion.div>
           </div>
         </motion.div>
       </div>
@@ -285,11 +350,21 @@ function EmbedCountdown(): JSX.Element {
 function EmbedCountdownPage(): JSX.Element {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your Disney countdown...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-disney-blue mx-auto mb-6"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-disney-purple animate-pulse" />
+            </div>
+          </div>
+          <p className="text-gray-600 text-lg">Loading your Disney countdown...</p>
+          <p className="text-gray-500 text-sm mt-2">Preparing the magic ✨</p>
+        </motion.div>
       </div>
     }>
       <EmbedCountdown />

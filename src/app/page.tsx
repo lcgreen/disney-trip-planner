@@ -79,8 +79,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="bg-gradient-disney p-6 text-white relative overflow-hidden">
+      {/* Enhanced Header */}
+      <header className="bg-gradient-to-br from-disney-blue via-disney-purple to-disney-pink p-8 text-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -88,29 +88,37 @@ export default function HomePage() {
             transition={{ duration: 0.8 }}
             className="text-center"
           >
-            <h1 className="text-5xl font-bold mb-4 disney-shadow">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 disney-shadow">
               ✨ Disney Trip Planner ✨
             </h1>
-            <p className="text-xl opacity-90 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl opacity-90 max-w-3xl mx-auto leading-relaxed">
               Your ultimate suite of magical tools for planning the perfect Disney vacation
             </p>
           </motion.div>
         </div>
 
-        {/* Floating elements */}
-        <div className="absolute top-10 left-10">
-          <Sparkles className="text-disney-gold w-8 h-8" />
-        </div>
-        <div className="absolute top-20 right-20">
-          <Star className="text-disney-pink w-6 h-6" />
-        </div>
-        <div className="absolute bottom-10 left-1/4">
-          <Crown className="text-disney-gold w-10 h-10" />
+        {/* Enhanced floating elements */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-10 left-10 animate-pulse">
+            <Sparkles className="text-disney-gold w-8 h-8" />
+          </div>
+          <div className="absolute top-20 right-20 animate-bounce" style={{ animationDelay: '1s' }}>
+            <Star className="text-disney-pink w-6 h-6" />
+          </div>
+          <div className="absolute bottom-10 left-1/4 animate-pulse" style={{ animationDelay: '2s' }}>
+            <Crown className="text-disney-gold w-10 h-10" />
+          </div>
+          <div className="absolute top-1/2 right-10 animate-bounce" style={{ animationDelay: '0.5s' }}>
+            <Sparkles className="text-disney-pink w-6 h-6" />
+          </div>
+          <div className="absolute bottom-20 right-1/3 animate-pulse" style={{ animationDelay: '1.5s' }}>
+            <Star className="text-disney-gold w-8 h-8" />
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
         {!activeTool ? (
           <>
             {/* Tools Grid */}
@@ -118,7 +126,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-12"
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 mb-12"
             >
               {tools.map((tool, index) => (
                 <motion.div
@@ -126,7 +134,7 @@ export default function HomePage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className={`${tool.isPremium ? 'tool-card-premium' : 'tool-card'} p-8 cursor-pointer relative`}
+                  className={`${tool.isPremium ? 'tool-card-premium' : 'tool-card'} p-6 md:p-8 cursor-pointer relative interactive-card`}
                   onClick={() => handleToolClick(tool)}
                 >
                   {tool.isPremium && (
@@ -156,7 +164,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="bg-white rounded-xl p-8 shadow-lg"
+              className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 shadow-xl border border-white/20"
             >
               <h2 className="text-3xl font-bold text-center mb-8 gradient-text">
                 Why Choose Our Disney Planner?
@@ -195,7 +203,7 @@ export default function HomePage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-xl shadow-lg overflow-hidden"
+            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
           >
             <div className="p-6 border-b">
               <button
