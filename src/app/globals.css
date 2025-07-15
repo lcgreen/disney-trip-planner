@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Disney Magic Effects */
+.sparkle-bg {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, #ffd700, transparent),
+    radial-gradient(2px 2px at 40px 70px, #ff69b4, transparent),
+    radial-gradient(1px 1px at 90px 40px, #00ced1, transparent),
+    radial-gradient(1px 1px at 130px 80px, #ffd700, transparent),
+    radial-gradient(2px 2px at 160px 30px, #ff69b4, transparent);
+  animation: sparkle 4s ease-in-out infinite;
+}
+
+.disney-shadow {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
+}
+
+.gradient-text {
+  background: linear-gradient(45deg, #003087, #FFD700, #CE1126);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Premium Badge */
+.premium-badge {
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  border: 2px solid #FF8C00;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+/* Tool Cards */
+.tool-card {
+  @apply bg-white rounded-xl shadow-lg border-2 border-transparent hover:border-disney-gold transition-all duration-300 hover:shadow-xl;
+}
+
+.tool-card-premium {
+  @apply tool-card border-disney-gold bg-gradient-to-br from-yellow-50 to-orange-50;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+}
+
+/* Button Styles */
+.btn-disney {
+  @apply bg-gradient-to-r from-disney-blue to-disney-purple text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
+}
+
+.btn-premium {
+  @apply bg-gradient-to-r from-disney-gold to-disney-orange text-disney-blue font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
+}
+
+/* Countdown Timer Styles */
+.countdown-digit {
+  @apply bg-gradient-to-br from-disney-blue to-disney-purple text-white rounded-lg p-4 text-center shadow-lg;
+  font-family: 'Fredoka One', cursive;
+}
+
+/* Loading Animation */
+.loading-dots {
+  animation: loading 1.4s infinite ease-in-out both;
+}
+
+.loading-dots:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes loading {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
