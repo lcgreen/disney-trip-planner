@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, Clock, MapPin, Plus, Star, Trash2, Edit } from 'lucide-react'
+import { Calendar, Clock, MapPin, Plus, Star, Trash2, Edit, Save, FolderOpen, Download, Upload } from 'lucide-react'
 import {
   Modal,
   Badge,
   StatusBadge,
   CategoryBadge,
   Select,
-  ParkSelect
+  ParkSelect,
+  Button
 } from '@/components/ui'
 import {
   getAllActivityTypes,
@@ -23,6 +24,12 @@ import {
   type ActivityType,
   type Priority
 } from '@/config'
+import {
+  tripPlanStorage,
+  storageUtils,
+  type StoredTripPlan,
+  type TripPlanStorage
+} from '@/lib/storage'
 
 interface Activity {
   id: string
@@ -53,6 +60,35 @@ export default function TripPlanner() {
   const [showAddDay, setShowAddDay] = useState(false)
   const [newDayForm, setNewDayForm] = useState({ date: '', park: '' })
   const [formErrors, setFormErrors] = useState({ date: '', park: '' })
+
+  // Local storage state
+  const [savedPlans, setSavedPlans] = useState<StoredTripPlan[]>([])
+  const [currentPlanName, setCurrentPlanName] = useState<string>('')
+  const [activePlanId, setActivePlanId] = useState<string | null>(null)
+  const [showSavePlan, setShowSavePlan] = useState(false)
+  const [showLoadPlan, setShowLoadPlan] = useState(false)
+  const [planToSave, setPlanToSave] = useState<string>('')
+
+  // Load saved plans on component mount
+  useEffect(() => {
+    const storage = storageUtils.initializeTripPlanStorage()
+    setSavedPlans(storage.plans)
+
+    // Load active plan if exists
+    if (storage.activePlanId) {
+      const activePlan = storage.plans.find(plan => plan.id === storage.activePlanId)
+      if (activePlan) {
+        loadPlan(activePlan)
+      }
+    }
+  }, [])
+
+  // Auto-save current plan when days change (if we have an active plan)
+  useEffect(() => {
+    if (activePlanId && currentPlanName && days.length > 0) {
+      saveCurrentPlan(false) // Silent save without showing modal
+    }
+  }, [days, activePlanId, currentPlanName])
 
   const addNewDay = () => {
     // Clear previous errors
@@ -164,6 +200,123 @@ export default function TripPlanner() {
     return priorityInfo.badgeVariant as any
   }
 
+  // Storage functions
+  const saveCurrentPlan = (showModal: boolean = true) => {
+    if (!planToSave.trim() && showModal) {
+      setShowSavePlan(true)
+      return
+    }
+
+    const planName = showModal ? planToSave.trim() : currentPlanName
+    if (!planName) return
+
+    const planData: StoredTripPlan = {
+      id: activePlanId || storageUtils.generateId(),
+      name: planName,
+      days: days.map(day => ({
+        id: day.id,
+        date: day.date,
+        park: day.park,
+        activities: day.activities.map(activity => ({
+          id: activity.id,
+          time: activity.time,
+          title: activity.title,
+          location: activity.location,
+          type: activity.type,
+          notes: activity.notes,
+          priority: activity.priority
+        }))
+      })),
+      createdAt: activePlanId ? savedPlans.find(p => p.id === activePlanId)?.createdAt || storageUtils.getCurrentTimestamp() : storageUtils.getCurrentTimestamp(),
+      updatedAt: storageUtils.getCurrentTimestamp()
+    }
+
+    tripPlanStorage.update(storage => {
+      const plans = storage?.plans || []
+      const existingIndex = plans.findIndex(plan => plan.id === planData.id)
+
+      if (existingIndex >= 0) {
+        plans[existingIndex] = planData
+      } else {
+        plans.push(planData)
+      }
+
+      return {
+        plans,
+        activePlanId: planData.id
+      }
+    })
+
+    // Update local state
+    const storage = tripPlanStorage.get()!
+    setSavedPlans(storage.plans)
+    setActivePlanId(planData.id)
+    setCurrentPlanName(planData.name)
+
+    if (showModal) {
+      setPlanToSave('')
+      setShowSavePlan(false)
+    }
+  }
+
+  const loadPlan = (plan: StoredTripPlan) => {
+    setDays(plan.days.map(day => ({
+      id: day.id,
+      date: day.date,
+      park: day.park,
+      activities: day.activities.map(activity => ({
+        id: activity.id,
+        time: activity.time,
+        title: activity.title,
+        location: activity.location,
+        type: activity.type as Activity['type'],
+        notes: activity.notes,
+        priority: activity.priority as Activity['priority']
+      }))
+    })))
+
+    setActivePlanId(plan.id)
+    setCurrentPlanName(plan.name)
+    setShowLoadPlan(false)
+
+    // Update active plan in storage
+    tripPlanStorage.update(storage => ({
+      ...storage,
+      plans: storage?.plans || [],
+      activePlanId: plan.id
+    }))
+  }
+
+  const deletePlan = (planId: string) => {
+    tripPlanStorage.update(storage => {
+      const plans = storage?.plans?.filter(plan => plan.id !== planId) || []
+      const activePlanId = storage?.activePlanId === planId ? undefined : storage?.activePlanId
+
+      return { plans, activePlanId }
+    })
+
+    const storage = tripPlanStorage.get()!
+    setSavedPlans(storage.plans)
+
+    if (activePlanId === planId) {
+      setActivePlanId(null)
+      setCurrentPlanName('')
+      setDays([])
+    }
+  }
+
+  const startNewPlan = () => {
+    setDays([])
+    setActivePlanId(null)
+    setCurrentPlanName('')
+
+    tripPlanStorage.update(storage => ({
+      ...storage,
+      plans: storage?.plans || [],
+      activePlanId: undefined
+    }))
+  }
+
   const getActivityTypeVariant = (type: Activity['type']) => {
     switch (type) {
       case 'ride': return 'info'
@@ -188,6 +341,56 @@ export default function TripPlanner() {
         <p className="text-gray-600 mb-6">
           Plan your perfect Disney days with detailed itineraries, dining reservations, and attraction priorities.
         </p>
+
+        {/* Save/Load Controls */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {currentPlanName ? (
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-disney-blue" />
+                  <span className="font-medium text-gray-700">Current Plan: {currentPlanName}</span>
+                  <Badge variant="success" size="sm">Saved</Badge>
+                </div>
+              ) : (
+                <span className="text-gray-500">No plan loaded</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setShowLoadPlan(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <FolderOpen className="w-4 h-4" />
+                Load Plan
+              </Button>
+
+              <Button
+                onClick={() => setShowSavePlan(true)}
+                variant="disney"
+                size="sm"
+                className="flex items-center gap-2"
+                disabled={days.length === 0}
+              >
+                <Save className="w-4 h-4" />
+                Save Plan
+              </Button>
+
+              <Button
+                onClick={startNewPlan}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                New Plan
+              </Button>
+            </div>
+          </div>
+        </div>
 
         <button
           onClick={() => setShowAddDay(true)}
@@ -501,6 +704,118 @@ export default function TripPlanner() {
           >
             Cancel
           </button>
+        </div>
+      </Modal>
+
+      {/* Save Plan Modal */}
+      <Modal
+        isOpen={showSavePlan}
+        onClose={() => {
+          setShowSavePlan(false)
+          setPlanToSave('')
+        }}
+        title="Save Trip Plan"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Save your current trip plan to access it later. Your plan will be stored locally in your browser.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Plan Name</label>
+            <input
+              type="text"
+              value={planToSave}
+              onChange={(e) => setPlanToSave(e.target.value)}
+              placeholder="Enter a name for your trip plan..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowSavePlan(false)
+                setPlanToSave('')
+              }}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => saveCurrentPlan(true)}
+              disabled={!planToSave.trim()}
+              className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+            >
+              Save Plan
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Load Plan Modal */}
+      <Modal
+        isOpen={showLoadPlan}
+        onClose={() => setShowLoadPlan(false)}
+        title="Load Trip Plan"
+        size="lg"
+      >
+        <div className="space-y-4">
+          {savedPlans.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No saved plans found.</p>
+              <p className="text-sm text-gray-400">Create and save a trip plan to see it here.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-gray-600">
+                Select a saved trip plan to load. This will replace your current plan.
+              </p>
+
+              {savedPlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                    activePlanId === plan.id
+                      ? 'border-disney-blue bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1" onClick={() => loadPlan(plan)}>
+                      <h3 className="font-medium text-gray-900">{plan.name}</h3>
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                        <span>{plan.days.length} {plan.days.length === 1 ? 'day' : 'days'}</span>
+                        <span>•</span>
+                        <span>Updated {new Date(plan.updatedAt).toLocaleDateString()}</span>
+                        {activePlanId === plan.id && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="success" size="sm">Currently Loaded</Badge>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm(`Are you sure you want to delete "${plan.name}"?`)) {
+                          deletePlan(plan.id)
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Modal>
     </div>

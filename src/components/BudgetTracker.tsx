@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { DollarSign, Plus, Trash2, PiggyBank, Target, TrendingUp, AlertTriangle } from 'lucide-react'
+import { DollarSign, Plus, Trash2, PiggyBank, Target, TrendingUp, AlertTriangle, Save, FolderOpen } from 'lucide-react'
 import {
   Modal,
   StatCard,
@@ -10,7 +10,8 @@ import {
   BudgetProgress,
   Badge,
   Select,
-  Checkbox
+  Checkbox,
+  Button
 } from '@/components/ui'
 import { getSafeTextColor } from '@/lib/utils'
 import {
@@ -20,6 +21,12 @@ import {
   getBudgetTips,
   type BudgetCategory as ConfigBudgetCategory
 } from '@/config'
+import {
+  budgetStorage,
+  storageUtils,
+  type StoredBudgetData,
+  type BudgetStorage
+} from '@/lib/storage'
 
 // Color mappings for Tailwind classes to hex values
 const colorMap: Record<string, string> = {
@@ -78,6 +85,35 @@ export default function BudgetTracker() {
     date: new Date().toISOString().split('T')[0],
     isEstimate: true
   })
+
+  // Local storage state
+  const [savedBudgets, setSavedBudgets] = useState<StoredBudgetData[]>([])
+  const [currentBudgetName, setCurrentBudgetName] = useState<string>('')
+  const [activeBudgetId, setActiveBudgetId] = useState<string | null>(null)
+  const [showSaveBudget, setShowSaveBudget] = useState(false)
+  const [showLoadBudget, setShowLoadBudget] = useState(false)
+  const [budgetToSave, setBudgetToSave] = useState<string>('')
+
+  // Load saved budgets on component mount
+  useEffect(() => {
+    const storage = storageUtils.initializeBudgetStorage()
+    setSavedBudgets(storage.budgets)
+
+    // Load active budget if exists
+    if (storage.activeBudgetId) {
+      const activeBudget = storage.budgets.find(budget => budget.id === storage.activeBudgetId)
+      if (activeBudget) {
+        loadBudget(activeBudget)
+      }
+    }
+  }, [])
+
+  // Auto-save current budget when data changes (if we have an active budget)
+  useEffect(() => {
+    if (activeBudgetId && currentBudgetName && (totalBudget > 0 || expenses.length > 0 || categories.some(cat => cat.budget > 0))) {
+      saveCurrentBudget(false) // Silent save without showing modal
+    }
+  }, [totalBudget, categories, expenses, activeBudgetId, currentBudgetName])
 
   const addExpense = () => {
     if (newExpense.description && newExpense.amount) {
@@ -142,6 +178,131 @@ export default function BudgetTracker() {
 
   const categoryOptions = getBudgetCategoryOptions()
 
+  // Storage functions
+  const saveCurrentBudget = (showModal: boolean = true) => {
+    if (!budgetToSave.trim() && showModal) {
+      setShowSaveBudget(true)
+      return
+    }
+
+    const budgetName = showModal ? budgetToSave.trim() : currentBudgetName
+    if (!budgetName) return
+
+    const budgetData: StoredBudgetData = {
+      id: activeBudgetId || storageUtils.generateId(),
+      name: budgetName,
+      totalBudget,
+      categories: categories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        budget: cat.budget,
+        color: cat.color,
+        icon: cat.icon
+      })),
+      expenses: expenses.map(expense => ({
+        id: expense.id,
+        category: expense.category,
+        description: expense.description,
+        amount: expense.amount,
+        date: expense.date,
+        isEstimate: expense.isEstimate
+      })),
+      createdAt: activeBudgetId ? savedBudgets.find(b => b.id === activeBudgetId)?.createdAt || storageUtils.getCurrentTimestamp() : storageUtils.getCurrentTimestamp(),
+      updatedAt: storageUtils.getCurrentTimestamp()
+    }
+
+    budgetStorage.update(storage => {
+      const budgets = storage?.budgets || []
+      const existingIndex = budgets.findIndex(budget => budget.id === budgetData.id)
+
+      if (existingIndex >= 0) {
+        budgets[existingIndex] = budgetData
+      } else {
+        budgets.push(budgetData)
+      }
+
+      return {
+        budgets,
+        activeBudgetId: budgetData.id
+      }
+    })
+
+    // Update local state
+    const storage = budgetStorage.get()!
+    setSavedBudgets(storage.budgets)
+    setActiveBudgetId(budgetData.id)
+    setCurrentBudgetName(budgetData.name)
+
+    if (showModal) {
+      setBudgetToSave('')
+      setShowSaveBudget(false)
+    }
+  }
+
+  const loadBudget = (budget: StoredBudgetData) => {
+    setTotalBudget(budget.totalBudget)
+    setCategories(budget.categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      budget: cat.budget,
+      color: cat.color,
+      icon: cat.icon
+    })))
+    setExpenses(budget.expenses.map(expense => ({
+      id: expense.id,
+      category: expense.category,
+      description: expense.description,
+      amount: expense.amount,
+      date: expense.date,
+      isEstimate: expense.isEstimate
+    })))
+
+    setActiveBudgetId(budget.id)
+    setCurrentBudgetName(budget.name)
+    setShowLoadBudget(false)
+
+    // Update active budget in storage
+    budgetStorage.update(storage => ({
+      ...storage,
+      budgets: storage?.budgets || [],
+      activeBudgetId: budget.id
+    }))
+  }
+
+  const deleteBudget = (budgetId: string) => {
+    budgetStorage.update(storage => {
+      const budgets = storage?.budgets?.filter(budget => budget.id !== budgetId) || []
+      const activeBudgetId = storage?.activeBudgetId === budgetId ? undefined : storage?.activeBudgetId
+
+      return { budgets, activeBudgetId }
+    })
+
+    const storage = budgetStorage.get()!
+    setSavedBudgets(storage.budgets)
+
+    if (activeBudgetId === budgetId) {
+      setActiveBudgetId(null)
+      setCurrentBudgetName('')
+      setTotalBudget(0)
+      setCategories(defaultCategories)
+      setExpenses([])
+    }
+  }
+
+  const startNewBudget = () => {
+    setTotalBudget(0)
+    setCategories(defaultCategories)
+    setExpenses([])
+    setActiveBudgetId(null)
+    setCurrentBudgetName('')
+
+    budgetStorage.update(storage => ({
+      ...storage,
+      budgets: storage?.budgets || [],
+      activeBudgetId: undefined
+    }))
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
@@ -150,6 +311,56 @@ export default function BudgetTracker() {
         <p className="text-gray-600 mb-6">
           Keep track of your Disney vacation expenses and stay within budget for the most magical trip ever!
         </p>
+
+        {/* Save/Load Controls */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {currentBudgetName ? (
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-disney-blue" />
+                  <span className="font-medium text-gray-700">Current Budget: {currentBudgetName}</span>
+                  <Badge variant="success" size="sm">Saved</Badge>
+                </div>
+              ) : (
+                <span className="text-gray-500">No budget loaded</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setShowLoadBudget(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <FolderOpen className="w-4 h-4" />
+                Load Budget
+              </Button>
+
+              <Button
+                onClick={() => setShowSaveBudget(true)}
+                variant="disney"
+                size="sm"
+                className="flex items-center gap-2"
+                disabled={totalBudget === 0 && expenses.length === 0}
+              >
+                <Save className="w-4 h-4" />
+                Save Budget
+              </Button>
+
+              <Button
+                onClick={startNewBudget}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                New Budget
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
             {/* Budget Overview Stats */}
@@ -451,6 +662,120 @@ export default function BudgetTracker() {
           </div>
         </div>
       </motion.div>
+
+      {/* Save Budget Modal */}
+      <Modal
+        isOpen={showSaveBudget}
+        onClose={() => {
+          setShowSaveBudget(false)
+          setBudgetToSave('')
+        }}
+        title="Save Budget"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Save your current budget to access it later. Your budget data will be stored locally in your browser.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Budget Name</label>
+            <input
+              type="text"
+              value={budgetToSave}
+              onChange={(e) => setBudgetToSave(e.target.value)}
+              placeholder="Enter a name for your budget..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowSaveBudget(false)
+                setBudgetToSave('')
+              }}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => saveCurrentBudget(true)}
+              disabled={!budgetToSave.trim()}
+              className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+            >
+              Save Budget
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Load Budget Modal */}
+      <Modal
+        isOpen={showLoadBudget}
+        onClose={() => setShowLoadBudget(false)}
+        title="Load Budget"
+        size="lg"
+      >
+        <div className="space-y-4">
+          {savedBudgets.length === 0 ? (
+            <div className="text-center py-8">
+              <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No saved budgets found.</p>
+              <p className="text-sm text-gray-400">Create and save a budget to see it here.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-gray-600">
+                Select a saved budget to load. This will replace your current budget data.
+              </p>
+
+              {savedBudgets.map((budget) => (
+                <div
+                  key={budget.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                    activeBudgetId === budget.id
+                      ? 'border-disney-blue bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1" onClick={() => loadBudget(budget)}>
+                      <h3 className="font-medium text-gray-900">{budget.name}</h3>
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                        <span>£{budget.totalBudget.toLocaleString()} total budget</span>
+                        <span>•</span>
+                        <span>{budget.expenses.length} {budget.expenses.length === 1 ? 'expense' : 'expenses'}</span>
+                        <span>•</span>
+                        <span>Updated {new Date(budget.updatedAt).toLocaleDateString()}</span>
+                        {activeBudgetId === budget.id && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="success" size="sm">Currently Loaded</Badge>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm(`Are you sure you want to delete "${budget.name}"?`)) {
+                          deleteBudget(budget.id)
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }
