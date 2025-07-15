@@ -3,7 +3,7 @@
     {
       "id": "classic",
       "name": "Classic Disney",
-      "gradient": "from-blue-600 to-purple-600",
+      "gradient": "from-disney-blue to-disney-purple",
       "textColor": "text-white",
       "digitBg": "bg-white/20",
       "description": "The timeless Disney magic theme"
@@ -11,7 +11,7 @@
     {
       "id": "princess",
       "name": "Princess Pink",
-      "gradient": "from-pink-500 to-rose-500",
+      "gradient": "from-disney-pink to-disney-purple",
       "textColor": "text-white",
       "digitBg": "bg-white/20",
       "description": "Perfect for princess-themed trips"
@@ -27,7 +27,7 @@
     {
       "id": "pixar",
       "name": "Pixar Bright",
-      "gradient": "from-yellow-400 to-orange-500",
+      "gradient": "from-disney-gold to-disney-orange",
       "textColor": "text-white",
       "digitBg": "bg-white/20",
       "description": "Bright and cheerful like Pixar movies"

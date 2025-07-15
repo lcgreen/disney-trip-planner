@@ -143,6 +143,9 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
 
     const formatTime = (value: number) => value.toString().padStart(2, '0')
 
+    // Get park-specific gradient or fallback to default Disney colors
+    const parkGradient = selectedCountdown.park?.gradient || 'from-disney-blue to-disney-purple'
+
     if (size === 'small') {
       return (
         <div className="h-full flex flex-col justify-center">
@@ -153,11 +156,11 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="bg-gradient-to-r from-disney-blue to-purple-600 text-white rounded-lg p-3">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
               <div className="text-lg font-bold">{timeLeft.days}</div>
               <div className="text-xs opacity-90">Days</div>
             </div>
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-3">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
               <div className="text-lg font-bold">{formatTime(timeLeft.hours)}</div>
               <div className="text-xs opacity-90">Hours</div>
             </div>
@@ -176,11 +179,11 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="bg-gradient-to-r from-disney-blue to-purple-600 text-white rounded-lg p-4">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
               <div className="text-2xl font-bold">{timeLeft.days}</div>
               <div className="text-sm opacity-90">Days</div>
             </div>
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-4">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
               <div className="text-2xl font-bold">{formatTime(timeLeft.hours)}</div>
               <div className="text-sm opacity-90">Hours</div>
             </div>
@@ -189,7 +192,7 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
       )
     }
 
-    // Large size - show all units
+    // Large size - show all units with park-specific colors
     return (
       <div className="h-full flex flex-col justify-center">
         <div className="text-center mb-6">
@@ -199,19 +202,19 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
           </p>
         </div>
         <div className="grid grid-cols-4 gap-3 text-center">
-          <div className="bg-gradient-to-r from-disney-blue to-blue-600 text-white rounded-lg p-4">
+          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
             <div className="text-2xl font-bold">{timeLeft.days}</div>
             <div className="text-sm opacity-90">Days</div>
           </div>
-          <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg p-4">
+          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
             <div className="text-2xl font-bold">{formatTime(timeLeft.hours)}</div>
             <div className="text-sm opacity-90">Hours</div>
           </div>
-          <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg p-4">
+          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
             <div className="text-2xl font-bold">{formatTime(timeLeft.minutes)}</div>
             <div className="text-sm opacity-90">Minutes</div>
           </div>
-          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-4">
+          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
             <div className="text-2xl font-bold">{formatTime(timeLeft.seconds)}</div>
             <div className="text-sm opacity-90">Seconds</div>
           </div>
@@ -220,12 +223,20 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
     )
   }
 
+  // Get icon gradient based on selected countdown park
+  const getIconGradient = () => {
+    if (selectedCountdown?.park?.gradient) {
+      return `bg-gradient-to-r ${selectedCountdown.park.gradient}`
+    }
+    return "bg-gradient-to-r from-disney-blue to-disney-purple"
+  }
+
   return (
     <WidgetBase
       id={id}
       title="Disney Countdown"
       icon={Clock}
-      iconColor="bg-gradient-to-r from-disney-blue to-disney-purple"
+      iconColor={getIconGradient()}
       widgetType="countdown"
       size={size}
       selectedItemId={config.selectedItemId}
