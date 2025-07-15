@@ -54,7 +54,17 @@ const activityTypes = getAllActivityTypes()
 const priorities = getAllPriorities()
 const parkOptions = getParkOptions()
 
-export default function TripPlanner() {
+interface TripPlannerProps {
+  createdItemId?: string | null
+  widgetId?: string | null
+  isEditMode?: boolean
+}
+
+export default function TripPlanner({
+  createdItemId = null,
+  widgetId = null,
+  isEditMode = false
+}: TripPlannerProps = {}) {
   const [days, setDays] = useState<DayPlan[]>([])
   const [editingActivity, setEditingActivity] = useState<{dayId: string, activity: Activity} | null>(null)
   const [editFormData, setEditFormData] = useState<Activity | null>(null)
@@ -97,6 +107,26 @@ export default function TripPlanner() {
       WidgetConfigManager.saveCurrentTripPlanState(days)
     }
   }, [days])
+
+  // Load created item in edit mode
+  useEffect(() => {
+    if (isEditMode && createdItemId) {
+      const tripPlan = WidgetConfigManager.getSelectedItemData('planner', createdItemId) as StoredTripPlan
+      if (tripPlan) {
+        setDays(tripPlan.days.map(day => ({
+          ...day,
+          activities: day.activities.map(activity => ({
+            ...activity,
+            type: activity.type as 'ride' | 'dining' | 'show' | 'character' | 'shopping' | 'break' | 'other',
+            priority: activity.priority as 'low' | 'medium' | 'high'
+          }))
+        })))
+        setCurrentPlanName(tripPlan.name)
+        setActivePlanId(tripPlan.id)
+        setPlanToSave(tripPlan.name)
+      }
+    }
+  }, [isEditMode, createdItemId])
 
   const addNewDay = () => {
     // Clear previous errors
@@ -264,6 +294,9 @@ export default function TripPlanner() {
     if (showModal) {
       setPlanToSave('')
       setShowSavePlan(false)
+
+      // Check for pending widget links and auto-link if needed
+      WidgetConfigManager.checkAndApplyPendingLinks(planData.id, 'planner')
     }
   }
 
@@ -763,7 +796,7 @@ export default function TripPlanner() {
                 type="text"
                 value={planToSave}
                 onChange={(e) => setPlanToSave(e.target.value)}
-                placeholder="Enter a name for your trip plan..."
+                placeholder={isEditMode ? "Update trip plan name..." : "Enter a name for your trip plan..."}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
                 autoFocus
               />
@@ -784,7 +817,7 @@ export default function TripPlanner() {
                 disabled={!planToSave.trim()}
                 className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
               >
-                Save Plan
+                {isEditMode ? 'Update Plan' : 'Save Plan'}
               </button>
             </div>
           </div>

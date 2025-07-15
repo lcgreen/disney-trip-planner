@@ -243,6 +243,154 @@ export class WidgetConfigManager {
     return saved ? JSON.parse(saved) : null
   }
 
+  // Auto-creation methods for new widgets
+  static createNewCountdown(name?: string): string {
+    if (typeof window === 'undefined') return 'temp-id'
+
+    const existingCountdowns = this.getAvailableCountdowns()
+    const defaultName = name || `Countdown ${existingCountdowns.length + 1}`
+
+    // Create with a future date (7 days from now as default)
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 7)
+
+    const newCountdown: SavedCountdown = {
+      id: Date.now().toString(),
+      name: defaultName,
+      park: { name: 'Magic Kingdom', id: 'magic-kingdom' },
+      date: futureDate.toISOString(),
+      settings: {
+        showMilliseconds: false,
+        showTimezone: true,
+        showTips: true,
+        showAttractions: true,
+        playSound: true,
+        autoRefresh: true,
+        digitStyle: 'modern',
+        layout: 'horizontal',
+        fontSize: 'medium',
+        backgroundEffect: 'gradient'
+      },
+      createdAt: new Date().toISOString()
+    }
+
+    const countdowns = [...existingCountdowns, newCountdown]
+    localStorage.setItem('disney-countdowns', JSON.stringify(countdowns))
+
+    return newCountdown.id
+  }
+
+  static createNewPackingList(name?: string): string {
+    if (typeof window === 'undefined') return 'temp-id'
+
+    const existingLists = this.getAvailablePackingLists()
+    const defaultName = name || `Packing List ${existingLists.length + 1}`
+
+    // Create with some default items
+    const defaultItems = [
+      { id: '1', name: 'Magic Band', category: 'essentials', checked: false, isEssential: true, isCustom: false },
+      { id: '2', name: 'Phone Charger', category: 'electronics', checked: false, isEssential: true, isCustom: false },
+      { id: '3', name: 'Comfortable Shoes', category: 'clothing', checked: false, isEssential: true, isCustom: false },
+      { id: '4', name: 'Sunscreen', category: 'health', checked: false, isEssential: true, isCustom: false },
+      { id: '5', name: 'Water Bottle', category: 'essentials', checked: false, isEssential: true, isCustom: false }
+    ]
+
+    const newList: SavedPackingList = {
+      id: Date.now().toString(),
+      name: defaultName,
+      items: defaultItems,
+      selectedWeather: ['sunny'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    const storage = { lists: [...existingLists, newList] }
+    localStorage.setItem('disney-packing-lists', JSON.stringify(storage))
+
+    return newList.id
+  }
+
+  static createNewTripPlan(name?: string): string {
+    if (typeof window === 'undefined') return 'temp-id'
+
+    const existingPlans = this.getAvailableTripPlans()
+    const defaultName = name || `Trip Plan ${existingPlans.length + 1}`
+
+    // Create with a sample day
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const defaultActivities = [
+      {
+        id: '1',
+        time: '9:00 AM',
+        title: 'Park Opening',
+        location: 'Magic Kingdom Entrance',
+        type: 'other',
+        priority: 'high',
+        notes: 'Arrive early for rope drop'
+      },
+      {
+        id: '2',
+        time: '12:00 PM',
+        title: 'Lunch Break',
+        location: 'Be Our Guest Restaurant',
+        type: 'dining',
+        priority: 'medium',
+        notes: 'Make reservations in advance'
+      }
+    ]
+
+    const newPlan: SavedTripPlan = {
+      id: Date.now().toString(),
+      name: defaultName,
+      days: [{
+        id: '1',
+        date: tomorrow.toISOString().split('T')[0],
+        park: 'Magic Kingdom',
+        activities: defaultActivities
+      }],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    const storage = { plans: [...existingPlans, newPlan] }
+    localStorage.setItem('disney-trip-plans', JSON.stringify(storage))
+
+    return newPlan.id
+  }
+
+  static createNewBudget(name?: string): string {
+    if (typeof window === 'undefined') return 'temp-id'
+
+    const existingBudgets = this.getAvailableBudgets()
+    const defaultName = name || `Budget ${existingBudgets.length + 1}`
+
+    // Create with default categories
+    const defaultCategories = [
+      { id: 'tickets', name: 'Park Tickets', budget: 500, color: '#3B82F6', icon: '🎫' },
+      { id: 'accommodation', name: 'Accommodation', budget: 800, color: '#10B981', icon: '🏨' },
+      { id: 'food', name: 'Food & Dining', budget: 400, color: '#F59E0B', icon: '🍽️' },
+      { id: 'souvenirs', name: 'Souvenirs', budget: 200, color: '#EF4444', icon: '🎁' },
+      { id: 'transport', name: 'Transportation', budget: 100, color: '#8B5CF6', icon: '🚗' }
+    ]
+
+    const newBudget: SavedBudget = {
+      id: Date.now().toString(),
+      name: defaultName,
+      totalBudget: 2000,
+      categories: defaultCategories,
+      expenses: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    const storage = { budgets: [...existingBudgets, newBudget] }
+    localStorage.setItem('disney-budget-data', JSON.stringify(storage))
+
+    return newBudget.id
+  }
+
   // Helper methods for getting saved items for widget selection
   static getAvailableCountdowns(): SavedCountdown[] {
     if (typeof window === 'undefined') return []
@@ -305,5 +453,75 @@ export class WidgetConfigManager {
       default:
         return null
     }
+  }
+
+  // Auto-linking functionality for new routes
+  static setPendingWidgetLink(widgetId: string, widgetType: WidgetConfig['type']) {
+    if (typeof window === 'undefined') return
+
+    const pendingLinks = JSON.parse(localStorage.getItem('disney-pending-widget-links') || '{}')
+    pendingLinks[widgetId] = { widgetType, timestamp: Date.now() }
+    localStorage.setItem('disney-pending-widget-links', JSON.stringify(pendingLinks))
+  }
+
+  static checkAndApplyPendingLinks(itemId: string, widgetType: WidgetConfig['type']) {
+    if (typeof window === 'undefined') return
+
+    const pendingLinks = JSON.parse(localStorage.getItem('disney-pending-widget-links') || '{}')
+
+    // Find any pending links for this widget type
+    for (const [widgetId, linkData] of Object.entries(pendingLinks)) {
+      if ((linkData as any).widgetType === widgetType) {
+        // Link the newly created item to this widget
+        this.updateConfig(widgetId, { selectedItemId: itemId })
+
+        // Remove the pending link
+        delete pendingLinks[widgetId]
+        localStorage.setItem('disney-pending-widget-links', JSON.stringify(pendingLinks))
+
+        // Navigate back to dashboard
+        window.location.href = '/dashboard'
+        break // Only link to the first pending widget of this type
+      }
+    }
+  }
+
+    static clearPendingLink(widgetId: string) {
+    if (typeof window === 'undefined') return
+
+    const pendingLinks = JSON.parse(localStorage.getItem('disney-pending-widget-links') || '{}')
+    delete pendingLinks[widgetId]
+    localStorage.setItem('disney-pending-widget-links', JSON.stringify(pendingLinks))
+  }
+
+  // Seamless auto-creation and linking
+  static createAndLinkItem(widgetId: string, widgetType: WidgetConfig['type']): string | null {
+    if (typeof window === 'undefined') return null
+
+    let itemId: string | null = null
+
+    switch (widgetType) {
+      case 'countdown':
+        itemId = this.createNewCountdown()
+        break
+      case 'packing':
+        itemId = this.createNewPackingList()
+        break
+      case 'planner':
+        itemId = this.createNewTripPlan()
+        break
+      case 'budget':
+        itemId = this.createNewBudget()
+        break
+    }
+
+    if (itemId) {
+      // Immediately link to widget
+      this.updateConfig(widgetId, { selectedItemId: itemId })
+      // Clear any pending links for this widget
+      this.clearPendingLink(widgetId)
+    }
+
+    return itemId
   }
 }

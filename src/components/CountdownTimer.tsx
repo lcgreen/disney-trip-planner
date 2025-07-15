@@ -70,7 +70,17 @@ const quickDateOptions = getQuickDateOptions().map(option => ({
   days: () => calculateQuickDate(option)
 }))
 
-export default function CountdownTimer(): JSX.Element {
+interface CountdownTimerProps {
+  createdItemId?: string | null
+  widgetId?: string | null
+  isEditMode?: boolean
+}
+
+export default function CountdownTimer({
+  createdItemId = null,
+  widgetId = null,
+  isEditMode = false
+}: CountdownTimerProps = {}): JSX.Element {
   const [targetDate, setTargetDate] = useState<string>('')
   const [selectedPark, setSelectedPark] = useState<DisneyPark>(disneyParks[0])
   const [countdown, setCountdown] = useState<CountdownData>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
@@ -121,6 +131,20 @@ export default function CountdownTimer(): JSX.Element {
       WidgetConfigManager.saveCurrentCountdownState(targetDate, 'My Disney Trip', selectedPark)
     }
   }, [targetDate, selectedPark])
+
+  // Load created item in edit mode
+  useEffect(() => {
+    if (isEditMode && createdItemId) {
+      const countdown = WidgetConfigManager.getSelectedItemData('countdown', createdItemId) as SavedCountdown
+      if (countdown) {
+        setTargetDate(countdown.date)
+        setSelectedPark(countdown.park)
+        setSettings(countdown.settings)
+        setCustomTheme(countdown.theme || null)
+        setCountdownName(countdown.name)
+      }
+    }
+  }, [isEditMode, createdItemId])
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
@@ -186,19 +210,46 @@ export default function CountdownTimer(): JSX.Element {
   const saveCountdown = (): void => {
     if (!countdownName.trim()) return
 
-    const newCountdown: SavedCountdown = {
-      id: Date.now().toString(),
-      name: countdownName.trim(),
-      park: selectedPark,
-      date: targetDate,
-      settings,
-      theme: customTheme || undefined,
-      createdAt: new Date().toISOString()
+    // If we're editing an existing item, update it
+    if (isEditMode && createdItemId) {
+      const updatedCountdown: SavedCountdown = {
+        id: createdItemId,
+        name: countdownName.trim(),
+        park: selectedPark,
+        date: targetDate,
+        settings,
+        theme: customTheme || undefined,
+        createdAt: savedCountdowns.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString()
+      }
+
+      const updated = savedCountdowns.map(c =>
+        c.id === createdItemId ? updatedCountdown : c
+      )
+      setSavedCountdowns(updated)
+      localStorage.setItem('disney-countdowns', JSON.stringify(updated))
+
+      // Also update widget config manager data
+      WidgetConfigManager.saveCurrentCountdownState(targetDate, countdownName.trim(), selectedPark)
+    } else {
+      // Creating a new countdown
+      const newCountdown: SavedCountdown = {
+        id: Date.now().toString(),
+        name: countdownName.trim(),
+        park: selectedPark,
+        date: targetDate,
+        settings,
+        theme: customTheme || undefined,
+        createdAt: new Date().toISOString()
+      }
+
+      const updated = [...savedCountdowns, newCountdown]
+      setSavedCountdowns(updated)
+      localStorage.setItem('disney-countdowns', JSON.stringify(updated))
+
+      // Check for pending widget links and auto-link if needed
+      WidgetConfigManager.checkAndApplyPendingLinks(newCountdown.id, 'countdown')
     }
 
-    const updated = [...savedCountdowns, newCountdown]
-    setSavedCountdowns(updated)
-    localStorage.setItem('disney-countdowns', JSON.stringify(updated))
     setCountdownName('')
   }
 
@@ -676,18 +727,18 @@ export default function CountdownTimer(): JSX.Element {
               >
                                  <input
                    type="text"
-                   placeholder="Name this countdown..."
+                   placeholder={isEditMode ? "Update countdown name..." : "Name this countdown..."}
                    value={countdownName}
                    onChange={(e) => setCountdownName(e.target.value)}
                    className="flex-1 p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
-                   aria-label="Enter a name for your countdown to save it"
+                   aria-label={isEditMode ? "Update the name of your countdown" : "Enter a name for your countdown to save it"}
                  />
                 <button
                   onClick={saveCountdown}
                   disabled={!countdownName.trim()}
                   className="btn-disney-small disabled:opacity-50"
                 >
-                  Save
+                  {isEditMode ? 'Update' : 'Save'}
                 </button>
               </motion.div>
             )}

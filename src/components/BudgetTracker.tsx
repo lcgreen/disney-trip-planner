@@ -60,7 +60,17 @@ interface BudgetCategory {
   icon: string
 }
 
-export default function BudgetTracker() {
+interface BudgetTrackerProps {
+  createdItemId?: string | null
+  widgetId?: string | null
+  isEditMode?: boolean
+}
+
+export default function BudgetTracker({
+  createdItemId = null,
+  widgetId = null,
+  isEditMode = false
+}: BudgetTrackerProps = {}) {
   // Get configuration data
   const configCategories = getAllBudgetCategories()
   const budgetSettings = getBudgetSettings()
@@ -122,6 +132,21 @@ export default function BudgetTracker() {
       WidgetConfigManager.saveCurrentBudgetState(totalBudget, categories, expenses)
     }
   }, [totalBudget, categories, expenses])
+
+  // Load created item in edit mode
+  useEffect(() => {
+    if (isEditMode && createdItemId) {
+      const budget = WidgetConfigManager.getSelectedItemData('budget', createdItemId) as StoredBudgetData
+      if (budget) {
+        setTotalBudget(budget.totalBudget)
+        setCategories(budget.categories)
+        setExpenses(budget.expenses)
+        setCurrentBudgetName(budget.name)
+        setActiveBudgetId(budget.id)
+        setBudgetToSave(budget.name)
+      }
+    }
+  }, [isEditMode, createdItemId])
 
   const addExpense = () => {
     if (newExpense.description && newExpense.amount) {
@@ -244,6 +269,9 @@ export default function BudgetTracker() {
     if (showModal) {
       setBudgetToSave('')
       setShowSaveBudget(false)
+
+      // Check for pending widget links and auto-link if needed
+      WidgetConfigManager.checkAndApplyPendingLinks(budgetData.id, 'budget')
     }
   }
 
@@ -781,7 +809,7 @@ export default function BudgetTracker() {
                 type="text"
                 value={budgetToSave}
                 onChange={(e) => setBudgetToSave(e.target.value)}
-                placeholder="Enter a name for your budget..."
+                placeholder={isEditMode ? "Update budget name..." : "Enter a name for your budget..."}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
                 autoFocus
               />
@@ -802,7 +830,7 @@ export default function BudgetTracker() {
                 disabled={!budgetToSave.trim()}
                 className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
               >
-                Save Budget
+                {isEditMode ? 'Update Budget' : 'Save Budget'}
               </button>
             </div>
           </div>

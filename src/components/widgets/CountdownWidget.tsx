@@ -47,7 +47,7 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
       if (countdown) {
         setSelectedCountdown(countdown)
       } else {
-        // Selected item not found, fall back to live app state
+        // Selected item not found, fallback to live app state or default
         const currentState = WidgetConfigManager.getCurrentCountdownState()
         if (currentState?.tripDate) {
           const fallbackCountdown: SavedCountdown = {
@@ -64,7 +64,7 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
         }
       }
     } else {
-      // No item selected, use live app state as default
+      // No item selected, use live app state as fallback
       const currentState = WidgetConfigManager.getCurrentCountdownState()
       if (currentState?.tripDate) {
         const liveCountdown: SavedCountdown = {
@@ -77,47 +77,10 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
         }
         setSelectedCountdown(liveCountdown)
       } else {
-        // Fallback to old widget data if no live state exists
-        const countdownData = WidgetConfigManager.getCountdownData()
-        if (countdownData?.tripDate) {
-          const defaultCountdown: SavedCountdown = {
-            id: 'default',
-            name: countdownData.title || 'My Disney Trip',
-            park: { name: 'Disney World' },
-            date: countdownData.tripDate,
-            settings: {},
-            createdAt: new Date().toISOString()
-          }
-          setSelectedCountdown(defaultCountdown)
-        } else {
-          setSelectedCountdown(null)
-        }
+        setSelectedCountdown(null)
       }
     }
   }, [config])
-
-  // Add polling to check for updates from main app
-  useEffect(() => {
-    if (!config?.selectedItemId) {
-      // Only poll for live updates when using default (no specific item selected)
-      const pollInterval = setInterval(() => {
-        const currentState = WidgetConfigManager.getCurrentCountdownState()
-        if (currentState?.tripDate) {
-          const liveCountdown: SavedCountdown = {
-            id: 'live',
-            name: currentState.title || 'My Disney Trip',
-            park: currentState.park || { name: 'Disney World' },
-            date: currentState.tripDate,
-            settings: {},
-            createdAt: new Date().toISOString()
-          }
-          setSelectedCountdown(liveCountdown)
-        }
-      }, 2000) // Check every 2 seconds
-
-      return () => clearInterval(pollInterval)
-    }
-  }, [config?.selectedItemId])
 
   useEffect(() => {
     if (!selectedCountdown?.date) return
@@ -164,17 +127,15 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
       return (
         <div className="h-full flex flex-col items-center justify-center text-center">
           <Clock className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">No Countdown Set</h3>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No Countdown Selected</h3>
           <p className="text-sm text-gray-500 mb-4">
-            {config.selectedItemId
-              ? 'Selected countdown not found'
-              : 'Create a countdown or select a saved one'}
+            Create a new countdown or select an existing one from settings
           </p>
           <button
-            onClick={() => window.location.href = '/countdown'}
+            onClick={() => window.location.href = `/countdown/new?widgetId=${id}`}
             className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
           >
-            {config.selectedItemId ? 'Go to Countdown' : 'Create Countdown'}
+            Create New Countdown
           </button>
         </div>
       )

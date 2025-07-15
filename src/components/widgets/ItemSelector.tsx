@@ -76,7 +76,7 @@ export default function ItemSelector({ widgetId, widgetType, selectedItemId, onI
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-gray-400" />
           <span className="text-gray-700">
-            {selectedItem ? selectedItem.name : `Default ${getWidgetLabel()}`}
+            {selectedItem ? selectedItem.name : `Select ${getWidgetLabel()}`}
           </span>
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -84,29 +84,6 @@ export default function ItemSelector({ widgetId, widgetType, selectedItemId, onI
 
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-          {/* Default option */}
-          <button
-            onClick={() => handleItemSelect(null)}
-            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${
-              !selectedItemId ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            <div className="flex-1 min-w-0">
-              <div className="font-medium">Default {getWidgetLabel()}</div>
-              <div className="text-xs text-gray-500">
-                {availableItems.length === 0
-                  ? 'From main app'
-                  : 'Use app default data'}
-              </div>
-            </div>
-          </button>
-
-          {/* Divider */}
-          {availableItems.length > 0 && (
-            <div className="border-t border-gray-100 my-1" />
-          )}
-
           {/* Available saved items */}
           {availableItems.map((item) => (
             <button
@@ -139,7 +116,7 @@ export default function ItemSelector({ widgetId, widgetType, selectedItemId, onI
 
           {/* No saved items message */}
           {availableItems.length === 0 && (
-            <div className="px-3 py-2 text-center text-xs text-gray-500 border-t border-gray-100">
+            <div className="px-3 py-2 text-center text-xs text-gray-500">
               No saved {getWidgetLabel().toLowerCase()}s found
             </div>
           )}

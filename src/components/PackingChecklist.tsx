@@ -41,7 +41,17 @@ interface PackingItem {
   isCustom?: boolean
 }
 
-export default function PackingChecklist() {
+interface PackingChecklistProps {
+  createdItemId?: string | null
+  widgetId?: string | null
+  isEditMode?: boolean
+}
+
+export default function PackingChecklist({
+  createdItemId = null,
+  widgetId = null,
+  isEditMode = false
+}: PackingChecklistProps = {}) {
   // Get configuration data
   const categories = getAllPackingCategories()
   const configDefaultItems = getDefaultPackingItems()
@@ -100,6 +110,20 @@ export default function PackingChecklist() {
       WidgetConfigManager.saveCurrentPackingState(items, selectedWeather)
     }
   }, [items, selectedWeather])
+
+  // Load created item in edit mode
+  useEffect(() => {
+    if (isEditMode && createdItemId) {
+      const packingList = WidgetConfigManager.getSelectedItemData('packing', createdItemId) as StoredPackingList
+      if (packingList) {
+        setItems(packingList.items)
+        setSelectedWeather(packingList.selectedWeather)
+        setCurrentListName(packingList.name)
+        setActiveListId(packingList.id)
+        setListToSave(packingList.name)
+      }
+    }
+  }, [isEditMode, createdItemId])
 
   const addItem = () => {
     if (newItem.name.trim()) {
@@ -188,6 +212,9 @@ export default function PackingChecklist() {
     if (showModal) {
       setListToSave('')
       setShowSaveList(false)
+
+      // Check for pending widget links and auto-link if needed
+      WidgetConfigManager.checkAndApplyPendingLinks(listData.id, 'packing')
     }
   }
 
@@ -641,7 +668,7 @@ export default function PackingChecklist() {
                 type="text"
                 value={listToSave}
                 onChange={(e) => setListToSave(e.target.value)}
-                placeholder="Enter a name for your packing list..."
+                placeholder={isEditMode ? "Update packing list name..." : "Enter a name for your packing list..."}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
                 autoFocus
               />
@@ -662,7 +689,7 @@ export default function PackingChecklist() {
                 disabled={!listToSave.trim()}
                 className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
               >
-                Save List
+                {isEditMode ? 'Update List' : 'Save List'}
               </button>
             </div>
           </div>

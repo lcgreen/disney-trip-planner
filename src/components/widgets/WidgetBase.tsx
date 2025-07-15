@@ -167,7 +167,7 @@ export default function WidgetBase({
         </div>
 
         {/* Widget Content */}
-        <div className="flex-1 p-4 overflow-hidden">
+        <div className="flex-1 p-4 widget-scroll">
           {children}
         </div>
       </div>

@@ -30,27 +30,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Load widget configs
     const configs = WidgetConfigManager.getConfigs()
-    if (configs.length === 0) {
-      // Create default widgets
-      const defaultConfigs: WidgetConfig[] = [
-        {
-          id: 'countdown-1',
-          type: 'countdown',
-          size: 'medium',
-          settings: {}
-        },
-        {
-          id: 'packing-1',
-          type: 'packing',
-          size: 'medium',
-          settings: {}
-        }
-      ]
-      defaultConfigs.forEach(config => WidgetConfigManager.addConfig(config))
-      setWidgets(defaultConfigs)
-    } else {
-      setWidgets(configs)
-    }
+    setWidgets(configs)
   }, [])
 
   const addWidget = (type: WidgetConfig['type']) => {
@@ -58,6 +38,7 @@ export default function DashboardPage() {
       id: `${type}-${Date.now()}`,
       type,
       size: 'medium',
+      selectedItemId: undefined, // No item selected by default
       settings: {}
     }
 
@@ -113,13 +94,26 @@ export default function DashboardPage() {
         >
           {widgets.map((widget, index) => {
             const WidgetComponent = widgetComponents[widget.type]
+
+            // Helper function to get grid classes based on widget size
+            const getGridClasses = (size: string) => {
+              switch (size) {
+                case 'large':
+                  return 'col-span-1 lg:col-span-2'
+                case 'small':
+                case 'medium':
+                default:
+                  return 'col-span-1'
+              }
+            }
+
             return (
               <motion.div
                 key={widget.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className={widget.size === 'large' ? 'md:col-span-2' : ''}
+                className={getGridClasses(widget.size)}
               >
                 <WidgetComponent
                   id={widget.id}

@@ -76,7 +76,7 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
           }
         }
       } else {
-        // Selected item not found, fall back to live app state
+        // Selected item not found, fallback to live app state
         const currentState = WidgetConfigManager.getCurrentTripPlanState()
         if (currentState?.days && currentState.days.length > 0) {
           const livePlan: SavedTripPlan = {
@@ -109,7 +109,7 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
         }
       }
     } else {
-      // No item selected, use live app state as default
+      // No item selected, use live app state as fallback
       const currentState = WidgetConfigManager.getCurrentTripPlanState()
       if (currentState?.days && currentState.days.length > 0) {
         const livePlan: SavedTripPlan = {
@@ -137,72 +137,11 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
           }
         }
       } else {
-        // Fallback to saved plans if no live state
-        const tripPlans = WidgetConfigManager.getAvailableTripPlans()
-        if (tripPlans.length > 0) {
-          const defaultPlan = tripPlans[0]
-          setSelectedTripPlan(defaultPlan)
-
-          const today = new Date().toISOString().split('T')[0]
-          const todaysDay = defaultPlan.days.find(day =>
-            new Date(day.date).toISOString().split('T')[0] === today
-          )
-
-          if (todaysDay) {
-            setTodaysActivities(todaysDay.activities)
-          } else {
-            const firstDay = defaultPlan.days[0]
-            if (firstDay) {
-              setTodaysActivities(firstDay.activities)
-            } else {
-              setTodaysActivities([])
-            }
-          }
-        } else {
-          setSelectedTripPlan(null)
-          setTodaysActivities([])
-        }
+        setSelectedTripPlan(null)
+        setTodaysActivities([])
       }
     }
   }, [config])
-
-  // Add polling to check for updates from main app
-  useEffect(() => {
-    if (!config?.selectedItemId) {
-      // Only poll for live updates when using default (no specific item selected)
-      const pollInterval = setInterval(() => {
-        const currentState = WidgetConfigManager.getCurrentTripPlanState()
-        if (currentState?.days && currentState.days.length > 0) {
-          const livePlan: SavedTripPlan = {
-            id: 'live',
-            name: 'Current Trip Plan',
-            days: currentState.days,
-            createdAt: new Date().toISOString(),
-            updatedAt: currentState.updatedAt || new Date().toISOString()
-          }
-          setSelectedTripPlan(livePlan)
-
-          const today = new Date().toISOString().split('T')[0]
-          const todaysDay = livePlan.days.find(day =>
-            new Date(day.date).toISOString().split('T')[0] === today
-          )
-
-          if (todaysDay) {
-            setTodaysActivities(todaysDay.activities)
-          } else {
-            const firstDay = livePlan.days[0]
-            if (firstDay) {
-              setTodaysActivities(firstDay.activities)
-            } else {
-              setTodaysActivities([])
-            }
-          }
-        }
-      }, 2000) // Check every 2 seconds
-
-      return () => clearInterval(pollInterval)
-    }
-  }, [config?.selectedItemId])
 
   const handleSizeChange = (newSize: WidgetSize) => {
     WidgetConfigManager.updateConfig(id, { size: newSize })
@@ -253,17 +192,15 @@ export default function TripPlannerWidget({ id, onRemove, onSettings }: TripPlan
       return (
         <div className="h-full flex flex-col items-center justify-center text-center">
           <Calendar className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">No Trip Plan</h3>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No Trip Plan Selected</h3>
           <p className="text-sm text-gray-500 mb-4">
-            {config.selectedItemId
-              ? 'Selected trip plan not found'
-              : 'Create a trip plan or select a saved one'}
+            Create a new trip plan or select an existing one from settings
           </p>
           <button
-            onClick={() => window.location.href = '/planner'}
+            onClick={() => window.location.href = `/planner/new?widgetId=${id}`}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
           >
-            {config.selectedItemId ? 'Go to Planner' : 'Create Trip Plan'}
+            Create New Trip Plan
           </button>
         </div>
       )

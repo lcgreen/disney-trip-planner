@@ -53,7 +53,7 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
         const completed = packingList.items.filter(item => item.checked).length
         setCompletionStats({ completed, total: packingList.items.length })
       } else {
-        // Selected item not found, fall back to live app state
+        // Selected item not found, fallback to live app state
         const currentState = WidgetConfigManager.getCurrentPackingState()
         if (currentState?.items) {
           setSelectedPackingList(null)
@@ -61,16 +61,13 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
           const completed = currentState.items.filter((item: any) => item.checked).length
           setCompletionStats({ completed, total: currentState.items.length })
         } else {
-          // Fallback to old widget data
           setSelectedPackingList(null)
-          const items = WidgetConfigManager.getPackingData()
-          setPackingItems(items)
-          const completed = items.filter(item => item.checked).length
-          setCompletionStats({ completed, total: items.length })
+          setPackingItems([])
+          setCompletionStats({ completed: 0, total: 0 })
         }
       }
     } else {
-      // No item selected, use live app state as default
+      // No item selected, use live app state as fallback
       const currentState = WidgetConfigManager.getCurrentPackingState()
       if (currentState?.items) {
         setPackingItems(currentState.items)
@@ -78,32 +75,12 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
         const completed = currentState.items.filter((item: any) => item.checked).length
         setCompletionStats({ completed, total: currentState.items.length })
       } else {
-        // Fallback to old widget data if no live state exists
-        const items = WidgetConfigManager.getPackingData()
-        setPackingItems(items)
+        setPackingItems([])
         setSelectedPackingList(null)
-        const completed = items.filter(item => item.checked).length
-        setCompletionStats({ completed, total: items.length })
+        setCompletionStats({ completed: 0, total: 0 })
       }
     }
   }, [config])
-
-  // Add polling to check for updates from main app
-  useEffect(() => {
-    if (!config?.selectedItemId) {
-      // Only poll for live updates when using default (no specific item selected)
-      const pollInterval = setInterval(() => {
-        const currentState = WidgetConfigManager.getCurrentPackingState()
-        if (currentState?.items) {
-          setPackingItems(currentState.items)
-          const completed = currentState.items.filter((item: any) => item.checked).length
-          setCompletionStats({ completed, total: currentState.items.length })
-        }
-      }, 2000) // Check every 2 seconds
-
-      return () => clearInterval(pollInterval)
-    }
-  }, [config?.selectedItemId])
 
   const toggleItem = (itemId: string) => {
     const updatedItems = packingItems.map(item =>
@@ -170,17 +147,15 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
       return (
         <div className="h-full flex flex-col items-center justify-center text-center">
           <Package className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">No Packing List</h3>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No Packing List Selected</h3>
           <p className="text-sm text-gray-500 mb-4">
-            {config.selectedItemId
-              ? 'Selected packing list not found'
-              : 'Create a packing list or select a saved one'}
+            Create a new packing list or select an existing one from settings
           </p>
           <button
-            onClick={() => window.location.href = '/packing'}
+            onClick={() => window.location.href = `/packing/new?widgetId=${id}`}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
-            {config.selectedItemId ? 'Go to Packing' : 'Create Packing List'}
+            Create New Packing List
           </button>
         </div>
       )

@@ -61,7 +61,7 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
         const spent = budget.expenses.reduce((sum, expense) => sum + expense.amount, 0)
         setTotalSpent(spent)
       } else {
-        // Selected item not found, fall back to live app state
+        // Selected item not found, fallback to live app state
         const currentState = WidgetConfigManager.getCurrentBudgetState()
         if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
           const liveBudget: SavedBudget = {
@@ -82,7 +82,7 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
         }
       }
     } else {
-      // No item selected, use live app state as default
+      // No item selected, use live app state as fallback
       const currentState = WidgetConfigManager.getCurrentBudgetState()
       if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
         const liveBudget: SavedBudget = {
@@ -98,46 +98,11 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
         const spent = currentState.expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0)
         setTotalSpent(spent)
       } else {
-        // Fallback to saved budgets if no live state
-        const budgets = WidgetConfigManager.getAvailableBudgets()
-        if (budgets.length > 0) {
-          const defaultBudget = budgets[0]
-          setSelectedBudget(defaultBudget)
-          const spent = defaultBudget.expenses.reduce((sum, expense) => sum + expense.amount, 0)
-          setTotalSpent(spent)
-        } else {
-          setSelectedBudget(null)
-          setTotalSpent(0)
-        }
+        setSelectedBudget(null)
+        setTotalSpent(0)
       }
     }
   }, [config])
-
-  // Add polling to check for updates from main app
-  useEffect(() => {
-    if (!config?.selectedItemId) {
-      // Only poll for live updates when using default (no specific item selected)
-      const pollInterval = setInterval(() => {
-        const currentState = WidgetConfigManager.getCurrentBudgetState()
-        if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
-          const liveBudget: SavedBudget = {
-            id: 'live',
-            name: 'Current Budget',
-            totalBudget: currentState.totalBudget,
-            categories: currentState.categories,
-            expenses: currentState.expenses,
-            createdAt: new Date().toISOString(),
-            updatedAt: currentState.updatedAt || new Date().toISOString()
-          }
-          setSelectedBudget(liveBudget)
-          const spent = currentState.expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0)
-          setTotalSpent(spent)
-        }
-      }, 2000) // Check every 2 seconds
-
-      return () => clearInterval(pollInterval)
-    }
-  }, [config?.selectedItemId])
 
   const handleSizeChange = (newSize: WidgetSize) => {
     WidgetConfigManager.updateConfig(id, { size: newSize })
@@ -204,17 +169,15 @@ export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetP
       return (
         <div className="h-full flex flex-col items-center justify-center text-center">
           <DollarSign className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">No Budget Set</h3>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No Budget Selected</h3>
           <p className="text-sm text-gray-500 mb-4">
-            {config.selectedItemId
-              ? 'Selected budget not found'
-              : 'Create a budget or select a saved one'}
+            Create a new budget or select an existing one from settings
           </p>
           <button
-            onClick={() => window.location.href = '/budget'}
+            onClick={() => window.location.href = `/budget/new?widgetId=${id}`}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
-            {config.selectedItemId ? 'Go to Budget' : 'Create Budget'}
+            Create New Budget
           </button>
         </div>
       )
