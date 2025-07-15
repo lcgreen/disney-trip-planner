@@ -3,6 +3,17 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { DollarSign, PlusCircle, Trash2, Target, TrendingUp, PiggyBank } from 'lucide-react'
+import {
+  Modal,
+  ProgressBar,
+  BudgetProgress,
+  Badge,
+  StatusBadge,
+  Select,
+  Checkbox,
+  StatCard,
+  BudgetStat
+} from '@/components/ui'
 
 interface Expense {
   id: string
@@ -99,6 +110,16 @@ export default function BudgetTracker() {
     return categories.find(c => c.id === categoryId)?.name || 'Unknown'
   }
 
+  const getOverallProgress = () => {
+    if (totalBudget === 0) return 0
+    return (getTotalSpent() / totalBudget) * 100
+  }
+
+  const categoryOptions = categories.map(cat => ({
+    value: cat.id,
+    label: `${cat.icon} ${cat.name}`
+  }))
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
@@ -109,49 +130,48 @@ export default function BudgetTracker() {
         </p>
       </div>
 
-      {/* Total Budget */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-disney-gold to-disney-orange p-6 rounded-xl text-white mb-8"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-semibold mb-2">Total Trip Budget</h3>
-            <div className="flex items-center gap-4">
-              <input
-                type="number"
-                value={totalBudget || ''}
-                onChange={(e) => setTotalBudget(parseFloat(e.target.value) || 0)}
-                placeholder="Enter total budget"
-                className="bg-white text-gray-800 px-4 py-2 rounded-lg text-2xl font-bold w-48"
-              />
-              <span className="text-2xl">£</span>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-sm opacity-90">Spent</div>
-            <div className="text-3xl font-bold">£{getTotalSpent().toFixed(2)}</div>
-            <div className="text-sm opacity-90">
-              Remaining: £{getRemainingBudget().toFixed(2)}
-            </div>
-          </div>
-        </div>
+            {/* Budget Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard
+          title="Total Budget"
+          value={totalBudget}
+          icon={<Target className="w-5 h-5" />}
+          variant="disney"
+          description="Set your total trip budget"
+        />
 
-        {totalBudget > 0 && (
-          <div className="mt-4">
-            <div className="bg-white bg-opacity-20 rounded-full h-3">
-              <div
-                className="bg-white rounded-full h-3 transition-all duration-500"
-                style={{ width: `${Math.min((getTotalSpent() / totalBudget) * 100, 100)}%` }}
-              />
-            </div>
-            <div className="text-sm mt-2 opacity-90">
-              {((getTotalSpent() / totalBudget) * 100).toFixed(1)}% of budget used
-            </div>
-          </div>
-        )}
-      </motion.div>
+        <StatCard
+          title="Total Spent"
+          value={getTotalSpent()}
+          icon={<DollarSign className="w-5 h-5" />}
+          variant="warning"
+          description={`${getOverallProgress().toFixed(1)}% of budget used`}
+        />
+
+        <StatCard
+          title="Remaining"
+          value={getRemainingBudget()}
+          icon={<PiggyBank className="w-5 h-5" />}
+          variant={getRemainingBudget() < 0 ? "error" : "success"}
+          description={getRemainingBudget() < 0 ? "Over budget!" : "Available to spend"}
+        />
+      </div>
+
+      {/* Total Budget Progress */}
+      {totalBudget > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <BudgetProgress
+            budget={totalBudget}
+            spent={getTotalSpent()}
+            category="Overall Budget"
+            currency="£"
+          />
+        </motion.div>
+      )}
 
       {/* Category Budgets */}
       <motion.div
@@ -185,16 +205,15 @@ export default function BudgetTracker() {
               </div>
 
               <div className="mb-3">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Spent: £{getCategorySpent(category.id).toFixed(2)}</span>
-                  <span>{getCategoryProgress(category.id).toFixed(1)}%</span>
-                </div>
-                <div className="bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`${category.color} rounded-full h-2 transition-all duration-500`}
-                    style={{ width: `${Math.min(getCategoryProgress(category.id), 100)}%` }}
-                  />
-                </div>
+                <BudgetProgress
+                  label={`Spent: £${getCategorySpent(category.id).toFixed(2)}`}
+                  current={getCategorySpent(category.id)}
+                  total={category.budget}
+                  currency="£"
+                  variant={getCategoryProgress(category.id) > 100 ? "error" : getCategoryProgress(category.id) > 80 ? "warning" : "success"}
+                  size="sm"
+                  showPercentage
+                />
               </div>
 
               <div className="text-sm text-gray-600">
@@ -240,132 +259,116 @@ export default function BudgetTracker() {
             {expenses
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .map((expense) => (
-              <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'
-                  }`}>
-                    <span className="text-white text-sm">
-                      {categories.find(c => c.id === expense.category)?.icon || '💰'}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">{expense.description}</h4>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <span>{getCategoryName(expense.category)}</span>
-                      <span>•</span>
-                      <span>{new Date(expense.date).toLocaleDateString()}</span>
-                      {expense.isEstimate && (
-                        <>
-                          <span>•</span>
-                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                            Estimate
-                          </span>
-                        </>
-                      )}
+                <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'
+                    }`}>
+                      <span className="text-white text-sm">
+                        {categories.find(c => c.id === expense.category)?.icon || '💰'}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">{expense.description}</h4>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span>{getCategoryName(expense.category)}</span>
+                        <span>•</span>
+                        <span>{new Date(expense.date).toLocaleDateString()}</span>
+                        {expense.isEstimate && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="warning" size="xs">
+                              Estimate
+                            </Badge>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl font-bold">£{expense.amount.toFixed(2)}</span>
+                    <button
+                      onClick={() => deleteExpense(expense.id)}
+                      className="text-gray-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xl font-bold">£{expense.amount.toFixed(2)}</span>
-                  <button
-                    onClick={() => deleteExpense(expense.id)}
-                    className="text-gray-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </motion.div>
 
       {/* Add Expense Modal */}
-      {showAddExpense && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full"
-          >
-            <h3 className="text-xl font-bold mb-4">Add Expense</h3>
+      <Modal
+        isOpen={showAddExpense}
+        onClose={() => setShowAddExpense(false)}
+        title="Add Expense"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <Select
+              value={newExpense.category}
+              onChange={(value) => setNewExpense({...newExpense, category: value})}
+              options={categoryOptions}
+            />
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <select
-                  value={newExpense.category}
-                  onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                >
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
-                  ))}
-                </select>
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <input
+              type="text"
+              value={newExpense.description}
+              onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+              placeholder="e.g., Park tickets, Hotel booking"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+            />
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <input
-                  type="text"
-                  value={newExpense.description}
-                  onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-                  placeholder="e.g., Park tickets, Hotel booking"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Amount (£)</label>
+            <input
+              type="number"
+              value={newExpense.amount}
+              onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+              placeholder="0.00"
+              step="0.01"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+            />
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Amount (£)</label>
-                <input
-                  type="number"
-                  value={newExpense.amount}
-                  onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-                  placeholder="0.00"
-                  step="0.01"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+            <input
+              type="date"
+              value={newExpense.date}
+              onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+            />
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                <input
-                  type="date"
-                  value={newExpense.date}
-                  onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="isEstimate"
-                  checked={newExpense.isEstimate}
-                  onChange={(e) => setNewExpense({...newExpense, isEstimate: e.target.checked})}
-                  className="mr-2"
-                />
-                <label htmlFor="isEstimate" className="text-sm text-gray-700">
-                  This is an estimate
-                </label>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button onClick={addExpense} className="btn-disney flex-1">
-                Add Expense
-              </button>
-              <button
-                onClick={() => setShowAddExpense(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+          <Checkbox
+            checked={newExpense.isEstimate}
+            onCheckedChange={(checked) => setNewExpense({...newExpense, isEstimate: checked})}
+            label="This is an estimate"
+          />
         </div>
-      )}
+
+        <div className="flex gap-3 mt-6">
+          <button onClick={addExpense} className="btn-disney flex-1">
+            Add Expense
+          </button>
+          <button
+            onClick={() => setShowAddExpense(false)}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
 
       {/* Money Saving Tips */}
       <motion.div

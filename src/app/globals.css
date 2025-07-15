@@ -73,6 +73,14 @@ body {
   @apply bg-gradient-to-r from-disney-blue to-disney-purple text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
 }
 
+.btn-disney-small {
+  @apply bg-gradient-to-r from-disney-blue to-disney-purple text-white font-medium py-2 px-4 rounded-full shadow-md hover:shadow-lg transition-all duration-300 text-sm;
+}
+
+.btn-secondary {
+  @apply bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-full shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-300 text-sm;
+}
+
 .btn-premium {
   @apply bg-gradient-to-r from-disney-gold to-disney-orange text-disney-blue font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
 }

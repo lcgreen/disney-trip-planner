@@ -27,6 +27,12 @@ module.exports = {
           paris: '#8A2BE2',
         }
       },
+      zIndex: {
+        'modal': '1400',
+        'dropdown': '1000',
+        'overlay': '1300',
+        'tooltip': '1800',
+      },
       fontFamily: {
         disney: ['Comic Sans MS', 'cursive'],
         elegant: ['Georgia', 'serif'],

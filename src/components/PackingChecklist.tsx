@@ -3,6 +3,19 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Package, Check, Plus, Trash2, Cloud, Sun, Umbrella } from 'lucide-react'
+import {
+  Modal,
+  ProgressBar,
+  PackingProgress,
+  Badge,
+  EssentialBadge,
+  WeatherBadge,
+  CountBadge,
+  Select,
+  Checkbox,
+  PackingItemCheckbox,
+  StatCard
+} from '@/components/ui'
 
 interface PackingItem {
   id: string
@@ -155,6 +168,19 @@ export default function PackingChecklist() {
     return { total, completed, essential, completedEssential }
   }
 
+  const categoryOptions = [
+    { value: 'all', label: 'All Categories' },
+    ...categories.map(cat => ({
+      value: cat.id,
+      label: `${cat.icon} ${cat.name}`
+    }))
+  ]
+
+  const categorySelectOptions = categories.map(cat => ({
+    value: cat.id,
+    label: `${cat.icon} ${cat.name}`
+  }))
+
   const stats = getCompletionStats()
 
   return (
@@ -178,25 +204,30 @@ export default function PackingChecklist() {
           Expected Weather Conditions
         </h3>
         <div className="flex flex-wrap gap-3">
-          {[
-            { id: 'sunny', label: 'Sunny', icon: '☀️', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-            { id: 'hot', label: 'Hot (>25°C)', icon: '🌡️', color: 'bg-red-100 text-red-800 border-red-300' },
-            { id: 'cold', label: 'Cold (<15°C)', icon: '❄️', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-            { id: 'rain', label: 'Rainy', icon: '🌧️', color: 'bg-gray-100 text-gray-800 border-gray-300' }
-          ].map(weather => (
-            <button
-              key={weather.id}
-              onClick={() => toggleWeather(weather.id)}
-              className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                selectedWeather.includes(weather.id)
-                  ? weather.color
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <span className="mr-2">{weather.icon}</span>
-              {weather.label}
-            </button>
-          ))}
+          <WeatherBadge
+            weather="Sunny"
+            icon="☀️"
+            active={selectedWeather.includes('sunny')}
+            onClick={() => toggleWeather('sunny')}
+          />
+          <WeatherBadge
+            weather="Hot (>25°C)"
+            icon="🌡️"
+            active={selectedWeather.includes('hot')}
+            onClick={() => toggleWeather('hot')}
+          />
+          <WeatherBadge
+            weather="Cold (<15°C)"
+            icon="❄️"
+            active={selectedWeather.includes('cold')}
+            onClick={() => toggleWeather('cold')}
+          />
+          <WeatherBadge
+            weather="Rainy"
+            icon="🌧️"
+            active={selectedWeather.includes('rain')}
+            onClick={() => toggleWeather('rain')}
+          />
         </div>
       </motion.div>
 
@@ -205,49 +236,23 @@ export default function PackingChecklist() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-gradient-to-r from-disney-blue to-disney-purple p-6 rounded-xl text-white mb-8"
+        className="mb-8"
       >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold">{stats.completed}</div>
-            <div className="text-sm opacity-90">Items Packed</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold">{stats.total}</div>
-            <div className="text-sm opacity-90">Total Items</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold">{stats.completedEssential}/{stats.essential}</div>
-            <div className="text-sm opacity-90">Essential Items</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold">{stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%</div>
-            <div className="text-sm opacity-90">Complete</div>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <div className="bg-white bg-opacity-20 rounded-full h-3">
-            <div
-              className="bg-white rounded-full h-3 transition-all duration-500"
-              style={{ width: `${stats.total > 0 ? (stats.completed / stats.total) * 100 : 0}%` }}
-            />
-          </div>
-        </div>
+        <PackingProgress
+          completed={stats.completed}
+          total={stats.total}
+          essential={stats.essential}
+          completedEssential={stats.completedEssential}
+        />
       </motion.div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-4 mb-8">
-        <select
+        <Select
           value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-        >
-          <option value="all">All Categories</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
-          ))}
-        </select>
+          onChange={(value) => setFilterCategory(value)}
+          options={categoryOptions}
+        />
 
         <button
           onClick={() => setShowAddItem(true)}
@@ -276,9 +281,10 @@ export default function PackingChecklist() {
                 <h3 className="text-xl font-semibold flex items-center gap-3">
                   <span className="text-2xl">{category.icon}</span>
                   {category.name}
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${category.color}`}>
-                    {categoryItems.filter(item => item.isChecked).length}/{categoryItems.length}
-                  </span>
+                  <CountBadge
+                    count={categoryItems.filter(item => item.isChecked).length}
+                    max={categoryItems.length}
+                  />
                 </h3>
               </div>
 
@@ -293,26 +299,15 @@ export default function PackingChecklist() {
                           : 'bg-white border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <button
-                        onClick={() => toggleItem(item.id)}
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          item.isChecked
-                            ? 'bg-green-500 border-green-500 text-white'
-                            : 'border-gray-300 hover:border-green-400'
-                        }`}
-                      >
-                        {item.isChecked && <Check className="w-4 h-4" />}
-                      </button>
+                      <PackingItemCheckbox
+                        checked={item.isChecked}
+                        onCheckedChange={() => toggleItem(item.id)}
+                        label={item.name}
+                        essential={item.isEssential}
+                        packed={item.isChecked}
+                      />
 
                       <div className="flex-1">
-                        <div className={`font-medium ${item.isChecked ? 'line-through text-gray-500' : ''}`}>
-                          {item.name}
-                          {item.isEssential && (
-                            <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                              Essential
-                            </span>
-                          )}
-                        </div>
                         {item.weatherDependent && (
                           <div className="text-xs text-gray-500 mt-1">
                             Weather: {item.weatherDependent.join(', ')}
@@ -338,68 +333,52 @@ export default function PackingChecklist() {
       </div>
 
       {/* Add Item Modal */}
-      {showAddItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full"
-          >
-            <h3 className="text-xl font-bold mb-4">Add Custom Item</h3>
+      <Modal
+        isOpen={showAddItem}
+        onClose={() => setShowAddItem(false)}
+        title="Add Custom Item"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Item Name</label>
+            <input
+              type="text"
+              value={newItem.name}
+              onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+              placeholder="e.g., Extra phone charger"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+            />
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Item Name</label>
-                <input
-                  type="text"
-                  value={newItem.name}
-                  onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                  placeholder="e.g., Extra phone charger"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <Select
+              value={newItem.category}
+              onChange={(value) => setNewItem({...newItem, category: value})}
+              options={categorySelectOptions}
+            />
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <select
-                  value={newItem.category}
-                  onChange={(e) => setNewItem({...newItem, category: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                >
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="isEssential"
-                  checked={newItem.isEssential}
-                  onChange={(e) => setNewItem({...newItem, isEssential: e.target.checked})}
-                  className="mr-2"
-                />
-                <label htmlFor="isEssential" className="text-sm text-gray-700">
-                  This is an essential item
-                </label>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button onClick={addItem} className="btn-disney flex-1">
-                Add Item
-              </button>
-              <button
-                onClick={() => setShowAddItem(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+          <Checkbox
+            checked={newItem.isEssential}
+            onCheckedChange={(checked) => setNewItem({...newItem, isEssential: checked})}
+            label="This is an essential item"
+          />
         </div>
-      )}
+
+        <div className="flex gap-3 mt-6">
+          <button onClick={addItem} className="btn-disney flex-1">
+            Add Item
+          </button>
+          <button
+            onClick={() => setShowAddItem(false)}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
 
       {/* Packing Tips */}
       <motion.div

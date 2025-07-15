@@ -7,6 +7,7 @@ import CountdownTimer from '@/components/CountdownTimer'
 import TripPlanner from '@/components/TripPlanner'
 import BudgetTracker from '@/components/BudgetTracker'
 import PackingChecklist from '@/components/PackingChecklist'
+import { Modal, PremiumBadge } from '@/components/ui'
 
 interface Tool {
   id: string
@@ -130,9 +131,7 @@ export default function HomePage() {
                 >
                   {tool.isPremium && (
                     <div className="absolute top-4 right-4">
-                      <div className="premium-badge px-3 py-1 rounded-full text-xs font-bold text-disney-blue">
-                        PREMIUM
-                      </div>
+                      <PremiumBadge />
                     </div>
                   )}
 
@@ -218,58 +217,47 @@ export default function HomePage() {
       </main>
 
       {/* Premium Modal */}
-      {showPremiumModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl p-8 max-w-md w-full relative"
-          >
-            <button
-              onClick={() => setShowPremiumModal(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-            >
-              ✕
-            </button>
+      <Modal
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        title="Upgrade to Premium"
+        size="md"
+      >
+        <div className="text-center">
+          <div className="premium-badge p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <Crown className="w-10 h-10 text-disney-blue" />
+          </div>
 
-            <div className="text-center">
-              <div className="premium-badge p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                <Crown className="w-10 h-10 text-disney-blue" />
-              </div>
+          <p className="text-gray-600 mb-6">
+            Unlock all premium tools including the Trip Planner and Budget Tracker for just £9.99/month
+          </p>
 
-              <h3 className="text-2xl font-bold mb-4">Upgrade to Premium</h3>
-              <p className="text-gray-600 mb-6">
-                Unlock all premium tools including the Trip Planner and Budget Tracker for just £9.99/month
-              </p>
-
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center justify-center space-x-2">
-                  <Star className="w-5 h-5 text-disney-gold" />
-                  <span>Unlimited trip planning</span>
-                </div>
-                <div className="flex items-center justify-center space-x-2">
-                  <Star className="w-5 h-5 text-disney-gold" />
-                  <span>Advanced budget tracking</span>
-                </div>
-                <div className="flex items-center justify-center space-x-2">
-                  <Star className="w-5 h-5 text-disney-gold" />
-                  <span>Priority support</span>
-                </div>
-              </div>
-
-              <button className="btn-premium w-full mb-3">
-                Start Free Trial
-              </button>
-              <button
-                onClick={() => setShowPremiumModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                Maybe later
-              </button>
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center justify-center space-x-2">
+              <Star className="w-5 h-5 text-disney-gold" />
+              <span>Unlimited trip planning</span>
             </div>
-          </motion.div>
+            <div className="flex items-center justify-center space-x-2">
+              <Star className="w-5 h-5 text-disney-gold" />
+              <span>Advanced budget tracking</span>
+            </div>
+            <div className="flex items-center justify-center space-x-2">
+              <Star className="w-5 h-5 text-disney-gold" />
+              <span>Priority support</span>
+            </div>
+          </div>
+
+          <button className="btn-premium w-full mb-3">
+            Start Free Trial
+          </button>
+          <button
+            onClick={() => setShowPremiumModal(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            Maybe later
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   )
 }

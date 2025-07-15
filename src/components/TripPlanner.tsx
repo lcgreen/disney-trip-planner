@@ -3,6 +3,14 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, Clock, MapPin, Plus, Star, Trash2, Edit } from 'lucide-react'
+import {
+  Modal,
+  Badge,
+  StatusBadge,
+  CategoryBadge,
+  Select,
+  ParkSelect
+} from '@/components/ui'
 
 interface Activity {
   id: string
@@ -113,6 +121,41 @@ export default function TripPlanner() {
     return activityTypes.find(t => t.value === type) || activityTypes[0]
   }
 
+  const getPriorityVariant = (priority: Activity['priority']) => {
+    switch (priority) {
+      case 'high': return 'error'
+      case 'medium': return 'warning'
+      case 'low': return 'success'
+      default: return 'default'
+    }
+  }
+
+  const getActivityTypeVariant = (type: Activity['type']) => {
+    switch (type) {
+      case 'ride': return 'info'
+      case 'dining': return 'success'
+      case 'show': return 'disney'
+      case 'other': return 'default'
+      default: return 'default'
+    }
+  }
+
+  const parkOptions = disneyParks.map(park => ({
+    value: park,
+    label: park
+  }))
+
+  const activityTypeOptions = activityTypes.map(type => ({
+    value: type.value,
+    label: type.label
+  }))
+
+  const priorityOptions = [
+    { value: 'low', label: 'Low Priority' },
+    { value: 'medium', label: 'Medium Priority' },
+    { value: 'high', label: 'High Priority' }
+  ]
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
@@ -132,55 +175,46 @@ export default function TripPlanner() {
       </div>
 
       {/* Add Day Modal */}
-      {showAddDay && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full"
-          >
-            <h3 className="text-xl font-bold mb-4">Add New Day</h3>
+      <Modal
+        isOpen={showAddDay}
+        onClose={() => setShowAddDay(false)}
+        title="Add New Day"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+            <input
+              type="date"
+              value={newDayForm.date}
+              onChange={(e) => setNewDayForm({...newDayForm, date: e.target.value})}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+            />
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                <input
-                  type="date"
-                  value={newDayForm.date}
-                  onChange={(e) => setNewDayForm({...newDayForm, date: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
-                <select
-                  value={newDayForm.park}
-                  onChange={(e) => setNewDayForm({...newDayForm, park: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                >
-                  <option value="">Select a park</option>
-                  {disneyParks.map(park => (
-                    <option key={park} value={park}>{park}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button onClick={addNewDay} className="btn-disney flex-1">
-                Add Day
-              </button>
-              <button
-                onClick={() => setShowAddDay(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
+            <Select
+              value={newDayForm.park}
+              onChange={(value) => setNewDayForm({...newDayForm, park: value})}
+              options={parkOptions}
+              placeholder="Select a park"
+            />
+          </div>
         </div>
-      )}
+
+        <div className="flex gap-3 mt-6">
+          <button onClick={addNewDay} className="btn-disney flex-1">
+            Add Day
+          </button>
+          <button
+            onClick={() => setShowAddDay(false)}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
 
       {/* Days List */}
       {days.length === 0 ? (
@@ -264,16 +298,18 @@ export default function TripPlanner() {
                                 <span className="font-mono text-sm font-semibold bg-white px-2 py-1 rounded">
                                   {activity.time}
                                 </span>
-                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getActivityTypeInfo(activity.type).color}`}>
+                                <Badge
+                                  variant={getActivityTypeVariant(activity.type)}
+                                  size="sm"
+                                >
                                   {getActivityTypeInfo(activity.type).label}
-                                </span>
-                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                  activity.priority === 'high' ? 'bg-red-100 text-red-800' :
-                                  activity.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-green-100 text-green-800'
-                                }`}>
+                                </Badge>
+                                <Badge
+                                  variant={getPriorityVariant(activity.priority)}
+                                  size="sm"
+                                >
                                   {activity.priority} priority
-                                </span>
+                                </Badge>
                               </div>
                               <h4 className="font-semibold text-lg">{activity.title}</h4>
                               {activity.location && (
@@ -320,102 +356,91 @@ export default function TripPlanner() {
       )}
 
       {/* Edit Activity Modal */}
-      {editingActivity && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+      <Modal
+        isOpen={!!editingActivity}
+        onClose={() => setEditingActivity(null)}
+        title="Edit Activity"
+        size="md"
+      >
+        {editingActivity && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+              <input
+                type="time"
+                value={editingActivity.activity.time}
+                onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { time: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+              <input
+                type="text"
+                value={editingActivity.activity.title}
+                onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { title: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+              <input
+                type="text"
+                value={editingActivity.activity.location}
+                onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { location: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                placeholder="e.g., Fantasyland, Main Street USA"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+              <Select
+                value={editingActivity.activity.type}
+                onChange={(value) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { type: value as Activity['type'] })}
+                options={activityTypeOptions}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+              <Select
+                value={editingActivity.activity.priority}
+                onChange={(value) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { priority: value as Activity['priority'] })}
+                options={priorityOptions}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+              <textarea
+                value={editingActivity.activity.notes || ''}
+                onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { notes: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                rows={3}
+                placeholder="Additional notes, dining reservations, etc."
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={() => setEditingActivity(null)}
+            className="btn-disney flex-1"
           >
-            <h3 className="text-xl font-bold mb-4">Edit Activity</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                <input
-                  type="time"
-                  value={editingActivity.activity.time}
-                  onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { time: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                <input
-                  type="text"
-                  value={editingActivity.activity.title}
-                  onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { title: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                <input
-                  type="text"
-                  value={editingActivity.activity.location}
-                  onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { location: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                  placeholder="e.g., Fantasyland, Main Street USA"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                <select
-                  value={editingActivity.activity.type}
-                  onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { type: e.target.value as Activity['type'] })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                >
-                  {activityTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                <select
-                  value={editingActivity.activity.priority}
-                  onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { priority: e.target.value as Activity['priority'] })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                >
-                  <option value="low">Low Priority</option>
-                  <option value="medium">Medium Priority</option>
-                  <option value="high">High Priority</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                <textarea
-                  value={editingActivity.activity.notes || ''}
-                  onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { notes: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                  rows={3}
-                  placeholder="Additional notes, dining reservations, etc."
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setEditingActivity(null)}
-                className="btn-disney flex-1"
-              >
-                Save Changes
-              </button>
-              <button
-                onClick={() => setEditingActivity(null)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+            Save Changes
+          </button>
+          <button
+            onClick={() => setEditingActivity(null)}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   )
 }
