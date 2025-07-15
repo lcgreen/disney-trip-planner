@@ -12,6 +12,7 @@ import {
   Select,
   Checkbox
 } from '@/components/ui'
+import { getSafeTextColor } from '@/lib/utils'
 import {
   getAllBudgetCategories,
   getBudgetCategoryOptions,
@@ -19,6 +20,20 @@ import {
   getBudgetTips,
   type BudgetCategory as ConfigBudgetCategory
 } from '@/config'
+
+// Color mappings for Tailwind classes to hex values
+const colorMap: Record<string, string> = {
+  'bg-blue-500': '#3b82f6',
+  'bg-green-500': '#22c55e',
+  'bg-red-500': '#ef4444',
+  'bg-yellow-500': '#eab308',
+  'bg-purple-500': '#a855f7',
+  'bg-pink-500': '#ec4899',
+  'bg-gray-500': '#6b7280',
+  'bg-indigo-500': '#6366f1',
+  'bg-orange-500': '#f97316',
+  'bg-teal-500': '#14b8a6'
+}
 
 interface Expense {
   id: string
@@ -268,7 +283,11 @@ export default function BudgetTracker() {
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                       categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'
                     }`}>
-                      <span className="text-white text-sm">
+                      <span className={`text-sm ${
+                        getSafeTextColor(
+                          colorMap[categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'] || '#6b7280'
+                        )
+                      }`}>
                         {categories.find(c => c.id === expense.category)?.icon || '💰'}
                       </span>
                     </div>

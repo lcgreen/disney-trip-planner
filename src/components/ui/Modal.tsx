@@ -1,4 +1,5 @@
-import React, { ReactNode, useEffect } from 'react'
+import React, { ReactNode } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,11 +21,11 @@ export interface ModalProps {
 }
 
 const sizeClasses = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-  full: 'max-w-full mx-4',
+  sm: 'max-w-md',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+  full: 'max-w-full m-4',
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -41,119 +42,90 @@ export const Modal: React.FC<ModalProps> = ({
   overlayClassName,
   contentClassName,
 }) => {
-  // Handle escape key
-  useEffect(() => {
-    if (!isOpen || !closeOnEscape) return
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, closeOnEscape, onClose])
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
-
-  const handleOverlayClick = (event: React.MouseEvent) => {
-    if (closeOnOverlayClick && event.target === event.currentTarget) {
-      onClose()
-    }
-  }
-
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-modal">
-          {/* Overlay */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={cn(
-              'fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm',
-              overlayClassName
-            )}
-            onClick={handleOverlayClick}
-          />
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay
+          className={cn(
+            "fixed inset-0 z-50 bg-black/50 backdrop-blur-sm",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            overlayClassName
+          )}
+          onClick={closeOnOverlayClick ? onClose : undefined}
+        />
 
-          {/* Modal container */}
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className={cn(
-                'bg-white rounded-xl shadow-2xl w-full relative',
-                sizeClasses[size],
-                className
-              )}
-            >
-              {/* Close button */}
-              {showCloseButton && (
-                <button
-                  onClick={onClose}
-                  className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-10"
-                  aria-label="Close modal"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-
-              {/* Content */}
-              <div className={cn('p-6', contentClassName)}>
-                {/* Header */}
-                {(title || description) && (
-                  <div className="mb-6">
-                    {title && (
-                      <h2 className="text-xl font-bold text-gray-900 mb-2">
-                        {title}
-                      </h2>
-                    )}
-                    {description && (
-                      <p className="text-gray-600">
-                        {description}
-                      </p>
-                    )}
-                  </div>
+        <Dialog.Content
+          className={cn(
+            "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
+            "w-full bg-white rounded-xl shadow-2xl border border-gray-200",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
+            "data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+            sizeClasses[size],
+            size === 'full' ? 'h-[90vh] overflow-auto' : 'max-h-[90vh] overflow-auto',
+            contentClassName,
+            className
+          )}
+          onEscapeKeyDown={closeOnEscape ? undefined : (e) => e.preventDefault()}
+          onPointerDownOutside={closeOnOverlayClick ? undefined : (e) => e.preventDefault()}
+        >
+          {/* Header */}
+          {(title || description || showCloseButton) && (
+            <div className="flex items-start justify-between p-6 border-b border-gray-200">
+              <div className="flex-1">
+                {title && (
+                  <Dialog.Title className="text-xl font-bold text-gray-900 leading-6">
+                    {title}
+                  </Dialog.Title>
                 )}
-
-                {/* Body */}
-                {children}
+                {description && (
+                  <Dialog.Description className="mt-2 text-sm text-gray-600">
+                    {description}
+                  </Dialog.Description>
+                )}
               </div>
-            </motion.div>
+
+              {showCloseButton && (
+                <Dialog.Close asChild>
+                  <button
+                    className={cn(
+                      "rounded-lg p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100",
+                      "transition-colors focus:outline-none focus:ring-2 focus:ring-disney-blue"
+                    )}
+                    aria-label="Close modal"
+                  >
+                    <X size={20} />
+                  </button>
+                </Dialog.Close>
+              )}
+            </div>
+          )}
+
+          {/* Content */}
+          <div className="p-6">
+            {children}
           </div>
-        </div>
-      )}
-    </AnimatePresence>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 
-// Helper components for common modal patterns
-
+// Confirmation Modal Component
 export interface ConfirmModalProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
   title: string
-  message: string
+  description: string
   confirmText?: string
   cancelText?: string
-  variant?: 'danger' | 'warning' | 'info'
+  variant?: 'disney' | 'premium' | 'secondary' | 'outline'
+  destructive?: boolean
+  loading?: boolean
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -161,46 +133,48 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onClose,
   onConfirm,
   title,
-  message,
+  description,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  variant = 'info',
+  variant = 'disney',
+  destructive = false,
+  loading = false,
 }) => {
   const handleConfirm = () => {
     onConfirm()
-    onClose()
-  }
-
-  const getConfirmVariant = () => {
-    switch (variant) {
-      case 'danger':
-        return 'secondary' // We don't have a danger variant, so use secondary and handle styling
-      case 'warning':
-        return 'premium'
-      default:
-        return 'disney'
+    if (!loading) {
+      onClose()
     }
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <div className="text-gray-600 mb-6">
-        {message}
-      </div>
-      <div className="flex gap-3">
-        <Button
-          variant={getConfirmVariant()}
-          onClick={handleConfirm}
-          className={variant === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : undefined}
-        >
-          {confirmText}
-        </Button>
-        <Button variant="outline" onClick={onClose}>
-          {cancelText}
-        </Button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      description={description}
+      size="sm"
+      closeOnOverlayClick={!loading}
+      closeOnEscape={!loading}
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-end space-x-3">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={loading}
+          >
+            {cancelText}
+          </Button>
+          <Button
+            variant={destructive ? 'secondary' : variant}
+            onClick={handleConfirm}
+            loading={loading}
+          >
+            {confirmText}
+          </Button>
+        </div>
       </div>
     </Modal>
   )
 }
-
-export default Modal

@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Poppins:wght@300;400;500;600;700&display=swap');
 
@@ -10,16 +10,8 @@
   --background-end-rgb: 255, 255, 255;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
 body {
-  color: rgb(var(--foreground-rgb));
+  color: #1f2937; /* gray-800 for good contrast */
   background: linear-gradient(
       to bottom,
       transparent,
@@ -60,21 +52,28 @@ body {
 
 /* Tool Cards */
 .tool-card {
-  @apply bg-white rounded-xl shadow-lg border-2 border-transparent hover:border-disney-gold transition-all duration-300 hover:shadow-xl;
+  @apply bg-white rounded-xl shadow-lg border-2 border-transparent transition-all duration-300 hover:shadow-xl;
+}
+
+.tool-card:hover {
+  border-color: #FFD700; /* disney-gold */
 }
 
 .tool-card-premium {
-  @apply tool-card border-disney-gold bg-gradient-to-br from-yellow-50 to-orange-50;
+  @apply bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl;
+  border-color: #FFD700; /* disney-gold */
   box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
 }
 
 /* Button Styles */
 .btn-disney {
-  @apply bg-gradient-to-r from-disney-blue to-disney-purple text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
+  @apply text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
+  background: linear-gradient(to right, #003087, #663399);
 }
 
 .btn-disney-small {
-  @apply bg-gradient-to-r from-disney-blue to-disney-purple text-white font-medium py-2 px-4 rounded-full shadow-md hover:shadow-lg transition-all duration-300 text-sm;
+  @apply text-white font-medium py-2 px-4 rounded-full shadow-md hover:shadow-lg transition-all duration-300 text-sm;
+  background: linear-gradient(to right, #003087, #663399);
 }
 
 .btn-secondary {
@@ -82,12 +81,15 @@ body {
 }
 
 .btn-premium {
-  @apply bg-gradient-to-r from-disney-gold to-disney-orange text-disney-blue font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
+  @apply font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
+  background: linear-gradient(to right, #FFD700, #FF8C00);
+  color: #003087;
 }
 
 /* Countdown Timer Styles */
 .countdown-digit {
-  @apply bg-gradient-to-br from-disney-blue to-disney-purple text-white rounded-lg p-4 text-center shadow-lg;
+  @apply text-white rounded-lg p-4 text-center shadow-lg;
+  background: linear-gradient(to bottom right, #003087, #663399);
   font-family: 'Fredoka One', cursive;
 }
 

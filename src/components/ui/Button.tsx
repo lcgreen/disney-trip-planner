@@ -1,4 +1,5 @@
 import React, { forwardRef, ButtonHTMLAttributes } from 'react'
+import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
@@ -8,18 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        disney: "bg-gradient-to-r from-disney-blue to-disney-purple text-white shadow-lg hover:shadow-xl",
-        premium: "bg-gradient-to-r from-disney-gold to-disney-orange text-disney-blue font-bold shadow-lg hover:shadow-xl",
-        secondary: "bg-white border border-gray-300 text-gray-700 shadow-sm hover:shadow-md hover:bg-gray-50",
-        outline: "border border-gray-300 bg-transparent text-gray-700 hover:bg-gray-50",
-        ghost: "text-gray-700 hover:bg-gray-100",
-        link: "text-disney-blue underline-offset-4 hover:underline",
+        disney: "bg-gradient-to-r from-disney-blue to-disney-purple text-white shadow-lg hover:shadow-xl hover:scale-[1.02] focus-visible:ring-disney-blue",
+        premium: "bg-gradient-to-r from-disney-gold to-disney-orange text-disney-blue font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] focus-visible:ring-disney-gold",
+        secondary: "bg-white border border-gray-300 text-gray-700 shadow-sm hover:shadow-md hover:bg-gray-50 focus-visible:ring-gray-500",
+        outline: "border border-gray-300 bg-transparent text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-500",
+        ghost: "text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-500",
+        link: "text-disney-blue underline-offset-4 hover:underline focus-visible:ring-disney-blue",
         // Park-specific variants
-        magicKingdom: "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl",
-        epcot: "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-xl",
-        hollywoodStudios: "bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg hover:shadow-xl",
-        animalKingdom: "bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg hover:shadow-xl",
-        disneyland: "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg hover:shadow-xl",
+        magicKingdom: "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] focus-visible:ring-blue-500",
+        epcot: "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] focus-visible:ring-purple-500",
+        hollywoodStudios: "bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] focus-visible:ring-red-500",
+        animalKingdom: "bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] focus-visible:ring-green-500",
+        disneyland: "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] focus-visible:ring-orange-500",
       },
       size: {
         sm: "h-8 px-4 text-sm rounded-full",
@@ -43,10 +44,10 @@ const buttonVariants = cva(
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  asChild?: boolean
   loading?: boolean
   icon?: React.ReactNode
   iconPosition?: 'left' | 'right'
+  asChild?: boolean
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -60,12 +61,15 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     iconPosition = 'left',
     children,
     disabled,
+    asChild = false,
     ...props
   }, ref) => {
     const isDisabled = disabled || loading
 
+    const Comp = asChild ? Slot : 'button'
+
     return (
-      <button
+      <Comp
         className={cn(buttonVariants({ variant, size, fullWidth, className }))}
         ref={ref}
         disabled={isDisabled}
@@ -103,7 +107,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {icon && iconPosition === 'right' && !loading && (
           <span className="ml-2 flex items-center">{icon}</span>
         )}
-      </button>
+      </Comp>
     )
   }
 )

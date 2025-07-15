@@ -1,19 +1,20 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
+import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { Check, Minus } from 'lucide-react'
 
 const checkboxVariants = cva(
-  "peer h-4 w-4 shrink-0 rounded border-2 border-gray-300 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all",
+  "peer h-4 w-4 shrink-0 rounded border-2 border-gray-300 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 data-[state=checked]:text-white",
   {
     variants: {
       variant: {
-        default: "data-[state=checked]:bg-disney-blue data-[state=checked]:border-disney-blue data-[state=checked]:text-white focus-visible:ring-disney-blue",
-        disney: "data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-disney-blue data-[state=checked]:to-disney-purple data-[state=checked]:border-disney-purple data-[state=checked]:text-white focus-visible:ring-disney-purple",
+        default: "data-[state=checked]:bg-disney-blue data-[state=checked]:border-disney-blue focus-visible:ring-disney-blue",
+        disney: "data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-disney-blue data-[state=checked]:to-disney-purple data-[state=checked]:border-disney-purple focus-visible:ring-disney-purple",
         premium: "data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-disney-gold data-[state=checked]:to-disney-orange data-[state=checked]:border-disney-orange data-[state=checked]:text-disney-blue focus-visible:ring-disney-gold",
-        success: "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white focus-visible:ring-green-500",
-        warning: "data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500 data-[state=checked]:text-white focus-visible:ring-yellow-500",
-        error: "data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white focus-visible:ring-red-500",
+        success: "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 focus-visible:ring-green-500",
+        warning: "data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500 focus-visible:ring-yellow-500",
+        error: "data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 focus-visible:ring-red-500",
       },
       size: {
         sm: "h-3 w-3",
@@ -29,233 +30,153 @@ const checkboxVariants = cva(
 )
 
 export interface CheckboxProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type'>,
+  extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>,
     VariantProps<typeof checkboxVariants> {
   label?: string
   description?: string
-  indeterminate?: boolean
-  onCheckedChange?: (checked: boolean | 'indeterminate') => void
   labelPosition?: 'left' | 'right'
-  required?: boolean
   error?: string
 }
 
-const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  ({
-    className,
-    variant,
-    size,
-    label,
-    description,
-    indeterminate = false,
-    onCheckedChange,
-    labelPosition = 'right',
-    required = false,
-    error,
-    checked,
-    onChange,
-    disabled,
-    ...props
-  }, ref) => {
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newChecked = event.target.checked
-      if (onChange) {
-        onChange(event)
-      }
-      if (onCheckedChange) {
-        onCheckedChange(newChecked)
-      }
-    }
+const Checkbox = forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  CheckboxProps
+>(({
+  className,
+  variant,
+  size,
+  label,
+  description,
+  labelPosition = 'right',
+  error,
+  id,
+  ...props
+}, ref) => {
+  const generatedId = React.useId()
+  const checkboxId = id || generatedId
 
-    const checkboxElement = (
-      <div className="relative flex items-center justify-center">
-        <input
-          type="checkbox"
-          ref={ref}
-          className={cn(
-            checkboxVariants({ variant, size }),
-            "absolute opacity-0 pointer-events-none",
-            className
+  const CheckboxComponent = (
+    <CheckboxPrimitive.Root
+      ref={ref}
+      className={cn(checkboxVariants({ variant, size }), className)}
+      id={checkboxId}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
+        {props.checked === 'indeterminate' ? (
+          <Minus className="h-3 w-3" />
+        ) : (
+          <Check className="h-3 w-3" />
+        )}
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  )
+
+  if (!label && !description) {
+    return CheckboxComponent
+  }
+
+  return (
+    <div className="flex items-start space-x-3">
+      {labelPosition === 'left' && (
+        <div className="flex-1">
+          {label && (
+            <label
+              htmlFor={checkboxId}
+              className={cn(
+                "text-sm font-medium leading-none cursor-pointer",
+                error ? "text-red-600" : "text-gray-900",
+                props.disabled && "cursor-not-allowed opacity-50"
+              )}
+            >
+              {label}
+            </label>
           )}
-          checked={checked}
-          onChange={handleChange}
-          disabled={disabled}
-          data-state={indeterminate ? "indeterminate" : checked ? "checked" : "unchecked"}
-          {...props}
-        />
-        <div
-          className={cn(
-            checkboxVariants({ variant, size }),
-            "flex items-center justify-center",
-            checked && "bg-current border-current",
-            indeterminate && "bg-current border-current",
-            error && "border-red-500"
+          {description && (
+            <p className={cn(
+              "text-xs mt-1 leading-relaxed",
+              error ? "text-red-500" : "text-gray-600",
+              props.disabled && "opacity-50"
+            )}>
+              {description}
+            </p>
           )}
-          data-state={indeterminate ? "indeterminate" : checked ? "checked" : "unchecked"}
-        >
-          {checked && !indeterminate && (
-            <Check className={cn(
-              "text-current",
-              size === 'sm' ? "w-2 h-2" : size === 'lg' ? "w-4 h-4" : "w-3 h-3"
-            )} />
-          )}
-          {indeterminate && (
-            <Minus className={cn(
-              "text-current",
-              size === 'sm' ? "w-2 h-2" : size === 'lg' ? "w-4 h-4" : "w-3 h-3"
-            )} />
+          {error && (
+            <p className="text-xs text-red-500 mt-1">{error}</p>
           )}
         </div>
+      )}
+
+      <div className="flex">
+        {CheckboxComponent}
       </div>
-    )
 
-    if (!label && !description) {
-      return checkboxElement
-    }
+      {labelPosition === 'right' && (
+        <div className="flex-1">
+          {label && (
+            <label
+              htmlFor={checkboxId}
+              className={cn(
+                "text-sm font-medium leading-none cursor-pointer",
+                error ? "text-red-600" : "text-gray-900",
+                props.disabled && "cursor-not-allowed opacity-50"
+              )}
+            >
+              {label}
+            </label>
+          )}
+          {description && (
+            <p className={cn(
+              "text-xs mt-1 leading-relaxed",
+              error ? "text-red-500" : "text-gray-600",
+              props.disabled && "opacity-50"
+            )}>
+              {description}
+            </p>
+          )}
+          {error && (
+            <p className="text-xs text-red-500 mt-1">{error}</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+})
 
-    const labelContent = (
-      <div className="flex flex-col">
-        <label className={cn(
-          "text-sm font-medium text-gray-700 cursor-pointer",
-          disabled && "opacity-50 cursor-not-allowed",
-          error && "text-red-700"
-        )}>
-          {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </label>
-        {description && (
-          <span className={cn(
-            "text-xs text-gray-500 mt-1",
-            disabled && "opacity-50",
-            error && "text-red-600"
-          )}>
-            {description}
-          </span>
-        )}
-        {error && (
-          <span className="text-xs text-red-600 mt-1">
-            {error}
-          </span>
-        )}
-      </div>
-    )
-
-    return (
-      <div className={cn(
-        "flex items-start gap-3",
-        labelPosition === 'left' ? 'flex-row-reverse' : 'flex-row',
-        disabled && "cursor-not-allowed"
-      )}>
-        {checkboxElement}
-        {labelContent}
-      </div>
-    )
-  }
-)
-
-Checkbox.displayName = "Checkbox"
+Checkbox.displayName = CheckboxPrimitive.Root.displayName
 
 // Specialized checkbox components for common use cases
+export const SettingsCheckbox = forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  Omit<CheckboxProps, 'variant'>
+>((props, ref) => (
+  <Checkbox ref={ref} variant="disney" {...props} />
+))
 
-export interface SettingsCheckboxProps {
-  setting: string
-  description?: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-  disabled?: boolean
-}
+export const PackingItemCheckbox = forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  Omit<CheckboxProps, 'variant'>
+>((props, ref) => (
+  <Checkbox ref={ref} variant="success" {...props} />
+))
 
-export const SettingsCheckbox: React.FC<SettingsCheckboxProps> = ({
-  setting,
-  description,
-  checked,
-  onChange,
-  disabled = false,
-}) => (
-  <Checkbox
-    variant="disney"
-    label={setting}
-    description={description}
-    checked={checked}
-    onCheckedChange={(checked) => onChange(checked as boolean)}
-    disabled={disabled}
-  />
-)
+export const FeatureCheckbox = forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  Omit<CheckboxProps, 'variant'>
+>((props, ref) => (
+  <Checkbox ref={ref} variant="premium" {...props} />
+))
 
-export interface PackingItemCheckboxProps {
-  item: string
-  isEssential?: boolean
-  checked: boolean
-  onChange: (checked: boolean) => void
-  disabled?: boolean
-}
+export const AgreeCheckbox = forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  Omit<CheckboxProps, 'variant'>
+>((props, ref) => (
+  <Checkbox ref={ref} variant="default" {...props} />
+))
 
-export const PackingItemCheckbox: React.FC<PackingItemCheckboxProps> = ({
-  item,
-  isEssential = false,
-  checked,
-  onChange,
-  disabled = false,
-}) => (
-  <Checkbox
-    variant={isEssential ? "error" : "success"}
-    label={item}
-    description={isEssential ? "Essential item" : undefined}
-    checked={checked}
-    onCheckedChange={(checked) => onChange(checked as boolean)}
-    disabled={disabled}
-  />
-)
-
-export interface FeatureCheckboxProps {
-  feature: string
-  isPremium?: boolean
-  checked: boolean
-  onChange: (checked: boolean) => void
-  disabled?: boolean
-}
-
-export const FeatureCheckbox: React.FC<FeatureCheckboxProps> = ({
-  feature,
-  isPremium = false,
-  checked,
-  onChange,
-  disabled = false,
-}) => (
-  <Checkbox
-    variant={isPremium ? "premium" : "disney"}
-    label={feature}
-    description={isPremium ? "Premium feature" : undefined}
-    checked={checked}
-    onCheckedChange={(checked) => onChange(checked as boolean)}
-    disabled={disabled}
-  />
-)
-
-export interface AgreeCheckboxProps {
-  agreementText: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-  required?: boolean
-  error?: string
-}
-
-export const AgreeCheckbox: React.FC<AgreeCheckboxProps> = ({
-  agreementText,
-  checked,
-  onChange,
-  required = true,
-  error,
-}) => (
-  <Checkbox
-    variant="default"
-    label={agreementText}
-    checked={checked}
-    onCheckedChange={(checked) => onChange(checked as boolean)}
-    required={required}
-    error={error}
-  />
-)
+SettingsCheckbox.displayName = "SettingsCheckbox"
+PackingItemCheckbox.displayName = "PackingItemCheckbox"
+FeatureCheckbox.displayName = "FeatureCheckbox"
+AgreeCheckbox.displayName = "AgreeCheckbox"
 
 export { Checkbox, checkboxVariants }
-export default Checkbox

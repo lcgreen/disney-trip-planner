@@ -19,6 +19,7 @@ import {
   getPriorityOptions,
   getActivityTypeById,
   getPriorityById,
+  getParkById,
   type ActivityType,
   type Priority
 } from '@/config'
@@ -48,21 +49,47 @@ const parkOptions = getParkOptions()
 export default function TripPlanner() {
   const [days, setDays] = useState<DayPlan[]>([])
   const [editingActivity, setEditingActivity] = useState<{dayId: string, activity: Activity} | null>(null)
+  const [editFormData, setEditFormData] = useState<Activity | null>(null)
   const [showAddDay, setShowAddDay] = useState(false)
   const [newDayForm, setNewDayForm] = useState({ date: '', park: '' })
+  const [formErrors, setFormErrors] = useState({ date: '', park: '' })
 
   const addNewDay = () => {
-    if (newDayForm.date && newDayForm.park) {
-      const newDay: DayPlan = {
-        id: Date.now().toString(),
-        date: newDayForm.date,
-        park: newDayForm.park,
-        activities: []
-      }
-      setDays([...days, newDay])
-      setNewDayForm({ date: '', park: '' })
-      setShowAddDay(false)
+    // Clear previous errors
+    setFormErrors({ date: '', park: '' })
+
+    // Validation
+    const errors = { date: '', park: '' }
+    if (!newDayForm.date) {
+      errors.date = 'Please select a date'
     }
+    if (!newDayForm.park) {
+      errors.park = 'Please select a park'
+    }
+
+    // Check if date already exists
+    const dateExists = days.some(day => day.date === newDayForm.date)
+    if (dateExists) {
+      errors.date = 'You already have a plan for this date'
+    }
+
+    if (errors.date || errors.park) {
+      setFormErrors(errors)
+      return
+    }
+
+    // Create new day
+    const newDay: DayPlan = {
+      id: Date.now().toString(),
+      date: newDayForm.date,
+      park: newDayForm.park,
+      activities: []
+    }
+
+    setDays([...days, newDay])
+    setNewDayForm({ date: '', park: '' })
+    setFormErrors({ date: '', park: '' })
+    setShowAddDay(false)
   }
 
   const addActivity = (dayId: string) => {
@@ -83,6 +110,7 @@ export default function TripPlanner() {
     ))
 
     setEditingActivity({ dayId, activity: newActivity })
+    setEditFormData({ ...newActivity })
   }
 
   const updateActivity = (dayId: string, activityId: string, updates: Partial<Activity>) => {
@@ -96,6 +124,19 @@ export default function TripPlanner() {
           }
         : day
     ))
+  }
+
+  const handleSaveActivityChanges = () => {
+    if (editingActivity && editFormData) {
+      updateActivity(editingActivity.dayId, editingActivity.activity.id, editFormData)
+      setEditingActivity(null)
+      setEditFormData(null)
+    }
+  }
+
+  const handleCancelActivityEdit = () => {
+    setEditingActivity(null)
+    setEditFormData(null)
   }
 
   const deleteActivity = (dayId: string, activityId: string) => {
@@ -160,7 +201,11 @@ export default function TripPlanner() {
       {/* Add Day Modal */}
       <Modal
         isOpen={showAddDay}
-        onClose={() => setShowAddDay(false)}
+        onClose={() => {
+          setShowAddDay(false)
+          setNewDayForm({ date: '', park: '' })
+          setFormErrors({ date: '', park: '' })
+        }}
         title="Add New Day"
         size="md"
       >
@@ -170,28 +215,57 @@ export default function TripPlanner() {
             <input
               type="date"
               value={newDayForm.date}
-              onChange={(e) => setNewDayForm({...newDayForm, date: e.target.value})}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+              onChange={(e) => {
+                setNewDayForm({...newDayForm, date: e.target.value})
+                if (formErrors.date) {
+                  setFormErrors({...formErrors, date: ''})
+                }
+              }}
+              min={new Date().toISOString().split('T')[0]}
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue ${
+                formErrors.date ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {formErrors.date && (
+              <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
             <Select
               value={newDayForm.park}
-              onValueChange={(value) => setNewDayForm({...newDayForm, park: value})}
+              onValueChange={(value) => {
+                setNewDayForm({...newDayForm, park: value})
+                if (formErrors.park) {
+                  setFormErrors({...formErrors, park: ''})
+                }
+              }}
               options={parkOptions}
               placeholder="Select a park"
+              className="w-full"
+              error={formErrors.park}
             />
+            {formErrors.park && (
+              <p className="text-red-500 text-sm mt-1">{formErrors.park}</p>
+            )}
           </div>
         </div>
 
         <div className="flex gap-3 mt-6">
-          <button onClick={addNewDay} className="btn-disney flex-1">
+          <button
+            onClick={addNewDay}
+            className="btn-disney flex-1"
+            disabled={!newDayForm.date || !newDayForm.park}
+          >
             Add Day
           </button>
           <button
-            onClick={() => setShowAddDay(false)}
+            onClick={() => {
+              setShowAddDay(false)
+              setNewDayForm({ date: '', park: '' })
+              setFormErrors({ date: '', park: '' })
+            }}
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
           >
             Cancel
@@ -240,7 +314,7 @@ export default function TripPlanner() {
                     </h3>
                     <p className="text-lg opacity-90 flex items-center gap-2">
                       <MapPin className="w-5 h-5" />
-                      {day.park}
+                      {getParkById(day.park)?.name || day.park}
                     </p>
                   </div>
                   <button
@@ -307,7 +381,10 @@ export default function TripPlanner() {
                             </div>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => setEditingActivity({ dayId: day.id, activity })}
+                                onClick={() => {
+                                  setEditingActivity({ dayId: day.id, activity })
+                                  setEditFormData({ ...activity })
+                                }}
                                 className="text-gray-500 hover:text-disney-blue transition-colors"
                               >
                                 <Edit className="w-4 h-4" />
@@ -341,83 +418,85 @@ export default function TripPlanner() {
       {/* Edit Activity Modal */}
       <Modal
         isOpen={!!editingActivity}
-        onClose={() => setEditingActivity(null)}
+        onClose={handleCancelActivityEdit}
         title="Edit Activity"
         size="md"
       >
-        {editingActivity && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-              <input
-                type="time"
-                value={editingActivity.activity.time}
-                onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { time: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-              />
-            </div>
+        {(() => {
+          return editFormData && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                <input
+                  type="time"
+                  value={editFormData.time}
+                  onChange={(e) => setEditFormData({ ...editFormData, time: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-              <input
-                type="text"
-                value={editingActivity.activity.title}
-                onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { title: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                <input
+                  type="text"
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-              <input
-                type="text"
-                value={editingActivity.activity.location}
-                onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { location: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                placeholder="e.g., Fantasyland, Main Street USA"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <input
+                  type="text"
+                  value={editFormData.location}
+                  onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                  placeholder="e.g., Fantasyland, Main Street USA"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-              <Select
-                value={editingActivity.activity.type}
-                onValueChange={(value) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { type: value as Activity['type'] })}
-                options={activityTypeOptions}
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                <Select
+                  value={editFormData.type}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, type: value as Activity['type'] })}
+                  options={activityTypeOptions}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <Select
-                value={editingActivity.activity.priority}
-                onValueChange={(value) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { priority: value as Activity['priority'] })}
-                options={prioritySelectOptions}
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                <Select
+                  value={editFormData.priority}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, priority: value as Activity['priority'] })}
+                  options={prioritySelectOptions}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-              <textarea
-                value={editingActivity.activity.notes || ''}
-                onChange={(e) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { notes: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                rows={3}
-                placeholder="Additional notes, dining reservations, etc."
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                <textarea
+                  value={editFormData.notes || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                  rows={3}
+                  placeholder="Additional notes, dining reservations, etc."
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         <div className="flex gap-3 mt-6">
           <button
-            onClick={() => setEditingActivity(null)}
+            onClick={handleSaveActivityChanges}
             className="btn-disney flex-1"
           >
             Save Changes
           </button>
           <button
-            onClick={() => setEditingActivity(null)}
+            onClick={handleCancelActivityEdit}
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
           >
             Cancel

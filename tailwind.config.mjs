@@ -1,13 +1,54 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    'from-disney-blue',
+    'from-disney-gold',
+    'from-disney-purple',
+    'from-disney-green',
+    'from-disney-orange',
+    'to-disney-blue',
+    'to-disney-gold',
+    'to-disney-purple',
+    'to-disney-green',
+    'to-disney-orange',
+    'text-disney-blue',
+    'text-disney-gold',
+    'text-disney-purple',
+    'text-disney-green',
+    'text-disney-orange',
+    'text-disney-pink',
+    'border-disney-blue',
+    'border-disney-gold',
+    'border-disney-purple',
+    'border-disney-green',
+    'border-disney-orange',
+    'bg-disney-blue',
+    'bg-disney-gold',
+    'bg-disney-purple',
+    'bg-disney-green',
+    'bg-disney-orange',
+    'hover:border-disney-gold',
+    'hover:text-disney-blue',
+    'ring-disney-blue',
+    'ring-disney-gold',
+    'ring-disney-purple',
+  ],
   theme: {
     extend: {
       colors: {
+        'disney-blue': '#003087',
+        'disney-gold': '#FFD700',
+        'disney-red': '#CE1126',
+        'disney-purple': '#663399',
+        'disney-teal': '#00CED1',
+        'disney-pink': '#FF69B4',
+        'disney-green': '#228B22',
+        'disney-orange': '#FF8C00',
         disney: {
           blue: '#003087',
           gold: '#FFD700',
@@ -55,6 +96,9 @@ module.exports = {
       },
       backgroundImage: {
         'gradient-disney': 'linear-gradient(45deg, #003087, #FFD700, #CE1126)',
+        'gradient-disney-blue': 'linear-gradient(135deg, #003087, #663399)',
+        'gradient-disney-gold': 'linear-gradient(135deg, #FFD700, #FF8C00)',
+        'gradient-disney-magic': 'linear-gradient(45deg, #003087, #663399, #FFD700)',
         'gradient-magic': 'linear-gradient(135deg, #4169E1, #9370DB)',
         'gradient-sunset': 'linear-gradient(135deg, #FF8C00, #FF69B4)',
       }

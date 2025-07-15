@@ -19,6 +19,7 @@ import {
   StatCard,
   CountdownStat
 } from '@/components/ui'
+import { getSafeTextColor } from '@/lib/utils'
 import {
   getAllParks,
   getAllThemes,
@@ -376,27 +377,27 @@ export default function CountdownTimer(): JSX.Element {
               <SettingToggle
                 setting="Show milliseconds"
                 checked={settings.showMilliseconds}
-                onChange={(checked) => setSettings(prev => ({ ...prev, showMilliseconds: checked }))}
+                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showMilliseconds: checked }))}
               />
               <SettingToggle
                 setting="Show timezone"
                 checked={settings.showTimezone}
-                onChange={(checked) => setSettings(prev => ({ ...prev, showTimezone: checked }))}
+                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTimezone: checked }))}
               />
               <SettingToggle
                 setting="Show planning tips"
                 checked={settings.showTips}
-                onChange={(checked) => setSettings(prev => ({ ...prev, showTips: checked }))}
+                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTips: checked }))}
               />
               <SettingToggle
                 setting="Show attractions"
                 checked={settings.showAttractions}
-                onChange={(checked) => setSettings(prev => ({ ...prev, showAttractions: checked }))}
+                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showAttractions: checked }))}
               />
               <SettingToggle
                 setting="Play completion sound"
                 checked={settings.playSound}
-                onChange={(checked) => setSettings(prev => ({ ...prev, playSound: checked }))}
+                onChange={(checked: boolean) => setSettings(prev => ({ ...prev, playSound: checked }))}
               />
             </div>
           </div>
@@ -409,7 +410,7 @@ export default function CountdownTimer(): JSX.Element {
                 <label className="block text-xs text-gray-600 mb-1">Digit Style</label>
                 <Select
                   value={settings.digitStyle}
-                  onChange={(value) => setSettings(prev => ({ ...prev, digitStyle: value as any }))}
+                  onValueChange={(value: string) => setSettings(prev => ({ ...prev, digitStyle: value as CountdownSettings['digitStyle'] }))}
                   options={[
                     { value: 'modern', label: 'Modern' },
                     { value: 'classic', label: 'Classic' },
@@ -422,7 +423,7 @@ export default function CountdownTimer(): JSX.Element {
                 <label className="block text-xs text-gray-600 mb-1">Layout</label>
                 <Select
                   value={settings.layout}
-                  onChange={(value) => setSettings(prev => ({ ...prev, layout: value as any }))}
+                  onValueChange={(value: string) => setSettings(prev => ({ ...prev, layout: value as CountdownSettings['layout'] }))}
                   options={[
                     { value: 'horizontal', label: 'Horizontal' },
                     { value: 'vertical', label: 'Vertical' },
@@ -435,7 +436,7 @@ export default function CountdownTimer(): JSX.Element {
                 <label className="block text-xs text-gray-600 mb-1">Font Size</label>
                 <Select
                   value={settings.fontSize}
-                  onChange={(value) => setSettings(prev => ({ ...prev, fontSize: value as any }))}
+                  onValueChange={(value: string) => setSettings(prev => ({ ...prev, fontSize: value as CountdownSettings['fontSize'] }))}
                   options={[
                     { value: 'small', label: 'Small' },
                     { value: 'medium', label: 'Medium' },
@@ -655,7 +656,7 @@ export default function CountdownTimer(): JSX.Element {
               </div>
             ) : (
               <div className="mb-6">
-                <p className="text-xl">Click "Start Countdown" to begin the magic! ✨</p>
+                <p className="text-xl">Click &ldquo;Start Countdown&rdquo; to begin the magic! ✨</p>
               </div>
             )}
 
@@ -665,7 +666,7 @@ export default function CountdownTimer(): JSX.Element {
                 animate={{ scale: 1 }}
                 className="text-center"
               >
-                <h2 className="text-3xl font-bold mb-2">🎉 IT'S DISNEY DAY! 🎉</h2>
+                <h2 className="text-3xl font-bold mb-2">🎉 IT&rsquo;S DISNEY DAY! 🎉</h2>
                 <p className="text-xl">Your magical adventure begins now!</p>
               </motion.div>
             )}
