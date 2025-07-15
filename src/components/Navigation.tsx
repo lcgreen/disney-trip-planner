@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Calendar, Clock, DollarSign, Package, Home, Menu, X, Crown } from 'lucide-react'
+import { Calendar, Clock, DollarSign, Package, Home, Menu, X, Crown, Layout } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
 
 interface NavigationItem {
@@ -19,6 +19,11 @@ const navigationItems: NavigationItem[] = [
     href: '/',
     label: 'Home',
     icon: Home,
+  },
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: Layout,
   },
   {
     href: '/countdown',
