@@ -1,0 +1,127 @@
+{
+  "categories": [
+    {
+      "id": "tickets",
+      "name": "Park Tickets",
+      "budget": 0,
+      "color": "bg-blue-500",
+      "icon": "🎫",
+      "description": "Disney park tickets and passes",
+      "tips": [
+        "Book tickets in advance for discounts",
+        "Consider multi-day passes for longer stays",
+        "Look for seasonal promotions"
+      ]
+    },
+    {
+      "id": "hotel",
+      "name": "Accommodation",
+      "budget": 0,
+      "color": "bg-green-500",
+      "icon": "🏨",
+      "description": "Hotels, resorts, and lodging",
+      "tips": [
+        "Disney resort hotels offer early park access",
+        "Off-site hotels can save money",
+        "Book early for better rates"
+      ]
+    },
+    {
+      "id": "dining",
+      "name": "Dining & Food",
+      "budget": 0,
+      "color": "bg-red-500",
+      "icon": "🍔",
+      "description": "Restaurants, snacks, and beverages",
+      "tips": [
+        "Disney Dining Plan can save money",
+        "Mobile ordering reduces wait times",
+        "Bring snacks and water bottles"
+      ]
+    },
+    {
+      "id": "transport",
+      "name": "Transportation",
+      "budget": 0,
+      "color": "bg-yellow-500",
+      "icon": "✈️",
+      "description": "Flights, car rental, parking, and local transport",
+      "tips": [
+        "Book flights early for better prices",
+        "Consider Disney transportation options",
+        "Park parking fees add up quickly"
+      ]
+    },
+    {
+      "id": "shopping",
+      "name": "Shopping & Souvenirs",
+      "budget": 0,
+      "color": "bg-purple-500",
+      "icon": "🛍️",
+      "description": "Souvenirs, merchandise, and gifts",
+      "tips": [
+        "Set souvenir budgets for kids",
+        "Disney gift cards offer discounts",
+        "Shop at Disney Springs for more options"
+      ]
+    },
+    {
+      "id": "extras",
+      "name": "Extras & Activities",
+      "budget": 0,
+      "color": "bg-pink-500",
+      "icon": "🎪",
+      "description": "Special experiences, tours, and add-ons",
+      "tips": [
+        "Genie+ can save time on busy days",
+        "Character dining experiences book up fast",
+        "Consider special tours and experiences"
+      ]
+    }
+  ],
+  "budgetSettings": {
+    "defaultCurrency": "£",
+    "currencyOptions": ["£", "$", "€", "¥"],
+    "defaultCategories": ["tickets", "hotel", "dining", "transport"],
+    "suggestedBudgets": {
+      "family_of_4_5_days": {
+        "tickets": 2000,
+        "hotel": 1500,
+        "dining": 800,
+        "transport": 600,
+        "shopping": 400,
+        "extras": 300
+      },
+      "couple_3_days": {
+        "tickets": 800,
+        "hotel": 600,
+        "dining": 400,
+        "transport": 300,
+        "shopping": 200,
+        "extras": 200
+      },
+      "solo_2_days": {
+        "tickets": 400,
+        "hotel": 300,
+        "dining": 200,
+        "transport": 150,
+        "shopping": 100,
+        "extras": 100
+      }
+    }
+  },
+  "tips": {
+    "general": [
+      "Set your budget before you travel",
+      "Track expenses daily to stay on budget",
+      "Leave 10-20% buffer for unexpected costs",
+      "Use Disney gift cards for discounts"
+    ],
+    "saving": [
+      "Visit during off-peak seasons",
+      "Bring your own snacks and water",
+      "Stay at nearby off-site hotels",
+      "Use Disney transportation to save on parking"
+    ]
+  }
+}

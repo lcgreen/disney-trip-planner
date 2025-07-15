@@ -1,0 +1,141 @@
+{
+  "activityTypes": [
+    {
+      "value": "ride",
+      "label": "Attraction/Ride",
+      "color": "bg-blue-100 text-blue-800",
+      "icon": "🎢",
+      "description": "Theme park attractions, rides, and experiences",
+      "tips": [
+        "Use Genie+ for popular rides",
+        "Check wait times in Disney app",
+        "Ride popular attractions early or late"
+      ]
+    },
+    {
+      "value": "dining",
+      "label": "Dining",
+      "color": "bg-green-100 text-green-800",
+      "icon": "🍽️",
+      "description": "Restaurants, quick service, and snacks",
+      "tips": [
+        "Make dining reservations 60 days in advance",
+        "Use mobile ordering to save time",
+        "Try Disney's signature dishes"
+      ]
+    },
+    {
+      "value": "show",
+      "label": "Show/Entertainment",
+      "color": "bg-purple-100 text-purple-800",
+      "icon": "🎭",
+      "description": "Live shows, parades, and entertainment",
+      "tips": [
+        "Arrive 15-30 minutes early for shows",
+        "Check show schedules in advance",
+        "Some shows offer FastPass+ access"
+      ]
+    },
+    {
+      "value": "character",
+      "label": "Character Meet & Greet",
+      "color": "bg-pink-100 text-pink-800",
+      "icon": "🏰",
+      "description": "Meet Disney characters for photos and autographs",
+      "tips": [
+        "Bring autograph book and pen",
+        "Check character schedules",
+        "Some character dining includes meet & greets"
+      ]
+    },
+    {
+      "value": "shopping",
+      "label": "Shopping",
+      "color": "bg-yellow-100 text-yellow-800",
+      "icon": "🛍️",
+      "description": "Souvenir shopping and merchandise",
+      "tips": [
+        "Shop at the end of the day",
+        "Use package delivery to hotel",
+        "Compare prices at different locations"
+      ]
+    },
+    {
+      "value": "break",
+      "label": "Rest/Break",
+      "color": "bg-gray-100 text-gray-800",
+      "icon": "☕",
+      "description": "Scheduled breaks, naps, or rest time",
+      "tips": [
+        "Schedule breaks to avoid burnout",
+        "Find quiet spots in parks",
+        "Return to hotel for midday rest"
+      ]
+    },
+    {
+      "value": "other",
+      "label": "Other",
+      "color": "bg-indigo-100 text-indigo-800",
+      "icon": "📍",
+      "description": "Custom activities and experiences",
+      "tips": [
+        "Be flexible with your schedule",
+        "Leave time for spontaneous fun",
+        "Explore hidden Disney details"
+      ]
+    }
+  ],
+  "priorities": [
+    {
+      "value": "high",
+      "label": "High Priority",
+      "color": "border-red-300 bg-red-50",
+      "badgeVariant": "error",
+      "description": "Must-do activities and experiences",
+      "icon": "🔥"
+    },
+    {
+      "value": "medium",
+      "label": "Medium Priority",
+      "color": "border-yellow-300 bg-yellow-50",
+      "badgeVariant": "warning",
+      "description": "Would like to do if time permits",
+      "icon": "⭐"
+    },
+    {
+      "value": "low",
+      "label": "Low Priority",
+      "color": "border-green-300 bg-green-50",
+      "badgeVariant": "success",
+      "description": "Bonus activities if everything else is done",
+      "icon": "👍"
+    }
+  ],
+  "defaultTimeSlots": [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
+    "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
+    "18:00", "18:30", "19:00", "19:30", "20:00", "20:30",
+    "21:00", "21:30", "22:00"
+  ],
+  "tips": {
+    "planning": [
+      "Start with high-priority activities first",
+      "Book dining reservations 60 days in advance",
+      "Use Genie+ for popular attractions",
+      "Allow time for travel between parks"
+    ],
+    "scheduling": [
+      "Arrive at park opening for shorter wait times",
+      "Schedule breaks to avoid exhaustion",
+      "Plan popular attractions during less busy times",
+      "Leave some flexibility for spontaneous fun"
+    ],
+    "efficiency": [
+      "Group activities by location in the park",
+      "Use mobile ordering for quick service",
+      "Check wait times before heading to attractions",
+      "Consider park hopper tickets for multiple parks"
+    ]
+  }
+}

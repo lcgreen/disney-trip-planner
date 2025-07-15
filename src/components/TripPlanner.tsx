@@ -11,13 +11,24 @@ import {
   Select,
   ParkSelect
 } from '@/components/ui'
+import {
+  getAllActivityTypes,
+  getAllPriorities,
+  getParkOptions,
+  getActivityTypeOptions,
+  getPriorityOptions,
+  getActivityTypeById,
+  getPriorityById,
+  type ActivityType,
+  type Priority
+} from '@/config'
 
 interface Activity {
   id: string
   time: string
   title: string
   location: string
-  type: 'ride' | 'dining' | 'show' | 'other'
+  type: 'ride' | 'dining' | 'show' | 'character' | 'shopping' | 'break' | 'other'
   notes?: string
   priority: 'low' | 'medium' | 'high'
 }
@@ -29,28 +40,10 @@ interface DayPlan {
   activities: Activity[]
 }
 
-const activityTypes = [
-  { value: 'ride', label: 'Attraction/Ride', color: 'bg-blue-100 text-blue-800' },
-  { value: 'dining', label: 'Dining', color: 'bg-green-100 text-green-800' },
-  { value: 'show', label: 'Show/Entertainment', color: 'bg-purple-100 text-purple-800' },
-  { value: 'other', label: 'Other', color: 'bg-gray-100 text-gray-800' }
-]
-
-const priorityColors = {
-  low: 'border-green-300 bg-green-50',
-  medium: 'border-yellow-300 bg-yellow-50',
-  high: 'border-red-300 bg-red-50'
-}
-
-const disneyParks = [
-  'Magic Kingdom',
-  'EPCOT',
-  'Hollywood Studios',
-  'Animal Kingdom',
-  'Disneyland Park',
-  'Disney California Adventure',
-  'Disneyland Paris'
-]
+// Get configuration data
+const activityTypes = getAllActivityTypes()
+const priorities = getAllPriorities()
+const parkOptions = getParkOptions()
 
 export default function TripPlanner() {
   const [days, setDays] = useState<DayPlan[]>([])
@@ -118,16 +111,16 @@ export default function TripPlanner() {
   }
 
   const getActivityTypeInfo = (type: string) => {
-    return activityTypes.find(t => t.value === type) || activityTypes[0]
+    return getActivityTypeById(type) || activityTypes[0]
+  }
+
+  const getPriorityInfo = (priority: Activity['priority']) => {
+    return getPriorityById(priority) || priorities[0]
   }
 
   const getPriorityVariant = (priority: Activity['priority']) => {
-    switch (priority) {
-      case 'high': return 'error'
-      case 'medium': return 'warning'
-      case 'low': return 'success'
-      default: return 'default'
-    }
+    const priorityInfo = getPriorityInfo(priority)
+    return priorityInfo.badgeVariant as any
   }
 
   const getActivityTypeVariant = (type: Activity['type']) => {
@@ -135,26 +128,16 @@ export default function TripPlanner() {
       case 'ride': return 'info'
       case 'dining': return 'success'
       case 'show': return 'disney'
+      case 'character': return 'premium'
+      case 'shopping': return 'warning'
+      case 'break': return 'default'
       case 'other': return 'default'
       default: return 'default'
     }
   }
 
-  const parkOptions = disneyParks.map(park => ({
-    value: park,
-    label: park
-  }))
-
-  const activityTypeOptions = activityTypes.map(type => ({
-    value: type.value,
-    label: type.label
-  }))
-
-  const priorityOptions = [
-    { value: 'low', label: 'Low Priority' },
-    { value: 'medium', label: 'Medium Priority' },
-    { value: 'high', label: 'High Priority' }
-  ]
+  const activityTypeOptions = getActivityTypeOptions()
+  const prioritySelectOptions = getPriorityOptions()
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -196,7 +179,7 @@ export default function TripPlanner() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
             <Select
               value={newDayForm.park}
-              onChange={(value) => setNewDayForm({...newDayForm, park: value})}
+              onValueChange={(value) => setNewDayForm({...newDayForm, park: value})}
               options={parkOptions}
               placeholder="Select a park"
             />
@@ -290,7 +273,7 @@ export default function TripPlanner() {
                         .map((activity) => (
                         <div
                           key={activity.id}
-                          className={`p-4 rounded-lg border-2 ${priorityColors[activity.priority]} transition-all hover:shadow-md`}
+                          className={`p-4 rounded-lg border-2 ${getPriorityVariant(activity.priority)} transition-all hover:shadow-md`}
                         >
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1">
@@ -399,7 +382,7 @@ export default function TripPlanner() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
               <Select
                 value={editingActivity.activity.type}
-                onChange={(value) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { type: value as Activity['type'] })}
+                onValueChange={(value) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { type: value as Activity['type'] })}
                 options={activityTypeOptions}
               />
             </div>
@@ -408,8 +391,8 @@ export default function TripPlanner() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
               <Select
                 value={editingActivity.activity.priority}
-                onChange={(value) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { priority: value as Activity['priority'] })}
-                options={priorityOptions}
+                onValueChange={(value) => updateActivity(editingActivity.dayId, editingActivity.activity.id, { priority: value as Activity['priority'] })}
+                options={prioritySelectOptions}
               />
             </div>
 

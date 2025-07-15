@@ -1,0 +1,274 @@
+{
+  "categories": [
+    {
+      "id": "clothing",
+      "name": "Clothing",
+      "icon": "👕",
+      "color": "bg-blue-100 text-blue-800",
+      "description": "Clothes and footwear for your trip"
+    },
+    {
+      "id": "electronics",
+      "name": "Electronics",
+      "icon": "📱",
+      "color": "bg-purple-100 text-purple-800",
+      "description": "Phones, cameras, chargers, and accessories"
+    },
+    {
+      "id": "toiletries",
+      "name": "Toiletries",
+      "icon": "🧴",
+      "color": "bg-green-100 text-green-800",
+      "description": "Personal care and hygiene items"
+    },
+    {
+      "id": "documents",
+      "name": "Documents",
+      "icon": "📋",
+      "color": "bg-red-100 text-red-800",
+      "description": "Tickets, ID, confirmations, and important papers"
+    },
+    {
+      "id": "entertainment",
+      "name": "Entertainment",
+      "icon": "🎮",
+      "color": "bg-yellow-100 text-yellow-800",
+      "description": "Books, games, and travel entertainment"
+    },
+    {
+      "id": "disney",
+      "name": "Disney Essentials",
+      "icon": "🏰",
+      "color": "bg-pink-100 text-pink-800",
+      "description": "Disney-specific items and park essentials"
+    },
+    {
+      "id": "health",
+      "name": "Health & Safety",
+      "icon": "🏥",
+      "color": "bg-orange-100 text-orange-800",
+      "description": "First aid, medications, and safety items"
+    },
+    {
+      "id": "other",
+      "name": "Other",
+      "icon": "📦",
+      "color": "bg-gray-100 text-gray-800",
+      "description": "Miscellaneous items"
+    }
+  ],
+  "defaultItems": [
+    {
+      "name": "Comfortable walking shoes",
+      "category": "clothing",
+      "isEssential": true,
+      "description": "You'll walk 10+ miles per day at Disney parks"
+    },
+    {
+      "name": "Casual day clothes",
+      "category": "clothing",
+      "isEssential": true,
+      "description": "Comfortable clothes for park days"
+    },
+    {
+      "name": "Pajamas",
+      "category": "clothing",
+      "isEssential": true
+    },
+    {
+      "name": "Underwear",
+      "category": "clothing",
+      "isEssential": true
+    },
+    {
+      "name": "Socks",
+      "category": "clothing",
+      "isEssential": true
+    },
+    {
+      "name": "Rain jacket",
+      "category": "clothing",
+      "isEssential": false,
+      "weatherDependent": ["rain"],
+      "description": "Florida weather can be unpredictable"
+    },
+    {
+      "name": "Warm jacket",
+      "category": "clothing",
+      "isEssential": false,
+      "weatherDependent": ["cold"],
+      "description": "For cooler evenings or winter visits"
+    },
+    {
+      "name": "Shorts",
+      "category": "clothing",
+      "isEssential": false,
+      "weatherDependent": ["hot"],
+      "description": "Essential for hot weather"
+    },
+    {
+      "name": "Swimwear",
+      "category": "clothing",
+      "isEssential": false,
+      "weatherDependent": ["hot"],
+      "description": "For hotel pools and water parks"
+    },
+    {
+      "name": "Phone charger",
+      "category": "electronics",
+      "isEssential": true,
+      "description": "Essential for Disney app and photos"
+    },
+    {
+      "name": "Camera",
+      "category": "electronics",
+      "isEssential": false,
+      "description": "Capture magical memories"
+    },
+    {
+      "name": "Portable battery pack",
+      "category": "electronics",
+      "isEssential": true,
+      "description": "Disney parks drain phone batteries quickly"
+    },
+    {
+      "name": "Headphones",
+      "category": "electronics",
+      "isEssential": false,
+      "description": "For travel and entertainment"
+    },
+    {
+      "name": "Toothbrush & toothpaste",
+      "category": "toiletries",
+      "isEssential": true
+    },
+    {
+      "name": "Shampoo & conditioner",
+      "category": "toiletries",
+      "isEssential": true
+    },
+    {
+      "name": "Deodorant",
+      "category": "toiletries",
+      "isEssential": true,
+      "description": "Essential for hot park days"
+    },
+    {
+      "name": "Sunscreen",
+      "category": "toiletries",
+      "isEssential": true,
+      "weatherDependent": ["sunny"],
+      "description": "SPF 30+ recommended for Disney parks"
+    },
+    {
+      "name": "Park tickets",
+      "category": "documents",
+      "isEssential": true,
+      "description": "Digital or physical tickets for park entry"
+    },
+    {
+      "name": "ID/Passport",
+      "category": "documents",
+      "isEssential": true,
+      "description": "Required for travel and park entry"
+    },
+    {
+      "name": "Hotel confirmation",
+      "category": "documents",
+      "isEssential": true,
+      "description": "Booking confirmation and check-in details"
+    },
+    {
+      "name": "Travel insurance",
+      "category": "documents",
+      "isEssential": false,
+      "description": "Recommended for international travel"
+    },
+    {
+      "name": "Disney app downloaded",
+      "category": "disney",
+      "isEssential": true,
+      "description": "Essential for wait times, mobile ordering, and Genie+"
+    },
+    {
+      "name": "Autograph book",
+      "category": "disney",
+      "isEssential": false,
+      "description": "For character meet and greets"
+    },
+    {
+      "name": "Disney ears/costume",
+      "category": "disney",
+      "isEssential": false,
+      "description": "Get into the Disney spirit"
+    },
+    {
+      "name": "Pin trading pins",
+      "category": "disney",
+      "isEssential": false,
+      "description": "Popular Disney tradition"
+    },
+    {
+      "name": "Reusable water bottle",
+      "category": "disney",
+      "isEssential": true,
+      "description": "Free water refills throughout Disney parks"
+    },
+    {
+      "name": "First aid kit",
+      "category": "health",
+      "isEssential": false,
+      "description": "Band-aids, pain relievers, basic medical supplies"
+    },
+    {
+      "name": "Prescription medications",
+      "category": "health",
+      "isEssential": true,
+      "description": "Don't forget daily medications"
+    },
+    {
+      "name": "Hand sanitizer",
+      "category": "health",
+      "isEssential": true,
+      "description": "Good hygiene in crowded parks"
+    },
+    {
+      "name": "Books/e-reader",
+      "category": "entertainment",
+      "isEssential": false,
+      "description": "For travel and hotel downtime"
+    },
+    {
+      "name": "Tablet for kids",
+      "category": "entertainment",
+      "isEssential": false,
+      "description": "Entertainment for travel days"
+    },
+    {
+      "name": "Travel games",
+      "category": "entertainment",
+      "isEssential": false,
+      "description": "Fun for the whole family"
+    }
+  ],
+  "tips": {
+    "general": [
+      "Pack light - you'll want room for souvenirs",
+      "Bring comfortable shoes - you'll walk 10+ miles per day",
+      "Check weather forecast before finalizing your list",
+      "Pack essentials in carry-on if flying"
+    ],
+    "disney": [
+      "Download the Disney app before you go",
+      "Bring portable chargers - parks drain batteries fast",
+      "Pack Disney-themed clothes for photos",
+      "Bring autograph book for character meet and greets"
+    ],
+    "weather": [
+      "Florida weather changes quickly - pack layers",
+      "Sunscreen is essential year-round in Florida",
+      "Rain jackets are better than umbrellas in parks",
+      "Comfortable shoes are your most important item"
+    ]
+  }
+}

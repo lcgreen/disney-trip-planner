@@ -5,30 +5,20 @@ import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import { format, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from 'date-fns'
 import { useSearchParams } from 'next/navigation'
+import {
+  getAllParks,
+  getAllThemes,
+  getParkById,
+  getThemeById,
+  type DisneyPark,
+  type CountdownTheme
+} from '@/config'
 
 interface CountdownData {
   days: number
   hours: number
   minutes: number
   seconds: number
-}
-
-interface DisneyPark {
-  id: string
-  name: string
-  location: string
-  color: string
-  gradient: string
-  timezone: string
-  openingTime: string
-}
-
-interface CountdownTheme {
-  id: string
-  name: string
-  gradient: string
-  textColor: string
-  digitBg: string
 }
 
 interface CountdownSettings {
@@ -44,134 +34,9 @@ interface CountdownSettings {
   backgroundEffect: 'none' | 'particles' | 'gradient' | 'animated'
 }
 
-const disneyParks: DisneyPark[] = [
-  {
-    id: 'magic-kingdom',
-    name: 'Magic Kingdom',
-    location: 'Walt Disney World, Florida',
-    color: 'park-magic',
-    gradient: 'from-blue-600 to-purple-600',
-    timezone: 'America/New_York',
-    openingTime: '09:00'
-  },
-  {
-    id: 'epcot',
-    name: 'EPCOT',
-    location: 'Walt Disney World, Florida',
-    color: 'park-epcot',
-    gradient: 'from-purple-600 to-pink-600',
-    timezone: 'America/New_York',
-    openingTime: '09:00'
-  },
-  {
-    id: 'hollywood-studios',
-    name: "Hollywood Studios",
-    location: 'Walt Disney World, Florida',
-    color: 'park-hollywood',
-    gradient: 'from-red-600 to-orange-600',
-    timezone: 'America/New_York',
-    openingTime: '09:00'
-  },
-  {
-    id: 'animal-kingdom',
-    name: 'Animal Kingdom',
-    location: 'Walt Disney World, Florida',
-    color: 'park-animal',
-    gradient: 'from-green-600 to-teal-600',
-    timezone: 'America/New_York',
-    openingTime: '08:00'
-  },
-  {
-    id: 'disneyland',
-    name: 'Disneyland Park',
-    location: 'Disneyland Resort, California',
-    color: 'park-california',
-    gradient: 'from-orange-600 to-red-600',
-    timezone: 'America/Los_Angeles',
-    openingTime: '08:00'
-  },
-  {
-    id: 'disneyland-paris',
-    name: 'Disneyland Paris',
-    location: 'Marne-la-Vallée, France',
-    color: 'park-paris',
-    gradient: 'from-purple-600 to-blue-600',
-    timezone: 'Europe/Paris',
-    openingTime: '09:30'
-  },
-  {
-    id: 'tokyo-disneyland',
-    name: 'Tokyo Disneyland',
-    location: 'Tokyo, Japan',
-    color: 'park-tokyo',
-    gradient: 'from-pink-600 to-red-600',
-    timezone: 'Asia/Tokyo',
-    openingTime: '08:00'
-  },
-  {
-    id: 'shanghai-disneyland',
-    name: 'Shanghai Disneyland',
-    location: 'Shanghai, China',
-    color: 'park-shanghai',
-    gradient: 'from-blue-600 to-green-600',
-    timezone: 'Asia/Shanghai',
-    openingTime: '09:00'
-  },
-  {
-    id: 'hong-kong-disneyland',
-    name: 'Hong Kong Disneyland',
-    location: 'Hong Kong',
-    color: 'park-hongkong',
-    gradient: 'from-green-600 to-blue-600',
-    timezone: 'Asia/Hong_Kong',
-    openingTime: '10:00'
-  }
-]
-
-const customThemes: CountdownTheme[] = [
-  {
-    id: 'classic',
-    name: 'Classic Disney',
-    gradient: 'from-blue-600 to-purple-600',
-    textColor: 'text-white',
-    digitBg: 'bg-white/20'
-  },
-  {
-    id: 'princess',
-    name: 'Princess Pink',
-    gradient: 'from-pink-500 to-rose-500',
-    textColor: 'text-white',
-    digitBg: 'bg-white/20'
-  },
-  {
-    id: 'villains',
-    name: 'Villains Dark',
-    gradient: 'from-purple-900 to-black',
-    textColor: 'text-purple-200',
-    digitBg: 'bg-purple-800/30'
-  },
-  {
-    id: 'pixar',
-    name: 'Pixar Bright',
-    gradient: 'from-yellow-400 to-orange-500',
-    textColor: 'text-white',
-    digitBg: 'bg-white/20'
-  },
-  {
-    id: 'frozen',
-    name: 'Frozen Ice',
-    gradient: 'from-blue-200 to-blue-600',
-    textColor: 'text-blue-900',
-    digitBg: 'bg-white/40'
-  },
-  {
-    id: 'marvel',
-    name: 'Marvel Heroes',
-    gradient: 'from-red-600 to-blue-800',
-    textColor: 'text-white',
-    digitBg: 'bg-white/20'
-  }
-]
+// Get configuration data
+const disneyParks = getAllParks()
+const customThemes = getAllThemes()
 
 function EmbedCountdown(): JSX.Element {
   const searchParams = useSearchParams()
@@ -186,8 +51,8 @@ function EmbedCountdown(): JSX.Element {
   const themeId = searchParams.get('theme') || 'classic'
   const settingsParam = searchParams.get('settings')
 
-  const selectedPark = disneyParks.find(p => p.id === parkId) || disneyParks[0]
-  const customTheme = customThemes.find(t => t.id === themeId) || customThemes[0]
+  const selectedPark = getParkById(parkId) || disneyParks[0]
+  const customTheme = getThemeById(themeId) || customThemes[0]
 
   let settings: CountdownSettings = {
     showMilliseconds: false,

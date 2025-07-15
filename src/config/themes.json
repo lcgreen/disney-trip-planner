@@ -1,0 +1,100 @@
+{
+  "themes": [
+    {
+      "id": "classic",
+      "name": "Classic Disney",
+      "gradient": "from-blue-600 to-purple-600",
+      "textColor": "text-white",
+      "digitBg": "bg-white/20",
+      "description": "The timeless Disney magic theme"
+    },
+    {
+      "id": "princess",
+      "name": "Princess Pink",
+      "gradient": "from-pink-500 to-rose-500",
+      "textColor": "text-white",
+      "digitBg": "bg-white/20",
+      "description": "Perfect for princess-themed trips"
+    },
+    {
+      "id": "villains",
+      "name": "Villains Dark",
+      "gradient": "from-purple-900 to-black",
+      "textColor": "text-purple-200",
+      "digitBg": "bg-purple-800/30",
+      "description": "For those who prefer the dark side"
+    },
+    {
+      "id": "pixar",
+      "name": "Pixar Bright",
+      "gradient": "from-yellow-400 to-orange-500",
+      "textColor": "text-white",
+      "digitBg": "bg-white/20",
+      "description": "Bright and cheerful like Pixar movies"
+    },
+    {
+      "id": "frozen",
+      "name": "Frozen Ice",
+      "gradient": "from-blue-200 to-blue-600",
+      "textColor": "text-blue-900",
+      "digitBg": "bg-white/40",
+      "description": "Cool and icy like Elsa's powers"
+    },
+    {
+      "id": "marvel",
+      "name": "Marvel Heroes",
+      "gradient": "from-red-600 to-blue-800",
+      "textColor": "text-white",
+      "digitBg": "bg-white/20",
+      "description": "Super hero themed countdown"
+    },
+    {
+      "id": "star-wars",
+      "name": "Star Wars",
+      "gradient": "from-black to-gray-800",
+      "textColor": "text-yellow-400",
+      "digitBg": "bg-yellow-400/20",
+      "description": "A galaxy far, far away theme"
+    },
+    {
+      "id": "sunset",
+      "name": "Disney Sunset",
+      "gradient": "from-orange-500 to-pink-600",
+      "textColor": "text-white",
+      "digitBg": "bg-white/20",
+      "description": "Beautiful as a Disney park sunset"
+    }
+  ],
+  "quickDateOptions": [
+    {
+      "label": "This Weekend",
+      "description": "Set countdown to next Friday",
+      "daysFunction": "getNextFriday"
+    },
+    {
+      "label": "Next Week",
+      "description": "7 days from today",
+      "days": 7
+    },
+    {
+      "label": "Next Month",
+      "description": "30 days from today",
+      "days": 30
+    },
+    {
+      "label": "60 Days (Dining Reservations)",
+      "description": "When Disney dining reservations open",
+      "days": 60
+    },
+    {
+      "label": "6 Months",
+      "description": "Half a year from now",
+      "days": 180
+    },
+    {
+      "label": "Next Year",
+      "description": "365 days from today",
+      "days": 365
+    }
+  ]
+}

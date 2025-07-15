@@ -1,19 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { DollarSign, PlusCircle, Trash2, Target, TrendingUp, PiggyBank } from 'lucide-react'
+import { DollarSign, Plus, Trash2, PiggyBank, Target, TrendingUp, AlertTriangle } from 'lucide-react'
 import {
   Modal,
-  ProgressBar,
+  StatCard,
+  BudgetStat,
   BudgetProgress,
   Badge,
-  StatusBadge,
   Select,
-  Checkbox,
-  StatCard,
-  BudgetStat
+  Checkbox
 } from '@/components/ui'
+import {
+  getAllBudgetCategories,
+  getBudgetCategoryOptions,
+  getBudgetSettings,
+  getBudgetTips,
+  type BudgetCategory as ConfigBudgetCategory
+} from '@/config'
 
 interface Expense {
   id: string
@@ -32,16 +37,21 @@ interface BudgetCategory {
   icon: string
 }
 
-const defaultCategories: BudgetCategory[] = [
-  { id: 'tickets', name: 'Park Tickets', budget: 0, color: 'bg-blue-500', icon: '🎫' },
-  { id: 'hotel', name: 'Accommodation', budget: 0, color: 'bg-green-500', icon: '🏨' },
-  { id: 'dining', name: 'Dining & Food', budget: 0, color: 'bg-red-500', icon: '🍔' },
-  { id: 'transport', name: 'Transportation', budget: 0, color: 'bg-yellow-500', icon: '✈️' },
-  { id: 'shopping', name: 'Shopping & Souvenirs', budget: 0, color: 'bg-purple-500', icon: '🛍️' },
-  { id: 'extras', name: 'Extras & Activities', budget: 0, color: 'bg-pink-500', icon: '🎪' },
-]
-
 export default function BudgetTracker() {
+  // Get configuration data
+  const configCategories = getAllBudgetCategories()
+  const budgetSettings = getBudgetSettings()
+  const budgetTips = getBudgetTips()
+
+  // Convert config categories to component format
+  const defaultCategories: BudgetCategory[] = configCategories.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    budget: 0,
+    color: cat.color,
+    icon: cat.icon
+  }))
+
   const [totalBudget, setTotalBudget] = useState<number>(0)
   const [categories, setCategories] = useState<BudgetCategory[]>(defaultCategories)
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -115,10 +125,7 @@ export default function BudgetTracker() {
     return (getTotalSpent() / totalBudget) * 100
   }
 
-  const categoryOptions = categories.map(cat => ({
-    value: cat.id,
-    label: `${cat.icon} ${cat.name}`
-  }))
+  const categoryOptions = getBudgetCategoryOptions()
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -234,7 +241,7 @@ export default function BudgetTracker() {
             onClick={() => setShowAddExpense(true)}
             className="btn-disney flex items-center gap-2"
           >
-            <PlusCircle className="w-5 h-5" />
+            <Plus className="w-5 h-5" />
             Add Expense
           </button>
         </div>

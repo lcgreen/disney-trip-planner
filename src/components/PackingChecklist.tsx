@@ -2,20 +2,25 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Package, Check, Plus, Trash2, Cloud, Sun, Umbrella } from 'lucide-react'
+import { Plus, Trash2, Luggage, Check, Star } from 'lucide-react'
 import {
   Modal,
-  ProgressBar,
   PackingProgress,
-  Badge,
-  EssentialBadge,
   WeatherBadge,
   CountBadge,
-  Select,
-  Checkbox,
   PackingItemCheckbox,
-  StatCard
+  Select,
+  Checkbox
 } from '@/components/ui'
+import {
+  getAllPackingCategories,
+  getDefaultPackingItems,
+  getPackingCategoryOptions,
+  getAllWeatherConditions,
+  getPackingTips,
+  type PackingCategory,
+  type PackingItem as ConfigPackingItem
+} from '@/config'
 
 interface PackingItem {
   id: string
@@ -24,78 +29,24 @@ interface PackingItem {
   isChecked: boolean
   isEssential: boolean
   weatherDependent?: string[]
+  description?: string
 }
-
-interface PackingCategory {
-  id: string
-  name: string
-  icon: string
-  color: string
-}
-
-const categories: PackingCategory[] = [
-  { id: 'clothing', name: 'Clothing', icon: '👕', color: 'bg-blue-100 text-blue-800' },
-  { id: 'electronics', name: 'Electronics', icon: '📱', color: 'bg-purple-100 text-purple-800' },
-  { id: 'toiletries', name: 'Toiletries', icon: '🧴', color: 'bg-green-100 text-green-800' },
-  { id: 'documents', name: 'Documents', icon: '📋', color: 'bg-red-100 text-red-800' },
-  { id: 'entertainment', name: 'Entertainment', icon: '🎮', color: 'bg-yellow-100 text-yellow-800' },
-  { id: 'disney', name: 'Disney Essentials', icon: '🏰', color: 'bg-pink-100 text-pink-800' },
-  { id: 'health', name: 'Health & Safety', icon: '🏥', color: 'bg-orange-100 text-orange-800' },
-  { id: 'other', name: 'Other', icon: '📦', color: 'bg-gray-100 text-gray-800' },
-]
-
-const defaultItems: Omit<PackingItem, 'id'>[] = [
-  // Clothing
-  { name: 'Comfortable walking shoes', category: 'clothing', isChecked: false, isEssential: true },
-  { name: 'Casual day clothes', category: 'clothing', isChecked: false, isEssential: true },
-  { name: 'Pajamas', category: 'clothing', isChecked: false, isEssential: true },
-  { name: 'Underwear', category: 'clothing', isChecked: false, isEssential: true },
-  { name: 'Socks', category: 'clothing', isChecked: false, isEssential: true },
-  { name: 'Rain jacket', category: 'clothing', isChecked: false, isEssential: false, weatherDependent: ['rain'] },
-  { name: 'Warm jacket', category: 'clothing', isChecked: false, isEssential: false, weatherDependent: ['cold'] },
-  { name: 'Shorts', category: 'clothing', isChecked: false, isEssential: false, weatherDependent: ['hot'] },
-  { name: 'Swimwear', category: 'clothing', isChecked: false, isEssential: false, weatherDependent: ['hot'] },
-
-  // Electronics
-  { name: 'Phone charger', category: 'electronics', isChecked: false, isEssential: true },
-  { name: 'Camera', category: 'electronics', isChecked: false, isEssential: false },
-  { name: 'Portable battery pack', category: 'electronics', isChecked: false, isEssential: true },
-  { name: 'Headphones', category: 'electronics', isChecked: false, isEssential: false },
-
-  // Toiletries
-  { name: 'Toothbrush & toothpaste', category: 'toiletries', isChecked: false, isEssential: true },
-  { name: 'Shampoo & conditioner', category: 'toiletries', isChecked: false, isEssential: true },
-  { name: 'Deodorant', category: 'toiletries', isChecked: false, isEssential: true },
-  { name: 'Sunscreen', category: 'toiletries', isChecked: false, isEssential: true, weatherDependent: ['sunny'] },
-
-  // Documents
-  { name: 'Park tickets', category: 'documents', isChecked: false, isEssential: true },
-  { name: 'ID/Passport', category: 'documents', isChecked: false, isEssential: true },
-  { name: 'Hotel confirmation', category: 'documents', isChecked: false, isEssential: true },
-  { name: 'Travel insurance', category: 'documents', isChecked: false, isEssential: false },
-
-  // Disney Essentials
-  { name: 'Disney app downloaded', category: 'disney', isChecked: false, isEssential: true },
-  { name: 'Autograph book', category: 'disney', isChecked: false, isEssential: false },
-  { name: 'Disney ears/costume', category: 'disney', isChecked: false, isEssential: false },
-  { name: 'Pin trading pins', category: 'disney', isChecked: false, isEssential: false },
-  { name: 'Reusable water bottle', category: 'disney', isChecked: false, isEssential: true },
-
-  // Health & Safety
-  { name: 'First aid kit', category: 'health', isChecked: false, isEssential: false },
-  { name: 'Prescription medications', category: 'health', isChecked: false, isEssential: true },
-  { name: 'Hand sanitizer', category: 'health', isChecked: false, isEssential: true },
-
-  // Entertainment
-  { name: 'Books/e-reader', category: 'entertainment', isChecked: false, isEssential: false },
-  { name: 'Tablet for kids', category: 'entertainment', isChecked: false, isEssential: false },
-  { name: 'Travel games', category: 'entertainment', isChecked: false, isEssential: false },
-]
 
 export default function PackingChecklist() {
-  const [items, setItems] = useState<PackingItem[]>(
-    defaultItems.map((item, index) => ({ ...item, id: index.toString() }))
-  )
+  // Get configuration data
+  const categories = getAllPackingCategories()
+  const configDefaultItems = getDefaultPackingItems()
+  const weatherConditions = getAllWeatherConditions()
+  const packingTips = getPackingTips()
+
+  // Convert config items to component format
+  const defaultItems: PackingItem[] = configDefaultItems.map((item, index) => ({
+    ...item,
+    id: index.toString(),
+    isChecked: false
+  }))
+
+  const [items, setItems] = useState<PackingItem[]>(defaultItems)
   const [showAddItem, setShowAddItem] = useState(false)
   const [newItem, setNewItem] = useState({
     name: '',
@@ -168,13 +119,7 @@ export default function PackingChecklist() {
     return { total, completed, essential, completedEssential }
   }
 
-  const categoryOptions = [
-    { value: 'all', label: 'All Categories' },
-    ...categories.map(cat => ({
-      value: cat.id,
-      label: `${cat.icon} ${cat.name}`
-    }))
-  ]
+  const categoryOptions = getPackingCategoryOptions()
 
   const categorySelectOptions = categories.map(cat => ({
     value: cat.id,
@@ -200,34 +145,19 @@ export default function PackingChecklist() {
         className="bg-white rounded-xl shadow-lg p-6 mb-8"
       >
         <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Cloud className="w-5 h-5" />
+          <Luggage className="w-5 h-5" />
           Expected Weather Conditions
         </h3>
         <div className="flex flex-wrap gap-3">
-          <WeatherBadge
-            weather="Sunny"
-            icon="☀️"
-            active={selectedWeather.includes('sunny')}
-            onClick={() => toggleWeather('sunny')}
-          />
-          <WeatherBadge
-            weather="Hot (>25°C)"
-            icon="🌡️"
-            active={selectedWeather.includes('hot')}
-            onClick={() => toggleWeather('hot')}
-          />
-          <WeatherBadge
-            weather="Cold (<15°C)"
-            icon="❄️"
-            active={selectedWeather.includes('cold')}
-            onClick={() => toggleWeather('cold')}
-          />
-          <WeatherBadge
-            weather="Rainy"
-            icon="🌧️"
-            active={selectedWeather.includes('rain')}
-            onClick={() => toggleWeather('rain')}
-          />
+          {weatherConditions.map(condition => (
+            <WeatherBadge
+              key={condition.id}
+              weather={condition.name}
+              icon={condition.icon}
+              active={selectedWeather.includes(condition.id)}
+              onClick={() => toggleWeather(condition.id)}
+            />
+          ))}
         </div>
       </motion.div>
 
@@ -315,7 +245,7 @@ export default function PackingChecklist() {
                         )}
                       </div>
 
-                      {!defaultItems.some(defaultItem => defaultItem.name === item.name) && (
+                      {!configDefaultItems.some(defaultItem => defaultItem.name === item.name) && (
                         <button
                           onClick={() => deleteItem(item.id)}
                           className="text-gray-400 hover:text-red-600 transition-colors"
@@ -355,14 +285,14 @@ export default function PackingChecklist() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
             <Select
               value={newItem.category}
-              onChange={(value) => setNewItem({...newItem, category: value})}
+              onValueChange={(value) => setNewItem({...newItem, category: value})}
               options={categorySelectOptions}
             />
           </div>
 
           <Checkbox
             checked={newItem.isEssential}
-            onCheckedChange={(checked) => setNewItem({...newItem, isEssential: checked})}
+            onCheckedChange={(checked) => setNewItem({...newItem, isEssential: Boolean(checked)})}
             label="This is an essential item"
           />
         </div>

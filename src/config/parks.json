@@ -1,0 +1,213 @@
+{
+  "parks": [
+    {
+      "id": "magic-kingdom",
+      "name": "Magic Kingdom",
+      "location": "Walt Disney World, Florida",
+      "color": "park-magic",
+      "gradient": "from-blue-600 to-purple-600",
+      "timezone": "America/New_York",
+      "openingTime": "09:00",
+      "icon": "🏰",
+      "description": "The most magical place on earth",
+      "popularAttractions": [
+        "Space Mountain",
+        "Haunted Mansion",
+        "Pirates of the Caribbean",
+        "Big Thunder Mountain",
+        "Seven Dwarfs Mine Train",
+        "Splash Mountain"
+      ]
+    },
+    {
+      "id": "epcot",
+      "name": "EPCOT",
+      "location": "Walt Disney World, Florida",
+      "color": "park-epcot",
+      "gradient": "from-purple-600 to-pink-600",
+      "timezone": "America/New_York",
+      "openingTime": "09:00",
+      "icon": "🌐",
+      "description": "Experimental Prototype Community of Tomorrow",
+      "popularAttractions": [
+        "Guardians of the Galaxy",
+        "Test Track",
+        "Frozen Ever After",
+        "Soarin'",
+        "Spaceship Earth",
+        "Mission: SPACE"
+      ]
+    },
+    {
+      "id": "hollywood-studios",
+      "name": "Hollywood Studios",
+      "location": "Walt Disney World, Florida",
+      "color": "park-hollywood",
+      "gradient": "from-red-600 to-orange-600",
+      "timezone": "America/New_York",
+      "openingTime": "09:00",
+      "icon": "🎬",
+      "description": "The Hollywood that never was and always will be",
+      "popularAttractions": [
+        "Star Wars: Rise of the Resistance",
+        "Mickey & Minnie's Runaway Railway",
+        "Tower of Terror",
+        "Rock 'n' Roller Coaster",
+        "Millennium Falcon: Smugglers Run",
+        "Toy Story Mania!"
+      ]
+    },
+    {
+      "id": "animal-kingdom",
+      "name": "Animal Kingdom",
+      "location": "Walt Disney World, Florida",
+      "color": "park-animal",
+      "gradient": "from-green-600 to-teal-600",
+      "timezone": "America/New_York",
+      "openingTime": "08:00",
+      "icon": "🦁",
+      "description": "Welcome to a magical kingdom where animals reign",
+      "popularAttractions": [
+        "Avatar Flight of Passage",
+        "Expedition Everest",
+        "Kilimanjaro Safaris",
+        "Festival of the Lion King",
+        "Na'vi River Journey",
+        "Dinosaur"
+      ]
+    },
+    {
+      "id": "disneyland",
+      "name": "Disneyland Park",
+      "location": "Disneyland Resort, California",
+      "color": "park-california",
+      "gradient": "from-orange-600 to-red-600",
+      "timezone": "America/Los_Angeles",
+      "openingTime": "08:00",
+      "icon": "🎠",
+      "description": "The original Disney theme park",
+      "popularAttractions": [
+        "Matterhorn Bobsleds",
+        "Indiana Jones Adventure",
+        "Star Wars: Rise of the Resistance",
+        "Pirates of the Caribbean",
+        "Space Mountain",
+        "Haunted Mansion"
+      ]
+    },
+    {
+      "id": "california-adventure",
+      "name": "Disney California Adventure",
+      "location": "Disneyland Resort, California",
+      "color": "park-california-adventure",
+      "gradient": "from-yellow-600 to-orange-600",
+      "timezone": "America/Los_Angeles",
+      "openingTime": "08:00",
+      "icon": "🎢",
+      "description": "Adventure is out there",
+      "popularAttractions": [
+        "Guardians of the Galaxy",
+        "Incredicoaster",
+        "Cars Land",
+        "Avengers Campus",
+        "Soarin' Around the World",
+        "Radiator Springs Racers"
+      ]
+    },
+    {
+      "id": "disneyland-paris",
+      "name": "Disneyland Paris",
+      "location": "Marne-la-Vallée, France",
+      "color": "park-paris",
+      "gradient": "from-pink-600 to-purple-600",
+      "timezone": "Europe/Paris",
+      "openingTime": "09:30",
+      "icon": "🗼",
+      "description": "The most beautiful Disney castle",
+      "popularAttractions": [
+        "Big Thunder Mountain",
+        "Pirates of the Caribbean",
+        "Phantom Manor",
+        "It's a Small World",
+        "Space Mountain: Mission 2",
+        "Buzz Lightyear Laser Blast"
+      ]
+    },
+    {
+      "id": "tokyo-disneyland",
+      "name": "Tokyo Disneyland",
+      "location": "Tokyo, Japan",
+      "color": "park-tokyo",
+      "gradient": "from-pink-600 to-red-600",
+      "timezone": "Asia/Tokyo",
+      "openingTime": "08:00",
+      "icon": "🗾",
+      "description": "Dreams and magic come true",
+      "popularAttractions": [
+        "Space Mountain",
+        "Splash Mountain",
+        "Big Thunder Mountain",
+        "Pirates of the Caribbean",
+        "Haunted Mansion",
+        "It's a Small World"
+      ]
+    },
+    {
+      "id": "tokyo-disney-sea",
+      "name": "Tokyo DisneySea",
+      "location": "Tokyo, Japan",
+      "color": "park-tokyo-sea",
+      "gradient": "from-blue-600 to-teal-600",
+      "timezone": "Asia/Tokyo",
+      "openingTime": "08:00",
+      "icon": "🌊",
+      "description": "Adventure and imagination for all",
+      "popularAttractions": [
+        "Journey to the Center of the Earth",
+        "Tower of Terror",
+        "Indiana Jones Adventure",
+        "20,000 Leagues Under the Sea",
+        "Soaring: Fantastic Flight",
+        "Toy Story Mania!"
+      ]
+    },
+    {
+      "id": "shanghai-disneyland",
+      "name": "Shanghai Disneyland",
+      "location": "Shanghai, China",
+      "color": "park-shanghai",
+      "gradient": "from-blue-600 to-green-600",
+      "timezone": "Asia/Shanghai",
+      "openingTime": "09:00",
+      "icon": "🏮",
+      "description": "Authentically Disney, distinctly Chinese",
+      "popularAttractions": [
+        "TRON Lightcycle Power Run",
+        "Pirates of the Caribbean",
+        "Soaring Over the Horizon",
+        "Buzz Lightyear Planet Rescue",
+        "Seven Dwarfs Mine Train",
+        "Jet Packs"
+      ]
+    },
+    {
+      "id": "hong-kong-disneyland",
+      "name": "Hong Kong Disneyland",
+      "location": "Hong Kong",
+      "color": "park-hongkong",
+      "gradient": "from-green-600 to-blue-600",
+      "timezone": "Asia/Hong_Kong",
+      "openingTime": "10:00",
+      "icon": "🎡",
+      "description": "Where dreams come true",
+      "popularAttractions": [
+        "Big Grizzly Mountain Runaway Mine Cars",
+        "Iron Man Experience",
+        "Hyperspace Mountain",
+        "Mystic Manor",
+        "Ant-Man and The Wasp: Nano Battle!",
+        "It's a Small World"
+      ]
+    }
+  ]
+}

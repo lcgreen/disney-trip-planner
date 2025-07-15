@@ -19,31 +19,22 @@ import {
   StatCard,
   CountdownStat
 } from '@/components/ui'
+import {
+  getAllParks,
+  getAllThemes,
+  getQuickDateOptions,
+  getParkById,
+  getThemeById,
+  calculateQuickDate,
+  type DisneyPark,
+  type CountdownTheme
+} from '@/config'
 
 interface CountdownData {
   days: number
   hours: number
   minutes: number
   seconds: number
-}
-
-interface DisneyPark {
-  id: string
-  name: string
-  location: string
-  color: string
-  gradient: string
-  timezone: string
-  openingTime: string
-  popularAttractions: string[]
-}
-
-interface CountdownTheme {
-  id: string
-  name: string
-  gradient: string
-  textColor: string
-  digitBg: string
 }
 
 interface CountdownSettings {
@@ -69,137 +60,13 @@ interface SavedCountdown {
   createdAt: string
 }
 
-const disneyParks: DisneyPark[] = [
-  {
-    id: 'magic-kingdom',
-    name: 'Magic Kingdom',
-    location: 'Walt Disney World, Florida',
-    color: 'park-magic',
-    gradient: 'from-blue-600 to-purple-600',
-    timezone: 'America/New_York',
-    openingTime: '09:00',
-    popularAttractions: ['Space Mountain', 'Haunted Mansion', 'Pirates of the Caribbean', 'Big Thunder Mountain']
-  },
-  {
-    id: 'epcot',
-    name: 'EPCOT',
-    location: 'Walt Disney World, Florida',
-    color: 'park-epcot',
-    gradient: 'from-purple-600 to-pink-600',
-    timezone: 'America/New_York',
-    openingTime: '09:00',
-    popularAttractions: ['Guardians of the Galaxy', 'Test Track', 'Frozen Ever After', 'Soarin\'']
-  },
-  {
-    id: 'hollywood-studios',
-    name: "Hollywood Studios",
-    location: 'Walt Disney World, Florida',
-    color: 'park-hollywood',
-    gradient: 'from-red-600 to-orange-600',
-    timezone: 'America/New_York',
-    openingTime: '09:00',
-    popularAttractions: ['Star Wars: Rise of the Resistance', 'Mickey & Minnie\'s Runaway Railway', 'Tower of Terror', 'Rock \'n\' Roller Coaster']
-  },
-  {
-    id: 'animal-kingdom',
-    name: 'Animal Kingdom',
-    location: 'Walt Disney World, Florida',
-    color: 'park-animal',
-    gradient: 'from-green-600 to-teal-600',
-    timezone: 'America/New_York',
-    openingTime: '08:00',
-    popularAttractions: ['Avatar Flight of Passage', 'Expedition Everest', 'Kilimanjaro Safaris', 'Festival of the Lion King']
-  },
-  {
-    id: 'disneyland',
-    name: 'Disneyland Park',
-    location: 'Disneyland Resort, California',
-    color: 'park-california',
-    gradient: 'from-orange-600 to-red-600',
-    timezone: 'America/Los_Angeles',
-    openingTime: '08:00',
-    popularAttractions: ['Matterhorn Bobsleds', 'Indiana Jones Adventure', 'Star Wars: Rise of the Resistance', 'Pirates of the Caribbean']
-  },
-  {
-    id: 'california-adventure',
-    name: 'Disney California Adventure',
-    location: 'Disneyland Resort, California',
-    color: 'park-california-adventure',
-    gradient: 'from-yellow-600 to-orange-600',
-    timezone: 'America/Los_Angeles',
-    openingTime: '08:00',
-    popularAttractions: ['Guardians of the Galaxy', 'Incredicoaster', 'Cars Land', 'Avengers Campus']
-  },
-  {
-    id: 'disneyland-paris',
-    name: 'Disneyland Paris',
-    location: 'Marne-la-Vallée, France',
-    color: 'park-paris',
-    gradient: 'from-pink-600 to-purple-600',
-    timezone: 'Europe/Paris',
-    openingTime: '09:30',
-    popularAttractions: ['Big Thunder Mountain', 'Pirates of the Caribbean', 'Phantom Manor', 'It\'s a Small World']
-  }
-]
-
-const customThemes: CountdownTheme[] = [
-  {
-    id: 'classic',
-    name: 'Classic Disney',
-    gradient: 'from-blue-600 to-purple-600',
-    textColor: 'text-white',
-    digitBg: 'bg-white/20'
-  },
-  {
-    id: 'princess',
-    name: 'Princess Pink',
-    gradient: 'from-pink-500 to-rose-500',
-    textColor: 'text-white',
-    digitBg: 'bg-white/20'
-  },
-  {
-    id: 'villains',
-    name: 'Villains Dark',
-    gradient: 'from-purple-900 to-black',
-    textColor: 'text-purple-200',
-    digitBg: 'bg-purple-800/30'
-  },
-  {
-    id: 'pixar',
-    name: 'Pixar Bright',
-    gradient: 'from-yellow-400 to-orange-500',
-    textColor: 'text-white',
-    digitBg: 'bg-white/20'
-  },
-  {
-    id: 'frozen',
-    name: 'Frozen Ice',
-    gradient: 'from-blue-200 to-blue-600',
-    textColor: 'text-blue-900',
-    digitBg: 'bg-white/40'
-  },
-  {
-    id: 'marvel',
-    name: 'Marvel Heroes',
-    gradient: 'from-red-600 to-blue-800',
-    textColor: 'text-white',
-    digitBg: 'bg-white/20'
-  }
-]
-
-const quickDateOptions = [
-  { label: 'This Weekend', days: () => {
-    const now = new Date()
-    const friday = new Date(now)
-    friday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7)
-    return friday
-  }},
-  { label: 'Next Week', days: () => addDays(new Date(), 7) },
-  { label: 'Next Month', days: () => addDays(new Date(), 30) },
-  { label: '60 Days (Dining Reservations)', days: () => addDays(new Date(), 60) },
-  { label: '6 Months', days: () => addDays(new Date(), 180) },
-  { label: 'Next Year', days: () => addDays(new Date(), 365) }
-]
+// Get configuration data
+const disneyParks = getAllParks()
+const customThemes = getAllThemes()
+const quickDateOptions = getQuickDateOptions().map(option => ({
+  label: option.label,
+  days: () => calculateQuickDate(option)
+}))
 
 export default function CountdownTimer(): JSX.Element {
   const [targetDate, setTargetDate] = useState<string>('')

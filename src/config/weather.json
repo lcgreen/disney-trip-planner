@@ -1,0 +1,189 @@
+{
+  "weatherConditions": [
+    {
+      "id": "sunny",
+      "name": "Sunny",
+      "icon": "☀️",
+      "description": "Bright and sunny weather",
+      "temperature": "> 20°C (68°F)",
+      "recommendations": [
+        "Sunscreen is essential",
+        "Wear light-colored clothing",
+        "Bring sunglasses and hat",
+        "Stay hydrated"
+      ]
+    },
+    {
+      "id": "hot",
+      "name": "Hot",
+      "icon": "🌡️",
+      "description": "Hot weather conditions",
+      "temperature": "> 25°C (77°F)",
+      "recommendations": [
+        "Lightweight, breathable clothing",
+        "Bring extra water",
+        "Take frequent breaks in shade",
+        "Consider pool/water park time"
+      ]
+    },
+    {
+      "id": "cold",
+      "name": "Cold",
+      "icon": "❄️",
+      "description": "Cold weather conditions",
+      "temperature": "< 15°C (59°F)",
+      "recommendations": [
+        "Layer your clothing",
+        "Bring warm jacket",
+        "Don't forget gloves and hat",
+        "Warm drinks help stay comfortable"
+      ]
+    },
+    {
+      "id": "rain",
+      "name": "Rainy",
+      "icon": "🌧️",
+      "description": "Wet weather conditions",
+      "temperature": "Variable",
+      "recommendations": [
+        "Rain jacket better than umbrella",
+        "Waterproof shoes recommended",
+        "Indoor attractions during heavy rain",
+        "Many attractions continue in light rain"
+      ]
+    },
+    {
+      "id": "humid",
+      "name": "Humid",
+      "icon": "💧",
+      "description": "High humidity conditions",
+      "temperature": "Variable",
+      "recommendations": [
+        "Moisture-wicking clothing",
+        "Extra deodorant recommended",
+        "Take breaks in air conditioning",
+        "Stay extra hydrated"
+      ]
+    },
+    {
+      "id": "windy",
+      "name": "Windy",
+      "icon": "💨",
+      "description": "Windy conditions",
+      "temperature": "Variable",
+      "recommendations": [
+        "Secure loose items",
+        "Some outdoor shows may be cancelled",
+        "Layer clothing for temperature changes",
+        "Hair ties recommended"
+      ]
+    }
+  ],
+  "seasonalGuides": {
+    "spring": {
+      "months": ["March", "April", "May"],
+      "typicalWeather": ["sunny", "rain"],
+      "averageTemp": "20-25°C (68-77°F)",
+      "packingTips": [
+        "Light layers for changing weather",
+        "Rain jacket for spring showers",
+        "Comfortable walking shoes",
+        "Light sweater for evenings"
+      ]
+    },
+    "summer": {
+      "months": ["June", "July", "August"],
+      "typicalWeather": ["hot", "sunny", "humid", "rain"],
+      "averageTemp": "25-35°C (77-95°F)",
+      "packingTips": [
+        "Lightweight, breathable clothing",
+        "Extra sunscreen and water",
+        "Cooling towels",
+        "Swimwear for water attractions"
+      ]
+    },
+    "fall": {
+      "months": ["September", "October", "November"],
+      "typicalWeather": ["sunny", "cool"],
+      "averageTemp": "15-25°C (59-77°F)",
+      "packingTips": [
+        "Light layers for varying temperatures",
+        "Comfortable walking shoes",
+        "Light jacket for evenings",
+        "Less crowded season - great for photos"
+      ]
+    },
+    "winter": {
+      "months": ["December", "January", "February"],
+      "typicalWeather": ["cold", "sunny"],
+      "averageTemp": "10-20°C (50-68°F)",
+      "packingTips": [
+        "Warm layers for morning/evening",
+        "T-shirts for warm afternoons",
+        "Closed-toe shoes recommended",
+        "Jacket or sweatshirt essential"
+      ]
+    }
+  },
+  "locationSpecific": {
+    "florida": {
+      "climate": "Subtropical",
+      "notes": [
+        "Weather can change quickly",
+        "Afternoon thunderstorms common in summer",
+        "High humidity year-round",
+        "Hurricane season: June-November"
+      ],
+      "specialConsiderations": [
+        "Air conditioning is very cold indoors",
+        "Sunscreen needed year-round",
+        "Rain usually passes quickly",
+        "Crowds vary by season"
+      ]
+    },
+    "california": {
+      "climate": "Mediterranean",
+      "notes": [
+        "Generally mild weather year-round",
+        "Low humidity",
+        "Minimal rainfall",
+        "Cool evenings even in summer"
+      ],
+      "specialConsiderations": [
+        "Marine layer can make mornings cool",
+        "Desert winds can bring heat",
+        "Layers recommended for temperature changes",
+        "Less weather variability than Florida"
+      ]
+    },
+    "international": {
+      "climate": "Variable",
+      "notes": [
+        "Check local weather patterns",
+        "Consider seasonal differences",
+        "Pack for local climate",
+        "Check park schedules for weather closures"
+      ],
+      "specialConsiderations": [
+        "Different seasons in different hemispheres",
+        "Local weather apps recommended",
+        "Cultural clothing considerations",
+        "International travel packing restrictions"
+      ]
+    }
+  },
+  "tips": {
+    "general": [
+      "Check weather forecast 7 days before trip",
+      "Pack for the season but prepare for surprises",
+      "Comfortable shoes are essential regardless of weather",
+      "Weather apps are helpful for day-of decisions"
+    ],
+    "packing": [
+      "Weather-appropriate clothing saves money",
+      "Pack layers for temperature changes",
+      "Don't forget weather affects comfort and photos",
+      "Some weather makes certain attractions more enjoyable"
+    ]
+  }
+}

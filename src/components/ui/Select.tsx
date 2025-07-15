@@ -2,6 +2,7 @@ import React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
+import { getParkOptions } from '@/config'
 
 const selectVariants = cva(
   "flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-disney-blue focus:border-disney-blue disabled:cursor-not-allowed disabled:opacity-50",
@@ -153,17 +154,7 @@ export interface ParkSelectProps {
   className?: string
 }
 
-const disneyParks: SelectOption[] = [
-  { value: 'magic-kingdom', label: 'Magic Kingdom', icon: '🏰' },
-  { value: 'epcot', label: 'EPCOT', icon: '🌐' },
-  { value: 'hollywood-studios', label: 'Hollywood Studios', icon: '🎬' },
-  { value: 'animal-kingdom', label: 'Animal Kingdom', icon: '🦁' },
-  { value: 'disneyland', label: 'Disneyland', icon: '🎠' },
-  { value: 'california-adventure', label: 'California Adventure', icon: '🎢' },
-  { value: 'disneyland-paris', label: 'Disneyland Paris', icon: '🗼' },
-  { value: 'tokyo-disneyland', label: 'Tokyo Disneyland', icon: '🗾' },
-  { value: 'tokyo-disney-sea', label: 'Tokyo DisneySea', icon: '🌊' },
-]
+const disneyParks = getParkOptions()
 
 export const ParkSelect: React.FC<ParkSelectProps> = ({
   value,
