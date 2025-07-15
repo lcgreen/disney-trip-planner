@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DollarSign, TrendingUp, Crown } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import WidgetBase, { type WidgetSize } from './WidgetBase'
-import { WidgetConfigManager, type SavedBudget } from '@/lib/widgetConfig'
+import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
+import '@/plugins' // Import all plugins to register them
 
 interface BudgetWidgetProps {
   id: string
@@ -14,21 +16,12 @@ interface BudgetWidgetProps {
   onItemSelect?: (itemId: string | null) => void
 }
 
-interface BudgetCategory {
-  id: string
-  name: string
-  budget: number
-  color: string
-  icon: string
-}
-
 interface Expense {
   id: string
   category: string
-  description: string
   amount: number
+  description: string
   date: string
-  isEstimate: boolean
 }
 
 export default function BudgetWidget({
@@ -39,140 +32,115 @@ export default function BudgetWidget({
   onWidthChange,
   onItemSelect
 }: BudgetWidgetProps) {
-  const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
-  const [selectedBudget, setSelectedBudget] = useState<SavedBudget | null>(null)
-  const [totalSpent, setTotalSpent] = useState(0)
+  const [selectedBudget, setSelectedBudget] = useState<any>(null)
+  const [recentExpenses, setRecentExpenses] = useState<Expense[]>([])
 
   useEffect(() => {
-    // Load widget config
-    const widgetConfig = WidgetConfigManager.getConfig(id)
-    if (widgetConfig) {
-      setConfig({ size: widgetConfig.size, selectedItemId: widgetConfig.selectedItemId })
-    } else {
-      // Default config
-      const defaultConfig = { size: 'medium' as WidgetSize, selectedItemId: undefined }
-      setConfig(defaultConfig)
-      WidgetConfigManager.addConfig({
-        id,
-        type: 'budget',
-        size: 'medium',
-        order: 0,
-        selectedItemId: undefined,
-        settings: {}
-      })
+    // Load selected budget data from plugin
+    const budgetPlugin = PluginRegistry.getPlugin('budget')
+    if (budgetPlugin) {
+      // Get the widget configuration to see if a specific item is selected
+      const widgetConfig = WidgetConfigManager.getConfig(id)
+      const selectedItemId = widgetConfig?.selectedItemId
+
+      let budget
+      if (selectedItemId) {
+        // Load the specific selected budget
+        budget = budgetPlugin.getItem(selectedItemId)
+      } else {
+        // Load live/default data
+        budget = budgetPlugin.getWidgetData(id)
+      }
+
+      setSelectedBudget(budget)
+
+      if (budget?.expenses) {
+        // Get recent expenses (last 5)
+        const sortedExpenses = budget.expenses
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 5)
+        setRecentExpenses(sortedExpenses)
+      } else {
+        setRecentExpenses([])
+      }
     }
   }, [id])
 
+  // Watch for changes in widget configuration
   useEffect(() => {
-    // Load selected budget data
-    if (config?.selectedItemId) {
-      // Validate that the selected item still exists
-      const itemExists = WidgetConfigManager.validateAndCleanupItemReference(id, 'budget', config.selectedItemId)
+    const checkForUpdates = () => {
+      const budgetPlugin = PluginRegistry.getPlugin('budget')
+      if (budgetPlugin) {
+        const widgetConfig = WidgetConfigManager.getConfig(id)
+        const selectedItemId = widgetConfig?.selectedItemId
 
-      if (itemExists) {
-        const budget = WidgetConfigManager.getSelectedItemData('budget', config.selectedItemId) as SavedBudget
-        setSelectedBudget(budget)
-        const spent = budget.expenses.reduce((sum, expense) => sum + expense.amount, 0)
-        setTotalSpent(spent)
-      } else {
-        // Item was deleted, update local config and fallback to live state
-        setConfig(prev => prev ? { ...prev, selectedItemId: undefined } : { size: 'medium', selectedItemId: undefined })
-
-        const currentState = WidgetConfigManager.getCurrentBudgetState()
-        if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
-          const liveBudget: SavedBudget = {
-            id: 'live',
-            name: 'Current Budget',
-            totalBudget: currentState.totalBudget,
-            categories: currentState.categories,
-            expenses: currentState.expenses,
-            createdAt: new Date().toISOString(),
-            updatedAt: currentState.updatedAt || new Date().toISOString()
-          }
-          setSelectedBudget(liveBudget)
-          const spent = currentState.expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0)
-          setTotalSpent(spent)
+        let budget
+        if (selectedItemId) {
+          budget = budgetPlugin.getItem(selectedItemId)
         } else {
-          setSelectedBudget(null)
-          setTotalSpent(0)
+          budget = budgetPlugin.getWidgetData(id)
+        }
+
+        setSelectedBudget(budget)
+
+        if (budget?.expenses) {
+          const sortedExpenses = budget.expenses
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 5)
+          setRecentExpenses(sortedExpenses)
+        } else {
+          setRecentExpenses([])
         }
       }
-    } else {
-      // No item selected, show empty state
-      setSelectedBudget(null)
-      setTotalSpent(0)
     }
-  }, [config, id])
 
+    // Check immediately
+    checkForUpdates()
 
+    // Set up an interval to check for updates
+    const interval = setInterval(checkForUpdates, 1000)
+    return () => clearInterval(interval)
+  }, [id])
 
   const handleItemSelect = (itemId: string | null) => {
+    // Update the widget configuration
     WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
-    setConfig(prev => prev ? { ...prev, selectedItemId: itemId || undefined } : { size: 'medium', selectedItemId: itemId || undefined })
+
+    // Call the parent callback if provided
+    if (onItemSelect) {
+      onItemSelect(itemId)
+    }
   }
 
-  if (!config) {
-    return <div>Loading...</div>
+  const calculateBudgetStats = () => {
+    if (!selectedBudget) return { spent: 0, remaining: 0, percentage: 0 }
+
+    const totalBudget = selectedBudget.totalBudget || 0
+    const totalSpent = selectedBudget.expenses?.reduce((sum: number, expense: any) => sum + expense.amount, 0) || 0
+    const remaining = totalBudget - totalSpent
+    const percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0
+
+    return { spent: totalSpent, remaining, percentage }
   }
 
-  const { size } = config
-
-  const isPremiumUser = () => {
-    // This would check actual subscription status
-    return true
-  }
-
-  const getTopCategories = () => {
-    if (!selectedBudget) return []
-
-    const categorySpending = selectedBudget.categories.map(cat => {
-      const categoryExpenses = selectedBudget.expenses
-        .filter(expense => expense.category === cat.id)
-        .reduce((sum, expense) => sum + expense.amount, 0)
-
-      return {
-        name: cat.name,
-        budget: cat.budget,
-        spent: categoryExpenses,
-        color: cat.color
-      }
-    })
-
-    return categorySpending
-      .sort((a, b) => b.spent - a.spent)
-      .slice(0, size === 'small' ? 2 : size === 'medium' ? 3 : 5)
+  const getExpensesToShow = () => {
+    // Determine max expenses based on width
+    const maxExpenses = width === '1' ? 2 : width === '2' ? 3 : 5
+    return recentExpenses.slice(0, maxExpenses)
   }
 
   const renderBudget = () => {
-    if (!isPremiumUser()) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center text-center relative">
-          <div className="absolute top-2 right-2">
-            <Crown className="w-6 h-6 text-yellow-500" />
-          </div>
-          <DollarSign className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">Premium Feature</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Upgrade to Premium to access budget tracking
-          </p>
-          <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-lg hover:shadow-lg transition-all text-sm">
-            Upgrade to Premium
-          </button>
-        </div>
-      )
-    }
-
     if (!selectedBudget) {
       return (
         <div className="h-full flex flex-col items-center justify-center text-center p-2">
-          <DollarSign className="w-10 h-10 text-gray-300 mb-3" />
+          <Wallet className="w-10 h-10 text-gray-300 mb-3" />
           <h3 className="text-base font-medium text-gray-600 mb-1">No Budget Selected</h3>
           <p className="text-xs text-gray-500 mb-3 max-w-[200px]">
             Create a new budget or select one from settings
           </p>
           <button
             onClick={() => window.location.href = `/budget/new?widgetId=${id}`}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+            className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
           >
             Create New
           </button>
@@ -180,80 +148,78 @@ export default function BudgetWidget({
       )
     }
 
-    const spentPercentage = selectedBudget.totalBudget > 0 ? (totalSpent / selectedBudget.totalBudget) * 100 : 0
-    const remaining = selectedBudget.totalBudget - totalSpent
-    const topCategories = getTopCategories()
+    const { spent, remaining, percentage } = calculateBudgetStats()
+    const expensesToShow = getExpensesToShow()
 
     return (
       <div className="h-full flex flex-col">
-        {/* Header with budget name */}
+        {/* Budget Overview */}
         <div className="mb-4">
-          <h3 className="font-semibold text-gray-800 text-sm truncate mb-2">
-            {selectedBudget.name}
-          </h3>
-
-          {/* Budget overview */}
-          <div className="grid grid-cols-2 gap-4 mb-3">
-            <div className="text-center">
-              <div className="text-lg font-bold text-green-600">
-                ${selectedBudget.totalBudget.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">Total Budget</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-600">
-                ${totalSpent.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">Spent</div>
-            </div>
+          <h3 className="font-semibold text-gray-800 mb-1 truncate">{selectedBudget.name}</h3>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-500">Budget Progress</span>
+            <span className="text-xs font-medium text-gray-700">{percentage.toFixed(1)}%</span>
           </div>
-
-          {/* Progress bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+          <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className={`h-2 rounded-full transition-all duration-300 ${
-                spentPercentage > 90 ? 'bg-red-500' :
-                spentPercentage > 75 ? 'bg-yellow-500' : 'bg-blue-600'
+                percentage > 90 ? 'bg-red-500' : percentage > 75 ? 'bg-yellow-500' : 'bg-green-500'
               }`}
-              style={{ width: `${Math.min(spentPercentage, 100)}%` }}
+              style={{ width: `${Math.min(percentage, 100)}%` }}
             />
-          </div>
-
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>{spentPercentage.toFixed(0)}% used</span>
-            <span className={remaining >= 0 ? 'text-green-600' : 'text-red-600'}>
-              ${Math.abs(remaining).toLocaleString()} {remaining >= 0 ? 'left' : 'over'}
-            </span>
           </div>
         </div>
 
-        {/* Category breakdown */}
-        {size !== 'small' && topCategories.length > 0 && (
-          <div className="flex-1 overflow-hidden">
-            <h4 className="text-xs font-medium text-gray-700 mb-2">Top Categories</h4>
+        {/* Budget Stats */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
+            <div className="flex items-center space-x-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-green-600" />
+              <span className="text-xs font-medium text-green-700">Remaining</span>
+            </div>
+            <div className="text-lg font-bold text-green-800">
+              ${remaining.toFixed(2)}
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-lg p-3 border border-red-100">
+            <div className="flex items-center space-x-2 mb-1">
+              <TrendingDown className="w-4 h-4 text-red-600" />
+              <span className="text-xs font-medium text-red-700">Spent</span>
+            </div>
+            <div className="text-lg font-bold text-red-800">
+              ${spent.toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Expenses */}
+        {expensesToShow.length > 0 && (
+          <div className="flex-1">
+            <h4 className="text-xs font-medium text-gray-700 mb-2">Recent Expenses</h4>
             <div className="space-y-2">
-              {topCategories.map((category, index) => {
-                const percentage = category.budget > 0 ? (category.spent / category.budget) * 100 : 0
-                return (
-                  <div key={index} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: category.color }}
-                      />
-                      <span className="truncate">{category.name}</span>
+              {expensesToShow.map((expense) => (
+                <div
+                  key={expense.id}
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-medium text-gray-800 truncate">
+                        {expense.description}
+                      </span>
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                        {expense.category}
+                      </span>
                     </div>
-                    <div className="text-right ml-2">
-                      <div className="font-medium">
-                        ${category.spent.toLocaleString()}
-                      </div>
-                      <div className="text-gray-500">
-                        /{category.budget.toLocaleString()}
-                      </div>
-                    </div>
+                    <span className="text-xs text-gray-500">
+                      {new Date(expense.date).toLocaleDateString()}
+                    </span>
                   </div>
-                )
-              })}
+                  <span className="text-sm font-semibold text-gray-800">
+                    -${expense.amount.toFixed(2)}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -266,12 +232,11 @@ export default function BudgetWidget({
       id={id}
       title="Budget Tracker"
       icon={DollarSign}
-      iconColor="bg-gradient-to-r from-disney-gold to-disney-orange"
+      iconColor="bg-gradient-to-r from-green-500 to-emerald-500"
       widgetType="budget"
-      size={size}
+      size="medium"
       width={width}
-      selectedItemId={config.selectedItemId}
-      isPremium={true}
+      selectedItemId={selectedBudget?.id}
       onRemove={onRemove}
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}

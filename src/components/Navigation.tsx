@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -51,11 +51,29 @@ const navigationItems: NavigationItem[] = [
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const pathname = usePathname()
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const isPremiumUser = () => {
     // This would check actual subscription status
     return true
+  }
+
+  // Don't render until mounted to prevent hydration issues
+  if (!isMounted) {
+    return (
+      <div className="fixed top-4 left-4 z-50 bg-white/80 backdrop-blur-sm rounded-full p-3 shadow-lg border border-white/20">
+        <div className="w-6 h-6"></div>
+      </div>
+    )
   }
 
   return (

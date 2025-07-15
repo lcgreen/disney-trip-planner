@@ -23,25 +23,25 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { DragOverlay } from '@dnd-kit/core'
-import CountdownWidget from '@/components/widgets/CountdownWidget'
-import TripPlannerWidget from '@/components/widgets/TripPlannerWidget'
-import BudgetWidget from '@/components/widgets/BudgetWidget'
-import PackingWidget from '@/components/widgets/PackingWidget'
-import { WidgetConfigManager, WidgetConfig } from '@/lib/widgetConfig'
+import { PluginRegistry, type PluginWidget, PluginStorage } from '@/lib/pluginSystem'
+import '@/plugins' // Import all plugins to register them
 
-const widgetComponents = {
-  countdown: CountdownWidget,
-  planner: TripPlannerWidget,
-  budget: BudgetWidget,
-  packing: PackingWidget,
+// Get widget components from plugins
+const getWidgetComponents = () => {
+  const components: Record<string, React.ComponentType<any>> = {}
+  PluginRegistry.getAllPlugins().forEach(plugin => {
+    components[plugin.config.widgetType] = plugin.getWidgetComponent()
+  })
+  return components
 }
 
-const widgetOptions = [
-  { type: 'countdown' as const, name: 'Disney Countdown', description: 'Track days until your trip' },
-  { type: 'planner' as const, name: 'Today\'s Plan', description: 'View your daily itinerary' },
-  { type: 'budget' as const, name: 'Budget Tracker', description: 'Monitor your spending' },
-  { type: 'packing' as const, name: 'Packing List', description: 'Track packing progress' },
-]
+const getWidgetOptions = () => {
+  return PluginRegistry.getAllPlugins().map(plugin => ({
+    type: plugin.config.widgetType,
+    name: plugin.config.name,
+    description: plugin.config.description
+  }))
+}
 
 // Sortable Widget Wrapper Component
 function SortableWidget({
@@ -51,7 +51,7 @@ function SortableWidget({
   onWidthChange,
   onItemSelect
 }: {
-  widget: WidgetConfig
+  widget: PluginWidget
   onRemove: (id: string) => void
   onSettings: (id: string) => void
   onWidthChange: (id: string, width: string) => void
@@ -71,10 +71,11 @@ function SortableWidget({
     transition,
   }
 
+  const widgetComponents = getWidgetComponents()
   const WidgetComponent = widgetComponents[widget.type]
 
-  // Helper function to get grid classes based on widget size and width
-  const getGridClasses = (size: string, width?: string) => {
+  // Helper function to get grid classes based on widget width
+  const getGridClasses = (width?: string) => {
     if (width) {
       const widthOptions = [
         { value: '1', class: 'col-span-1' },
@@ -84,30 +85,17 @@ function SortableWidget({
       ]
       return widthOptions.find(w => w.value === width)?.class || 'col-span-1'
     }
-
-    switch (size) {
-      case 'large':
-        return 'col-span-1 lg:col-span-2'
-      case 'wide':
-        return 'col-span-1 sm:col-span-2'
-      case 'full':
-        return 'col-span-1 sm:col-span-2 xl:col-span-3'
-      case 'small':
-      case 'medium':
-      case 'tall':
-      default:
-        return 'col-span-1'
-    }
+    return 'col-span-1'
   }
 
-            return (
+  return (
     <motion.div
       ref={setNodeRef}
       style={style}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className={`${getGridClasses(widget.size, widget.width)} relative group ${isDragging ? 'opacity-30' : ''}`}
+      className={`${getGridClasses(widget.width)} relative group ${isDragging ? 'opacity-30' : ''}`}
     >
       <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         <button
@@ -119,20 +107,20 @@ function SortableWidget({
         </button>
       </div>
 
-                        <WidgetComponent
-                    id={widget.id}
-                    width={widget.width}
-                    onRemove={() => onRemove(widget.id)}
-                    onSettings={() => onSettings(widget.id)}
-                    onWidthChange={(width) => onWidthChange(widget.id, width)}
-                    onItemSelect={(itemId) => onItemSelect(widget.id, itemId)}
-                  />
+      <WidgetComponent
+        id={widget.id}
+        width={widget.width}
+        onRemove={() => onRemove(widget.id)}
+        onSettings={() => onSettings(widget.id)}
+        onWidthChange={(width: string) => onWidthChange(widget.id, width)}
+        onItemSelect={(itemId: string | null) => onItemSelect(widget.id, itemId)}
+      />
     </motion.div>
   )
 }
 
 export default function DashboardPage() {
-  const [widgets, setWidgets] = useState<WidgetConfig[]>([])
+  const [widgets, setWidgets] = useState<PluginWidget[]>([])
   const [isAddingWidget, setIsAddingWidget] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -145,41 +133,44 @@ export default function DashboardPage() {
   )
 
   useEffect(() => {
-    // Load widget configs
-    const configs = WidgetConfigManager.getConfigs()
-    setWidgets(configs)
+    // Load widget configs from storage
+    const savedWidgets = PluginStorage.getData<PluginWidget[]>('disney-widget-configs', [])
+    setWidgets(savedWidgets)
   }, [])
 
-  const addWidget = (type: WidgetConfig['type']) => {
-    const newConfig: WidgetConfig = {
-      id: `${type}-${Date.now()}`,
-      type,
-      size: 'medium',
-      order: widgets.length, // Set order to be at the end
-      selectedItemId: undefined, // No item selected by default
-      settings: {}
-    }
+  const addWidget = (type: string) => {
+    const plugin = PluginRegistry.getAllPlugins().find(p => p.config.widgetType === type)
+    if (!plugin) return
 
-    WidgetConfigManager.addConfig(newConfig)
-    setWidgets(prev => [...prev, newConfig])
+    const newWidget = plugin.createWidget(`${type}-${Date.now()}`)
+    newWidget.order = widgets.length
+
+    const updatedWidgets = [...widgets, newWidget]
+    setWidgets(updatedWidgets)
+    PluginStorage.saveData('disney-widget-configs', updatedWidgets)
     setIsAddingWidget(false)
   }
 
   const removeWidget = (id: string) => {
-    WidgetConfigManager.removeConfig(id)
-    setWidgets(prev => prev.filter(w => w.id !== id))
+    const updatedWidgets = widgets.filter(w => w.id !== id)
+    const reordered = updatedWidgets.map((widget, index) => ({
+      ...widget,
+      order: index
+    }))
+    setWidgets(reordered)
+    PluginStorage.saveData('disney-widget-configs', reordered)
   }
 
-
-
   const handleWidthChange = (id: string, width: string) => {
-    WidgetConfigManager.updateConfig(id, { width })
-    setWidgets(prev => prev.map(w => w.id === id ? { ...w, width } : w))
+    const updatedWidgets = widgets.map(w => w.id === id ? { ...w, width } : w)
+    setWidgets(updatedWidgets)
+    PluginStorage.saveData('disney-widget-configs', updatedWidgets)
   }
 
   const handleItemSelect = (id: string, itemId: string | null) => {
-    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
-    setWidgets(prev => prev.map(w => w.id === id ? { ...w, selectedItemId: itemId || undefined } : w))
+    const updatedWidgets = widgets.map(w => w.id === id ? { ...w, selectedItemId: itemId || undefined } : w)
+    setWidgets(updatedWidgets)
+    PluginStorage.saveData('disney-widget-configs', updatedWidgets)
   }
 
   const handleDragStart = (event: DragEndEvent) => {
@@ -201,9 +192,12 @@ export default function DashboardPage() {
       }))
 
       setWidgets(reorderedWidgets)
-      WidgetConfigManager.reorderWidgets(reorderedWidgets.map(w => w.id))
+      PluginStorage.saveData('disney-widget-configs', reorderedWidgets)
     }
   }
+
+  const widgetOptions = getWidgetOptions()
+  const widgetComponents = getWidgetComponents()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">

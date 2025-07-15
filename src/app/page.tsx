@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Calendar, Clock, DollarSign, Package, MapPin, Star, Crown, Sparkles } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
@@ -55,29 +55,42 @@ const tools: Tool[] = [
 ]
 
 export default function HomePage() {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const isPremiumUser = () => {
     // This would check actual subscription status
     return true
   }
 
+  // Don't render until mounted to prevent hydration issues
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-disney-blue mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       {/* Enhanced Header */}
       <header className="bg-gradient-to-br from-disney-blue via-disney-purple to-disney-pink p-8 text-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center"
-          >
+                  <div className="text-center">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 disney-shadow">
               ✨ Disney Trip Planner ✨
             </h1>
             <p className="text-xl md:text-2xl opacity-90 max-w-3xl mx-auto leading-relaxed">
               Your ultimate suite of magical tools for planning the perfect Disney vacation
             </p>
-          </motion.div>
+          </div>
         </div>
 
         {/* Enhanced floating elements */}
@@ -101,23 +114,15 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
         {/* Tools Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 mb-12"
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 mb-12">
           {tools.map((tool, index) => {
             const canAccess = !tool.isPremium || isPremiumUser()
 
             return (
-              <motion.div
+              <div
                 key={tool.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
                 className={`${tool.isPremium ? 'tool-card-premium' : 'tool-card'} p-6 md:p-8 relative interactive-card`}
               >
                 {tool.isPremium && (
@@ -146,19 +151,14 @@ export default function HomePage() {
                       Upgrade to Use
                     </button>
                   )}
+                                  </div>
                 </div>
-              </motion.div>
-            )
+              )
           })}
-        </motion.div>
+        </div>
 
         {/* Features Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 shadow-xl border border-white/20"
-        >
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 shadow-xl border border-white/20">
           <h2 className="text-3xl font-bold text-center mb-8 gradient-text">
             Why Choose Our Disney Planner?
           </h2>
@@ -188,7 +188,7 @@ export default function HomePage() {
               <p className="text-gray-600">Budget effectively and find ways to save on your Disney vacation</p>
             </div>
           </div>
-        </motion.div>
+        </div>
       </main>
     </div>
   )

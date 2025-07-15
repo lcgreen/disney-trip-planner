@@ -111,7 +111,15 @@ export default function CountdownTimer({
   useEffect(() => {
     const saved = localStorage.getItem('disney-countdowns')
     if (saved) {
-      setSavedCountdowns(JSON.parse(saved))
+      try {
+        const parsed = JSON.parse(saved)
+        // Handle both old format (array) and new format (object with countdowns property)
+        const countdowns = Array.isArray(parsed) ? parsed : (parsed.countdowns || [])
+        setSavedCountdowns(countdowns)
+      } catch (error) {
+        console.error('Error loading countdowns:', error)
+        setSavedCountdowns([])
+      }
     }
 
     const savedSettings = localStorage.getItem('disney-countdown-settings')
@@ -228,7 +236,7 @@ export default function CountdownTimer({
         c.id === createdItemId ? updatedCountdown : c
       )
       setSavedCountdowns(updated)
-      localStorage.setItem('disney-countdowns', JSON.stringify(updated))
+      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updated }))
 
       // Also update widget config manager data
       WidgetConfigManager.saveCurrentCountdownState(targetDate, countdownName.trim(), selectedPark)
@@ -246,7 +254,7 @@ export default function CountdownTimer({
 
       const updated = [...savedCountdowns, newCountdown]
       setSavedCountdowns(updated)
-      localStorage.setItem('disney-countdowns', JSON.stringify(updated))
+      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updated }))
 
       // Check for pending widget links and auto-link if needed
       WidgetConfigManager.checkAndApplyPendingLinks(newCountdown.id, 'countdown')
@@ -268,7 +276,7 @@ export default function CountdownTimer({
   const deleteCountdown = (id: string): void => {
     const updated = savedCountdowns.filter(c => c.id !== id)
     setSavedCountdowns(updated)
-    localStorage.setItem('disney-countdowns', JSON.stringify(updated))
+    localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updated }))
 
     // Clean up widget configurations that reference this deleted item
     WidgetConfigManager.cleanupDeletedItemReferences(id, 'countdown')
@@ -281,7 +289,7 @@ export default function CountdownTimer({
     })
 
     setSavedCountdowns([])
-    localStorage.removeItem('disney-countdowns')
+    localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: [] }))
   }
 
   const currentTheme = customTheme || {
@@ -527,6 +535,7 @@ export default function CountdownTimer({
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Digit Style</label>
                           <Select
+                            defaultValue={settings.digitStyle}
                             value={settings.digitStyle}
                             onValueChange={(value: string) => setSettings(prev => ({ ...prev, digitStyle: value as CountdownSettings['digitStyle'] }))}
                             options={[
@@ -540,6 +549,7 @@ export default function CountdownTimer({
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Layout</label>
                           <Select
+                            defaultValue={settings.layout}
                             value={settings.layout}
                             onValueChange={(value: string) => setSettings(prev => ({ ...prev, layout: value as CountdownSettings['layout'] }))}
                             options={[
@@ -553,6 +563,7 @@ export default function CountdownTimer({
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Font Size</label>
                           <Select
+                            defaultValue={settings.fontSize}
                             value={settings.fontSize}
                             onValueChange={(value: string) => setSettings(prev => ({ ...prev, fontSize: value as CountdownSettings['fontSize'] }))}
                             options={[

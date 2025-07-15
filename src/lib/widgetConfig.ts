@@ -462,7 +462,16 @@ export class WidgetConfigManager {
   static getAvailableCountdowns(): SavedCountdown[] {
     if (typeof window === 'undefined') return []
     const saved = localStorage.getItem('disney-countdowns')
-    return saved ? JSON.parse(saved) : []
+    if (!saved) return []
+
+    try {
+      const parsed = JSON.parse(saved)
+      // Handle both old format (array) and new format (object with countdowns property)
+      return Array.isArray(parsed) ? parsed : (parsed.countdowns || [])
+    } catch (error) {
+      console.error('Error loading countdowns:', error)
+      return []
+    }
   }
 
   static getAvailablePackingLists(): SavedPackingList[] {

@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Calendar, MapPin, Clock, Crown } from 'lucide-react'
 import WidgetBase, { type WidgetSize } from './WidgetBase'
-import { WidgetConfigManager, type SavedTripPlan } from '@/lib/widgetConfig'
+import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
+import '@/plugins' // Import all plugins to register them
 
 interface TripPlannerWidgetProps {
   id: string
@@ -38,43 +40,32 @@ export default function TripPlannerWidget({
   onWidthChange,
   onItemSelect
 }: TripPlannerWidgetProps) {
-  const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
-  const [selectedTripPlan, setSelectedTripPlan] = useState<SavedTripPlan | null>(null)
+  const [selectedTripPlan, setSelectedTripPlan] = useState<any>(null)
   const [todaysActivities, setTodaysActivities] = useState<Activity[]>([])
 
   useEffect(() => {
-    // Load widget config
-    const widgetConfig = WidgetConfigManager.getConfig(id)
-    if (widgetConfig) {
-      setConfig({ size: widgetConfig.size, selectedItemId: widgetConfig.selectedItemId })
-    } else {
-      // Default config
-      const defaultConfig = { size: 'medium' as WidgetSize, selectedItemId: undefined }
-      setConfig(defaultConfig)
-      WidgetConfigManager.addConfig({
-        id,
-        type: 'planner',
-        size: 'medium',
-        order: 0,
-        selectedItemId: undefined,
-        settings: {}
-      })
-    }
-  }, [id])
+    // Load selected trip plan data from plugin
+    const plannerPlugin = PluginRegistry.getPlugin('planner')
+    if (plannerPlugin) {
+      // Get the widget configuration to see if a specific item is selected
+      const widgetConfig = WidgetConfigManager.getConfig(id)
+      const selectedItemId = widgetConfig?.selectedItemId
 
-  useEffect(() => {
-    // Load selected trip plan data
-    if (config?.selectedItemId) {
-      // Validate that the selected item still exists
-      const itemExists = WidgetConfigManager.validateAndCleanupItemReference(id, 'planner', config.selectedItemId)
+      let tripPlan
+      if (selectedItemId) {
+        // Load the specific selected trip plan
+        tripPlan = plannerPlugin.getItem(selectedItemId)
+      } else {
+        // Load live/default data
+        tripPlan = plannerPlugin.getWidgetData(id)
+      }
 
-      if (itemExists) {
-        const tripPlan = WidgetConfigManager.getSelectedItemData('planner', config.selectedItemId) as SavedTripPlan
-        setSelectedTripPlan(tripPlan)
+      setSelectedTripPlan(tripPlan)
 
+      if (tripPlan?.days) {
         // Find today's activities
         const today = new Date().toISOString().split('T')[0]
-        const todaysDay = tripPlan.days.find(day =>
+        const todaysDay = tripPlan.days.find((day: any) =>
           new Date(day.date).toISOString().split('T')[0] === today
         )
 
@@ -90,29 +81,40 @@ export default function TripPlannerWidget({
           }
         }
       } else {
-        // Item was deleted, update local config and fallback to live state
-        setConfig(prev => prev ? { ...prev, selectedItemId: undefined } : { size: 'medium', selectedItemId: undefined })
+        setTodaysActivities([])
+      }
+    }
+  }, [id])
 
-        const currentState = WidgetConfigManager.getCurrentTripPlanState()
-        if (currentState?.days && currentState.days.length > 0) {
-          const livePlan: SavedTripPlan = {
-            id: 'live',
-            name: 'Current Trip Plan',
-            days: currentState.days,
-            createdAt: new Date().toISOString(),
-            updatedAt: currentState.updatedAt || new Date().toISOString()
-          }
-          setSelectedTripPlan(livePlan)
+  // Watch for changes in widget configuration
+  useEffect(() => {
+    const checkForUpdates = () => {
+      const plannerPlugin = PluginRegistry.getPlugin('planner')
+      if (plannerPlugin) {
+        const widgetConfig = WidgetConfigManager.getConfig(id)
+        const selectedItemId = widgetConfig?.selectedItemId
 
+        let tripPlan
+        if (selectedItemId) {
+          tripPlan = plannerPlugin.getItem(selectedItemId)
+        } else {
+          tripPlan = plannerPlugin.getWidgetData(id)
+        }
+
+        setSelectedTripPlan(tripPlan)
+
+        if (tripPlan?.days) {
+          // Find today's activities
           const today = new Date().toISOString().split('T')[0]
-          const todaysDay = livePlan.days.find(day =>
+          const todaysDay = tripPlan.days.find((day: any) =>
             new Date(day.date).toISOString().split('T')[0] === today
           )
 
           if (todaysDay) {
             setTodaysActivities(todaysDay.activities)
           } else {
-            const firstDay = livePlan.days[0]
+            // If no activities for today, show first day's activities
+            const firstDay = tripPlan.days[0]
             if (firstDay) {
               setTodaysActivities(firstDay.activities)
             } else {
@@ -120,29 +122,28 @@ export default function TripPlannerWidget({
             }
           }
         } else {
-          setSelectedTripPlan(null)
           setTodaysActivities([])
         }
       }
-    } else {
-      // No item selected, show empty state
-      setSelectedTripPlan(null)
-      setTodaysActivities([])
     }
-  }, [config, id])
 
+    // Check immediately
+    checkForUpdates()
 
+    // Set up an interval to check for updates
+    const interval = setInterval(checkForUpdates, 1000)
+    return () => clearInterval(interval)
+  }, [id])
 
   const handleItemSelect = (itemId: string | null) => {
+    // Update the widget configuration
     WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
-    setConfig(prev => prev ? { ...prev, selectedItemId: itemId || undefined } : { size: 'medium', selectedItemId: itemId || undefined })
-  }
 
-  if (!config) {
-    return <div>Loading...</div>
+    // Call the parent callback if provided
+    if (onItemSelect) {
+      onItemSelect(itemId)
+    }
   }
-
-  const { size } = config
 
   const isPremiumUser = () => {
     // This would check actual subscription status
@@ -150,7 +151,8 @@ export default function TripPlannerWidget({
   }
 
   const getActivitiesToShow = () => {
-    const maxActivities = size === 'small' ? 2 : size === 'medium' ? 3 : 6
+    // Determine max activities based on width
+    const maxActivities = width === '1' ? 2 : width === '2' ? 3 : 6
     return todaysActivities.slice(0, maxActivities)
   }
 
@@ -198,40 +200,45 @@ export default function TripPlannerWidget({
       <div className="h-full flex flex-col">
         {/* Header */}
         <div className="mb-4">
-          <h3 className="font-semibold text-gray-800 text-sm truncate mb-1">
-            {selectedTripPlan.name}
-          </h3>
-                     <p className="text-xs text-gray-500">
-             Today&apos;s Activities
-           </p>
+          <h3 className="font-semibold text-gray-800 mb-1 truncate">{selectedTripPlan.name}</h3>
+          <p className="text-xs text-gray-500">
+            {activitiesToShow.length} of {todaysActivities.length} activities today
+          </p>
         </div>
 
-        {/* Activities list */}
-        <div className="flex-1 space-y-2 overflow-hidden">
-          {activitiesToShow.map((activity) => (
+        {/* Activities List */}
+        <div className="flex-1 space-y-2">
+          {activitiesToShow.map((activity, index) => (
             <div
               key={activity.id}
-              className="p-2 bg-purple-50 border border-purple-100 rounded-lg"
+              className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-3 border border-purple-100"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
-                    <Clock className="w-3 h-3 text-purple-600" />
-                    <span className="text-xs font-medium text-purple-700">
-                      {activity.time}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium text-gray-800 truncate">
-                    {activity.title}
-                  </p>
-                  {size !== 'small' && (
-                    <div className="flex items-center space-x-1 mt-1">
-                      <MapPin className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-gray-500 truncate">
-                        {activity.location}
+                    <Clock className="w-3 h-3 text-purple-600 flex-shrink-0" />
+                    <span className="text-xs font-medium text-purple-700">{activity.time}</span>
+                    {activity.priority === 'high' && (
+                      <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
+                        Priority
                       </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <h4 className="font-medium text-gray-800 text-sm mb-1 truncate">{activity.title}</h4>
+                  <div className="flex items-center space-x-1">
+                    <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    <span className="text-xs text-gray-500 truncate">{activity.location}</span>
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    activity.type === 'attraction' ? 'bg-blue-100 text-blue-700' :
+                    activity.type === 'dining' ? 'bg-green-100 text-green-700' :
+                    activity.type === 'show' ? 'bg-purple-100 text-purple-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {activity.type}
+                  </span>
                 </div>
               </div>
             </div>
@@ -240,7 +247,7 @@ export default function TripPlannerWidget({
           {remainingActivities > 0 && (
             <div className="text-center py-2">
               <span className="text-xs text-gray-500">
-                +{remainingActivities} more activit{remainingActivities !== 1 ? 'ies' : 'y'}
+                +{remainingActivities} more activities
               </span>
             </div>
           )}
@@ -254,12 +261,11 @@ export default function TripPlannerWidget({
       id={id}
       title="Trip Planner"
       icon={Calendar}
-      iconColor="bg-gradient-to-r from-park-magic to-park-epcot"
+      iconColor="bg-gradient-to-r from-purple-500 to-pink-500"
       widgetType="planner"
-      size={size}
+      size="medium"
       width={width}
-      selectedItemId={config.selectedItemId}
-      isPremium={true}
+      selectedItemId={selectedTripPlan?.id}
       onRemove={onRemove}
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}

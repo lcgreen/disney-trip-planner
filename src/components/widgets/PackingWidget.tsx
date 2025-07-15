@@ -1,16 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Package, Check } from 'lucide-react'
+import { Luggage, CheckCircle, Circle, Package } from 'lucide-react'
 import WidgetBase, { type WidgetSize } from './WidgetBase'
-import { WidgetConfigManager, type SavedPackingList } from '@/lib/widgetConfig'
-
-interface PackingItem {
-  id: string
-  name: string
-  checked: boolean
-  category: string
-}
+import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
+import '@/plugins' // Import all plugins to register them
 
 interface PackingWidgetProps {
   id: string
@@ -21,6 +16,14 @@ interface PackingWidgetProps {
   onItemSelect?: (itemId: string | null) => void
 }
 
+interface PackingItem {
+  id: string
+  name: string
+  category: string
+  isPacked: boolean
+  isEssential: boolean
+}
+
 export default function PackingWidget({
   id,
   width,
@@ -29,126 +32,120 @@ export default function PackingWidget({
   onWidthChange,
   onItemSelect
 }: PackingWidgetProps) {
-  const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
-  const [selectedPackingList, setSelectedPackingList] = useState<SavedPackingList | null>(null)
-  const [packingItems, setPackingItems] = useState<PackingItem[]>([])
-  const [completionStats, setCompletionStats] = useState({ completed: 0, total: 0 })
+  const [selectedPackingList, setSelectedPackingList] = useState<any>(null)
+  const [packedItems, setPackedItems] = useState<PackingItem[]>([])
+  const [unpackedItems, setUnpackedItems] = useState<PackingItem[]>([])
 
-  useEffect(() => {
-    // Load widget config
-    const widgetConfig = WidgetConfigManager.getConfig(id)
-    if (widgetConfig) {
-      setConfig({ size: widgetConfig.size, selectedItemId: widgetConfig.selectedItemId })
-    } else {
-      // Default config
-      const defaultConfig = { size: 'medium' as WidgetSize, selectedItemId: undefined }
-      setConfig(defaultConfig)
-      WidgetConfigManager.addConfig({
-        id,
-        type: 'packing',
-        size: 'medium',
-        order: 0,
-        selectedItemId: undefined,
-        settings: {}
-      })
+    useEffect(() => {
+    // Load selected packing list data from plugin
+    const packingPlugin = PluginRegistry.getPlugin('packing')
+    if (packingPlugin) {
+      // Get the widget configuration to see if a specific item is selected
+      const widgetConfig = WidgetConfigManager.getConfig(id)
+      const selectedItemId = widgetConfig?.selectedItemId
+
+      let packingList
+      if (selectedItemId) {
+        // Load the specific selected packing list
+        packingList = packingPlugin.getItem(selectedItemId)
+      } else {
+        // Load live/default data
+        packingList = packingPlugin.getWidgetData(id)
+      }
+
+      setSelectedPackingList(packingList)
+
+      // Update packed/unpacked items
+      if (packingList?.items) {
+        const packed = packingList.items.filter((item: any) => item.isPacked)
+        const unpacked = packingList.items.filter((item: any) => !item.isPacked)
+        setPackedItems(packed)
+        setUnpackedItems(unpacked)
+      } else {
+        setPackedItems([])
+        setUnpackedItems([])
+      }
     }
   }, [id])
 
+  // Watch for changes in widget configuration
   useEffect(() => {
-    // Load selected packing list data
-    if (config?.selectedItemId) {
-      // Validate that the selected item still exists
-      const itemExists = WidgetConfigManager.validateAndCleanupItemReference(id, 'packing', config.selectedItemId)
+    const checkForUpdates = () => {
+      const packingPlugin = PluginRegistry.getPlugin('packing')
+      if (packingPlugin) {
+        const widgetConfig = WidgetConfigManager.getConfig(id)
+        const selectedItemId = widgetConfig?.selectedItemId
 
-      if (itemExists) {
-        const packingList = WidgetConfigManager.getSelectedItemData('packing', config.selectedItemId) as SavedPackingList
-        setSelectedPackingList(packingList)
-        setPackingItems(packingList.items)
-        const completed = packingList.items.filter(item => item.checked).length
-        setCompletionStats({ completed, total: packingList.items.length })
-      } else {
-        // Item was deleted, update local config and fallback to live state
-        setConfig(prev => prev ? { ...prev, selectedItemId: undefined } : { size: 'medium', selectedItemId: undefined })
-
-        const currentState = WidgetConfigManager.getCurrentPackingState()
-        if (currentState?.items) {
-          setSelectedPackingList(null)
-          setPackingItems(currentState.items)
-          const completed = currentState.items.filter((item: any) => item.checked).length
-          setCompletionStats({ completed, total: currentState.items.length })
+        let packingList
+        if (selectedItemId) {
+          packingList = packingPlugin.getItem(selectedItemId)
         } else {
-          setSelectedPackingList(null)
-          setPackingItems([])
-          setCompletionStats({ completed: 0, total: 0 })
+          packingList = packingPlugin.getWidgetData(id)
+        }
+
+        setSelectedPackingList(packingList)
+
+        if (packingList?.items) {
+          const packed = packingList.items.filter((item: any) => item.isPacked)
+          const unpacked = packingList.items.filter((item: any) => !item.isPacked)
+          setPackedItems(packed)
+          setUnpackedItems(unpacked)
+        } else {
+          setPackedItems([])
+          setUnpackedItems([])
         }
       }
-    } else {
-      // No item selected, show empty state
-      setPackingItems([])
-      setSelectedPackingList(null)
-      setCompletionStats({ completed: 0, total: 0 })
-    }
-  }, [config, id])
-
-  const toggleItem = (itemId: string) => {
-    const updatedItems = packingItems.map(item =>
-      item.id === itemId ? { ...item, checked: !item.checked } : item
-    )
-
-    setPackingItems(updatedItems)
-
-    // Update storage - save to the selected list or default data
-    if (config?.selectedItemId && selectedPackingList) {
-      // Update the saved packing list directly in localStorage
-      const savedLists = WidgetConfigManager.getAvailablePackingLists()
-      const updatedLists = savedLists.map(list =>
-        list.id === config.selectedItemId
-          ? { ...list, items: updatedItems, updatedAt: new Date().toISOString() }
-          : list
-      )
-
-      // Save back to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('disney-packing-lists', JSON.stringify({ lists: updatedLists }))
-      }
-
-      // Update local state
-      const updatedList = updatedLists.find(list => list.id === config.selectedItemId)
-      if (updatedList) {
-        setSelectedPackingList(updatedList)
-      }
-    } else {
-      // Update default widget data and save to live state
-      WidgetConfigManager.updatePackingData(updatedItems)
-      WidgetConfigManager.saveCurrentPackingState(updatedItems)
     }
 
-    const completed = updatedItems.filter(item => item.checked).length
-    setCompletionStats({ completed, total: updatedItems.length })
-  }
+    // Check immediately
+    checkForUpdates()
 
-
+    // Set up an interval to check for updates
+    const interval = setInterval(checkForUpdates, 1000)
+    return () => clearInterval(interval)
+  }, [id])
 
   const handleItemSelect = (itemId: string | null) => {
+    // Update the widget configuration
     WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
-    setConfig(prev => prev ? { ...prev, selectedItemId: itemId || undefined } : { size: 'medium', selectedItemId: itemId || undefined })
+
+    // Call the parent callback if provided
+    if (onItemSelect) {
+      onItemSelect(itemId)
+    }
   }
 
-  if (!config) {
-    return <div>Loading...</div>
+  const toggleItemPacked = (itemId: string) => {
+    if (!selectedPackingList) return
+
+    const updatedItems = selectedPackingList.items.map((item: any) =>
+      item.id === itemId ? { ...item, isPacked: !item.isPacked } : item
+    )
+
+    const updatedList = { ...selectedPackingList, items: updatedItems }
+    setSelectedPackingList(updatedList)
+
+    // Update in plugin storage
+    const packingPlugin = PluginRegistry.getPlugin('packing')
+    if (packingPlugin) {
+      packingPlugin.updateWidgetData(id, updatedList)
+    }
+
+    // Update local state
+    const packed = updatedItems.filter((item: any) => item.isPacked)
+    const unpacked = updatedItems.filter((item: any) => !item.isPacked)
+    setPackedItems(packed)
+    setUnpackedItems(unpacked)
   }
 
-  const { size } = config
-  const completionPercentage = completionStats.total > 0 ? (completionStats.completed / completionStats.total) * 100 : 0
-
-  // Get items to display based on size
   const getItemsToShow = () => {
-    const maxItems = size === 'small' ? 3 : size === 'medium' ? 4 : 8
-    return packingItems.slice(0, maxItems)
+    // Determine max items based on width
+    const maxItems = width === '1' ? 3 : width === '2' ? 5 : 8
+    return unpackedItems.slice(0, maxItems)
   }
 
   const renderPackingList = () => {
-    if (packingItems.length === 0) {
+    if (!selectedPackingList) {
       return (
         <div className="h-full flex flex-col items-center justify-center text-center p-2">
           <Package className="w-10 h-10 text-gray-300 mb-3" />
@@ -158,7 +155,7 @@ export default function PackingWidget({
           </p>
           <button
             onClick={() => window.location.href = `/packing/new?widgetId=${id}`}
-            className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
+            className="px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-xs font-medium"
           >
             Create New
           </button>
@@ -167,63 +164,92 @@ export default function PackingWidget({
     }
 
     const itemsToShow = getItemsToShow()
-    const remainingItems = packingItems.length - itemsToShow.length
+    const totalItems = selectedPackingList.items?.length || 0
+    const packedCount = packedItems.length
+    const progressPercentage = totalItems > 0 ? (packedCount / totalItems) * 100 : 0
 
     return (
       <div className="h-full flex flex-col">
-        {/* Header with list name and progress */}
+        {/* Header */}
         <div className="mb-4">
+          <h3 className="font-semibold text-gray-800 mb-1 truncate">{selectedPackingList.name}</h3>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-gray-800 text-sm truncate">
-              {selectedPackingList?.name || 'My Packing List'}
-            </h3>
-            <span className="text-xs text-gray-500">
-              {completionStats.completed}/{completionStats.total}
-            </span>
+            <span className="text-xs text-gray-500">Packing Progress</span>
+            <span className="text-xs font-medium text-gray-700">{progressPercentage.toFixed(0)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-green-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${completionPercentage}%` }}
+              className="h-2 rounded-full transition-all duration-300 bg-orange-500"
+              style={{ width: `${progressPercentage}%` }}
             />
           </div>
         </div>
 
-        {/* Packing items */}
-        <div className="flex-1 space-y-2 overflow-hidden">
-          {itemsToShow.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => toggleItem(item.id)}
-              className={`w-full p-2 rounded-lg border transition-all duration-200 text-left ${
-                item.checked
-                  ? 'bg-green-50 border-green-200 text-green-800'
-                  : 'bg-white border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${
-                  item.checked
-                    ? 'bg-green-600 border-green-600'
-                    : 'border-gray-300'
-                }`}>
-                  {item.checked && <Check className="w-3 h-3 text-white" />}
-                </div>
-                <span className={`text-sm truncate ${item.checked ? 'line-through' : ''}`}>
-                  {item.name}
-                </span>
-              </div>
-            </button>
-          ))}
-
-          {remainingItems > 0 && (
-            <div className="text-center py-2">
-              <span className="text-xs text-gray-500">
-                +{remainingItems} more item{remainingItems !== 1 ? 's' : ''}
-              </span>
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-3 border border-orange-100">
+            <div className="flex items-center space-x-2 mb-1">
+              <CheckCircle className="w-4 h-4 text-orange-600" />
+              <span className="text-xs font-medium text-orange-700">Packed</span>
             </div>
-          )}
+            <div className="text-lg font-bold text-orange-800">
+              {packedCount}
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-3 border border-gray-100">
+            <div className="flex items-center space-x-2 mb-1">
+              <Circle className="w-4 h-4 text-gray-600" />
+              <span className="text-xs font-medium text-gray-700">Remaining</span>
+            </div>
+            <div className="text-lg font-bold text-gray-800">
+              {totalItems - packedCount}
+            </div>
+          </div>
         </div>
+
+        {/* Items to Pack */}
+        {itemsToShow.length > 0 && (
+          <div className="flex-1">
+            <h4 className="text-xs font-medium text-gray-700 mb-2">Items to Pack</h4>
+            <div className="space-y-2">
+              {itemsToShow.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => toggleItemPacked(item.id)}
+                >
+                  <button className="flex-shrink-0">
+                    <Circle className="w-4 h-4 text-gray-400 hover:text-orange-500 transition-colors" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-800 truncate">
+                        {item.name}
+                      </span>
+                      {item.isEssential && (
+                        <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
+                          Essential
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {item.category}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Show more indicator */}
+        {unpackedItems.length > itemsToShow.length && (
+          <div className="text-center py-2">
+            <span className="text-xs text-gray-500">
+              +{unpackedItems.length - itemsToShow.length} more items
+            </span>
+          </div>
+        )}
       </div>
     )
   }
@@ -231,13 +257,13 @@ export default function PackingWidget({
   return (
     <WidgetBase
       id={id}
-      title="Packing Checklist"
-      icon={Package}
-      iconColor="bg-gradient-to-r from-disney-green to-disney-teal"
+      title="Packing List"
+      icon={Luggage}
+      iconColor="bg-gradient-to-r from-orange-500 to-amber-500"
       widgetType="packing"
-      size={size}
+      size="medium"
       width={width}
-      selectedItemId={config.selectedItemId}
+      selectedItemId={selectedPackingList?.id}
       onRemove={onRemove}
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}

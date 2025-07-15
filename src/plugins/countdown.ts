@@ -1,0 +1,156 @@
+import { Clock } from 'lucide-react'
+import {
+  PluginInterface,
+  PluginConfig,
+  PluginData,
+  PluginWidget,
+  PluginRegistry,
+  PluginStorage
+} from '@/lib/pluginSystem'
+import CountdownWidget from '@/components/widgets/CountdownWidget'
+
+export interface CountdownData extends PluginData {
+  tripDate: string
+  park?: any
+  settings?: any
+  theme?: any
+}
+
+export class CountdownPlugin implements PluginInterface {
+  config: PluginConfig = {
+    id: 'countdown',
+    name: 'Disney Countdown',
+    description: 'Track days until your Disney trip',
+    icon: 'Clock',
+    color: 'from-disney-blue to-disney-purple',
+    route: '/countdown',
+    widgetType: 'countdown',
+    isPremium: false
+  }
+
+  getStorageKeys() {
+    return {
+      items: 'disney-countdowns',
+      widgets: 'disney-widget-configs',
+      current: 'disney-current-countdown'
+    }
+  }
+
+  createWidget(id: string): PluginWidget {
+    return {
+      id,
+      type: this.config.widgetType,
+      order: 0,
+      width: undefined,
+      selectedItemId: undefined,
+      settings: {}
+    }
+  }
+
+  getWidgetComponent() {
+    return CountdownWidget
+  }
+
+  createItem(name?: string): string {
+    const id = `countdown-${Date.now()}`
+    const newItem: CountdownData = {
+      id,
+      name: name || 'My Disney Trip',
+      tripDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+      park: { name: 'Disney World' },
+      settings: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    const items = this.getItems()
+    items.push(newItem)
+    PluginStorage.saveData(this.getStorageKeys().items, { countdowns: items })
+
+    // Also save to the main localStorage key for compatibility
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: items }))
+    }
+
+    return id
+  }
+
+  getItems(): CountdownData[] {
+    const data = PluginStorage.getData(this.getStorageKeys().items, { countdowns: [] })
+    return data.countdowns || []
+  }
+
+  getItem(id: string): CountdownData | null {
+    const items = this.getItems()
+    return items.find(item => item.id === id) || null
+  }
+
+  updateItem(id: string, data: Partial<CountdownData>): void {
+    const items = this.getItems()
+    const index = items.findIndex(item => item.id === id)
+    if (index >= 0) {
+      items[index] = { ...items[index], ...data, updatedAt: new Date().toISOString() }
+      PluginStorage.saveData(this.getStorageKeys().items, { countdowns: items })
+
+      // Also save to the main localStorage key for compatibility
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: items }))
+      }
+    }
+  }
+
+  deleteItem(id: string): void {
+    const items = this.getItems()
+    const filtered = items.filter(item => item.id !== id)
+    PluginStorage.saveData(this.getStorageKeys().items, { countdowns: filtered })
+
+    // Also save to the main localStorage key for compatibility
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: filtered }))
+    }
+  }
+
+  getWidgetData(widgetId: string, itemId?: string): any {
+    if (itemId) {
+      return this.getItem(itemId)
+    }
+
+    // Return current/live data if no specific item selected
+    const currentData = PluginStorage.getData<{
+      tripDate: string
+      title?: string
+      park?: any
+      updatedAt?: string
+    } | null>(this.getStorageKeys().current, null)
+
+    if (currentData && currentData.tripDate) {
+      return {
+        id: 'live',
+        name: currentData.title || 'My Disney Trip',
+        park: currentData.park || { name: 'Disney World' },
+        tripDate: currentData.tripDate,
+        settings: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: currentData.updatedAt || new Date().toISOString()
+      }
+    }
+
+    return null
+  }
+
+  updateWidgetData(widgetId: string, data: any): void {
+    // Update current state
+    PluginStorage.saveData(this.getStorageKeys().current, {
+      tripDate: data.tripDate,
+      title: data.name,
+      park: data.park,
+      updatedAt: new Date().toISOString()
+    })
+  }
+}
+
+// Register the plugin
+const countdownPlugin = new CountdownPlugin()
+PluginRegistry.register(countdownPlugin)
+
+export default countdownPlugin

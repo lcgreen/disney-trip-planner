@@ -1,12 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { ChevronDown, Package, Calendar, DollarSign, Clock } from 'lucide-react'
-import {
-  WidgetConfigManager,
-  type SavedCountdown,
-  type SavedPackingList,
-  type SavedTripPlan,
-  type SavedBudget
-} from '@/lib/widgetConfig'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { PluginRegistry } from '@/lib/pluginSystem'
+import '@/plugins' // Import all plugins to register them
 
 interface ItemSelectorProps {
   widgetId: string
@@ -15,121 +11,84 @@ interface ItemSelectorProps {
   onItemSelect: (itemId: string | null) => void
 }
 
-type SavedItem = SavedCountdown | SavedPackingList | SavedTripPlan | SavedBudget
-
-export default function ItemSelector({ widgetId, widgetType, selectedItemId, onItemSelect }: ItemSelectorProps) {
-  const [availableItems, setAvailableItems] = useState<SavedItem[]>([])
-  const [isOpen, setIsOpen] = useState(false)
+export default function ItemSelector({
+  widgetId,
+  widgetType,
+  selectedItemId,
+  onItemSelect
+}: ItemSelectorProps) {
+  const [items, setItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load available items based on widget type
-    let items: SavedItem[] = []
-    switch (widgetType) {
-      case 'countdown':
-        items = WidgetConfigManager.getAvailableCountdowns()
-        break
-      case 'packing':
-        items = WidgetConfigManager.getAvailablePackingLists()
-        break
-      case 'planner':
-        items = WidgetConfigManager.getAvailableTripPlans()
-        break
-      case 'budget':
-        items = WidgetConfigManager.getAvailableBudgets()
-        break
+    // Get items from the appropriate plugin
+    const plugin = PluginRegistry.getPlugin(widgetType)
+    if (plugin) {
+      const pluginItems = plugin.getItems()
+      setItems(pluginItems)
     }
-    setAvailableItems(items)
+    setLoading(false)
   }, [widgetType])
 
-  const getWidgetIcon = () => {
-    switch (widgetType) {
-      case 'countdown': return Clock
-      case 'packing': return Package
-      case 'planner': return Calendar
-      case 'budget': return DollarSign
-    }
+  if (loading) {
+    return <div className="text-sm text-gray-500">Loading...</div>
   }
 
-  const getWidgetLabel = () => {
-    switch (widgetType) {
-      case 'countdown': return 'Countdown'
-      case 'packing': return 'Packing List'
-      case 'planner': return 'Trip Plan'
-      case 'budget': return 'Budget'
-    }
+  if (items.length === 0) {
+    return (
+      <div className="text-sm text-gray-500">
+        No {widgetType === 'countdown' ? 'countdowns' :
+            widgetType === 'planner' ? 'trip plans' :
+            widgetType === 'budget' ? 'budgets' :
+            'packing lists'} available
+      </div>
+    )
   }
-
-  const handleItemSelect = (itemId: string | null) => {
-    onItemSelect(itemId)
-    setIsOpen(false)
-  }
-
-  const selectedItem = availableItems.find(item => item.id === selectedItemId)
-  const Icon = getWidgetIcon()
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full px-3 py-2 text-sm border border-gray-200 rounded-lg hover:border-gray-300 focus:outline-none focus:border-blue-500 bg-white"
-      >
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-700">
-            {selectedItem ? selectedItem.name : `Select ${getWidgetLabel()}`}
-          </span>
-        </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
+    <div className="space-y-2">
+      <div className="text-xs text-gray-500 mb-2">
+        Select a {widgetType === 'countdown' ? 'countdown' :
+                  widgetType === 'planner' ? 'trip plan' :
+                  widgetType === 'budget' ? 'budget' :
+                  'packing list'} to display:
+      </div>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-          {/* Available saved items */}
-          {availableItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleItemSelect(item.id)}
-              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${
-                selectedItemId === item.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{item.name}</div>
-                <div className="text-xs text-gray-500 truncate">
-                  {widgetType === 'countdown' && 'date' in item && (
-                    new Date(item.date).toLocaleDateString()
-                  )}
-                  {widgetType === 'packing' && 'items' in item && (
-                    `${item.items.length} items`
-                  )}
-                  {widgetType === 'planner' && 'days' in item && (
-                    `${item.days.length} days`
-                  )}
-                  {widgetType === 'budget' && 'totalBudget' in item && (
-                    `$${item.totalBudget}`
-                  )}
-                </div>
-              </div>
-            </button>
-          ))}
+      <div className="space-y-1 max-h-32 overflow-y-auto">
+        <button
+          onClick={() => onItemSelect(null)}
+          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+            !selectedItemId
+              ? 'bg-disney-blue text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <div className="font-medium">Live Data</div>
+          <div className="text-xs opacity-75">
+            Use current {widgetType === 'countdown' ? 'countdown' :
+                       widgetType === 'planner' ? 'trip plan' :
+                       widgetType === 'budget' ? 'budget' :
+                       'packing list'} data
+          </div>
+        </button>
 
-          {/* No saved items message */}
-          {availableItems.length === 0 && (
-            <div className="px-3 py-2 text-center text-xs text-gray-500">
-              No saved {getWidgetLabel().toLowerCase()}s found
+        {items.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => onItemSelect(item.id)}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+              selectedItemId === item.id
+                ? 'bg-disney-blue text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <div className="font-medium truncate">{item.name}</div>
+            <div className="text-xs opacity-75">
+              Created {new Date(item.createdAt).toLocaleDateString()}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Overlay to close dropdown */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-0"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

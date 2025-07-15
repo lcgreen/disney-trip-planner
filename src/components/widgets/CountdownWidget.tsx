@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Clock } from 'lucide-react'
 import WidgetBase, { type WidgetSize } from './WidgetBase'
-import { WidgetConfigManager, type SavedCountdown } from '@/lib/widgetConfig'
+import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
+import '@/plugins' // Import all plugins to register them
 
 interface CountdownWidgetProps {
   id: string
@@ -22,8 +24,7 @@ export default function CountdownWidget({
   onWidthChange,
   onItemSelect
 }: CountdownWidgetProps) {
-  const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
-  const [selectedCountdown, setSelectedCountdown] = useState<SavedCountdown | null>(null)
+  const [selectedCountdown, setSelectedCountdown] = useState<any>(null)
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -31,66 +32,58 @@ export default function CountdownWidget({
     seconds: 0
   })
 
-  useEffect(() => {
-    // Load widget config
-    const widgetConfig = WidgetConfigManager.getConfig(id)
-    if (widgetConfig) {
-      setConfig({ size: widgetConfig.size, selectedItemId: widgetConfig.selectedItemId })
-    } else {
-      // Default config
-      const defaultConfig = { size: 'medium' as WidgetSize, selectedItemId: undefined }
-      setConfig(defaultConfig)
-      WidgetConfigManager.addConfig({
-        id,
-        type: 'countdown',
-        size: 'medium',
-        order: 0,
-        selectedItemId: undefined,
-        settings: {}
-      })
+    useEffect(() => {
+    // Load selected countdown data from plugin
+    const countdownPlugin = PluginRegistry.getPlugin('countdown')
+    if (countdownPlugin) {
+      // Get the widget configuration to see if a specific item is selected
+      const widgetConfig = WidgetConfigManager.getConfig(id)
+      const selectedItemId = widgetConfig?.selectedItemId
+
+      if (selectedItemId) {
+        // Load the specific selected countdown
+        const countdown = countdownPlugin.getItem(selectedItemId)
+        setSelectedCountdown(countdown)
+      } else {
+        // Load live/default data
+        const countdown = countdownPlugin.getWidgetData(id)
+        setSelectedCountdown(countdown)
+      }
     }
   }, [id])
 
+  // Watch for changes in widget configuration
   useEffect(() => {
-    // Load selected countdown data
-    if (config?.selectedItemId) {
-      // Validate that the selected item still exists
-      const itemExists = WidgetConfigManager.validateAndCleanupItemReference(id, 'countdown', config.selectedItemId)
+    const checkForUpdates = () => {
+      const countdownPlugin = PluginRegistry.getPlugin('countdown')
+      if (countdownPlugin) {
+        const widgetConfig = WidgetConfigManager.getConfig(id)
+        const selectedItemId = widgetConfig?.selectedItemId
 
-      if (itemExists) {
-        const countdown = WidgetConfigManager.getSelectedItemData('countdown', config.selectedItemId) as SavedCountdown
-        setSelectedCountdown(countdown)
-      } else {
-        // Item was deleted, update local config and fallback to live state
-        setConfig(prev => prev ? { ...prev, selectedItemId: undefined } : { size: 'medium', selectedItemId: undefined })
-
-        const currentState = WidgetConfigManager.getCurrentCountdownState()
-        if (currentState?.tripDate) {
-          const fallbackCountdown: SavedCountdown = {
-            id: 'live',
-            name: currentState.title || 'My Disney Trip',
-            park: currentState.park || { name: 'Disney World' },
-            date: currentState.tripDate,
-            settings: {},
-            createdAt: new Date().toISOString()
-          }
-          setSelectedCountdown(fallbackCountdown)
+        if (selectedItemId) {
+          const countdown = countdownPlugin.getItem(selectedItemId)
+          setSelectedCountdown(countdown)
         } else {
-          setSelectedCountdown(null)
+          const countdown = countdownPlugin.getWidgetData(id)
+          setSelectedCountdown(countdown)
         }
       }
-    } else {
-      // No item selected, show empty state
-      setSelectedCountdown(null)
     }
-  }, [config, id])
+
+    // Check immediately
+    checkForUpdates()
+
+    // Set up an interval to check for updates
+    const interval = setInterval(checkForUpdates, 1000)
+    return () => clearInterval(interval)
+  }, [id])
 
   useEffect(() => {
-    if (!selectedCountdown?.date) return
+    if (!selectedCountdown?.tripDate) return
 
     const updateCountdown = () => {
       const now = new Date().getTime()
-      const target = new Date(selectedCountdown.date).getTime()
+      const target = new Date(selectedCountdown.tripDate).getTime()
       const difference = target - now
 
       if (difference > 0) {
@@ -106,22 +99,19 @@ export default function CountdownWidget({
     updateCountdown()
     const interval = setInterval(updateCountdown, 1000)
     return () => clearInterval(interval)
-  }, [selectedCountdown?.date])
-
-
+  }, [selectedCountdown?.tripDate])
 
   const handleItemSelect = (itemId: string | null) => {
+    // Update the widget configuration
     WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
-    setConfig(prev => prev ? { ...prev, selectedItemId: itemId || undefined } : { size: 'medium', selectedItemId: itemId || undefined })
+
+    // Call the parent callback if provided
+    if (onItemSelect) {
+      onItemSelect(itemId)
+    }
   }
 
-  if (!config) {
-    return <div>Loading...</div>
-  }
-
-  const { size } = config
-
-  // Show different layouts based on size
+  // Show different layouts based on width
   const renderCountdown = () => {
     if (!selectedCountdown) {
       return (
@@ -146,13 +136,17 @@ export default function CountdownWidget({
     // Get park-specific gradient or fallback to default Disney colors
     const parkGradient = selectedCountdown.park?.gradient || 'from-disney-blue to-disney-purple'
 
-    if (size === 'small') {
+    // Determine layout based on width
+    const isWide = width === '3' || width === '4'
+    const isNarrow = width === '1'
+
+    if (isNarrow) {
       return (
         <div className="h-full flex flex-col justify-center">
           <div className="text-center mb-4">
             <h3 className="font-semibold text-gray-800 mb-1 truncate">{selectedCountdown.name}</h3>
             <p className="text-xs text-gray-500 truncate">
-              {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
+              {selectedCountdown.park?.name} • {new Date(selectedCountdown.tripDate).toLocaleDateString()}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-center">
@@ -169,36 +163,13 @@ export default function CountdownWidget({
       )
     }
 
-    if (size === 'medium') {
-      return (
-        <div className="h-full flex flex-col justify-center">
-          <div className="text-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
-            <p className="text-sm text-gray-600">
-              {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
-              <div className="text-2xl font-bold">{timeLeft.days}</div>
-              <div className="text-sm opacity-90">Days</div>
-            </div>
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
-              <div className="text-2xl font-bold">{formatTime(timeLeft.hours)}</div>
-              <div className="text-sm opacity-90">Hours</div>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    if (size === 'wide') {
+    if (isWide) {
       return (
         <div className="h-full flex flex-col justify-center">
           <div className="text-center mb-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-1">{selectedCountdown.name}</h3>
             <p className="text-sm text-gray-600">
-              {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
+              {selectedCountdown.park?.name} • {new Date(selectedCountdown.tripDate).toLocaleDateString()}
             </p>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center">
@@ -223,47 +194,16 @@ export default function CountdownWidget({
       )
     }
 
-    if (size === 'tall') {
-      return (
-        <div className="h-full flex flex-col justify-center">
-          <div className="text-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
-            <p className="text-gray-600">
-              {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-6`}>
-              <div className="text-4xl font-bold">{timeLeft.days}</div>
-              <div className="text-lg opacity-90">Days</div>
-            </div>
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-6`}>
-              <div className="text-4xl font-bold">{formatTime(timeLeft.hours)}</div>
-              <div className="text-lg opacity-90">Hours</div>
-            </div>
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-6`}>
-              <div className="text-4xl font-bold">{formatTime(timeLeft.minutes)}</div>
-              <div className="text-lg opacity-90">Minutes</div>
-            </div>
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-6`}>
-              <div className="text-4xl font-bold">{formatTime(timeLeft.seconds)}</div>
-              <div className="text-lg opacity-90">Seconds</div>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    // Large size and default - show all units with park-specific colors
+    // Default layout (2 columns)
     return (
       <div className="h-full flex flex-col justify-center">
         <div className="text-center mb-6">
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
-          <p className="text-gray-600">
-            {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
+          <p className="text-sm text-gray-600">
+            {selectedCountdown.park?.name} • {new Date(selectedCountdown.tripDate).toLocaleDateString()}
           </p>
         </div>
-        <div className="grid grid-cols-4 gap-3 text-center">
+        <div className="grid grid-cols-2 gap-4 text-center">
           <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
             <div className="text-2xl font-bold">{timeLeft.days}</div>
             <div className="text-sm opacity-90">Days</div>
@@ -271,14 +211,6 @@ export default function CountdownWidget({
           <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
             <div className="text-2xl font-bold">{formatTime(timeLeft.hours)}</div>
             <div className="text-sm opacity-90">Hours</div>
-          </div>
-          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
-            <div className="text-2xl font-bold">{formatTime(timeLeft.minutes)}</div>
-            <div className="text-sm opacity-90">Minutes</div>
-          </div>
-          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
-            <div className="text-2xl font-bold">{formatTime(timeLeft.seconds)}</div>
-            <div className="text-sm opacity-90">Seconds</div>
           </div>
         </div>
       </div>
@@ -300,9 +232,9 @@ export default function CountdownWidget({
       icon={Clock}
       iconColor={getIconGradient()}
       widgetType="countdown"
-      size={size}
+      size="medium"
       width={width}
-      selectedItemId={config.selectedItemId}
+      selectedItemId={selectedCountdown?.id}
       onRemove={onRemove}
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
