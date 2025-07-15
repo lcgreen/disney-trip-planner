@@ -54,13 +54,7 @@
     "vacation planning",
     "disney world",
     "disneyland"
-  ],
+    ],
   "author": "Disney Trip Planner",
-  "license": "MIT",
-  "eslintConfig": {
-    "extends": [
-      "plugin:storybook/recommended",
-      "plugin:storybook/recommended"
-    ]
-  }
+  "license": "MIT"
 }

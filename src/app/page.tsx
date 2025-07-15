@@ -72,7 +72,7 @@ export default function HomePage() {
 
   const isPremiumUser = () => {
     // This would check actual subscription status
-    return false
+    return true
   }
 
   const ActiveComponent = activeTool ? tools.find(t => t.id === activeTool)?.component : null

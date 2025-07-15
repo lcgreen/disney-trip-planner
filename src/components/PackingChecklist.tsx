@@ -250,7 +250,7 @@ export default function PackingChecklist() {
       <div className="flex flex-wrap gap-4 mb-8">
         <Select
           value={filterCategory}
-          onChange={(value) => setFilterCategory(value)}
+          onValueChange={(value) => setFilterCategory(value)}
           options={categoryOptions}
         />
 

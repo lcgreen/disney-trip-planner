@@ -206,13 +206,10 @@ export default function BudgetTracker() {
 
               <div className="mb-3">
                 <BudgetProgress
-                  label={`Spent: £${getCategorySpent(category.id).toFixed(2)}`}
-                  current={getCategorySpent(category.id)}
-                  total={category.budget}
+                  spent={getCategorySpent(category.id)}
+                  budget={category.budget}
+                  category={category.name}
                   currency="£"
-                  variant={getCategoryProgress(category.id) > 100 ? "error" : getCategoryProgress(category.id) > 80 ? "warning" : "success"}
-                  size="sm"
-                  showPercentage
                 />
               </div>
 
@@ -312,7 +309,7 @@ export default function BudgetTracker() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
             <Select
               value={newExpense.category}
-              onChange={(value) => setNewExpense({...newExpense, category: value})}
+              onValueChange={(value) => setNewExpense({...newExpense, category: value})}
               options={categoryOptions}
             />
           </div>
@@ -352,7 +349,7 @@ export default function BudgetTracker() {
 
           <Checkbox
             checked={newExpense.isEstimate}
-            onCheckedChange={(checked) => setNewExpense({...newExpense, isEstimate: checked})}
+            onCheckedChange={(checked) => setNewExpense({...newExpense, isEstimate: Boolean(checked)})}
             label="This is an estimate"
           />
         </div>
