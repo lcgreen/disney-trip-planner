@@ -1,9 +1,10 @@
 'use client'
 
-import { ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { ReactNode, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Settings, X, LucideIcon } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
+import ItemSelector from './ItemSelector'
 
 export type WidgetSize = 'small' | 'medium' | 'large'
 
@@ -12,11 +13,13 @@ interface WidgetBaseProps {
   title: string
   icon: LucideIcon
   iconColor: string
+  widgetType: 'countdown' | 'planner' | 'budget' | 'packing'
   size?: WidgetSize
+  selectedItemId?: string
   isPremium?: boolean
   onRemove?: () => void
-  onSettings?: () => void
   onSizeChange?: (size: WidgetSize) => void
+  onItemSelect?: (itemId: string | null) => void
   children: ReactNode
   className?: string
 }
@@ -38,14 +41,18 @@ export default function WidgetBase({
   title,
   icon: Icon,
   iconColor,
+  widgetType,
   size = 'medium',
+  selectedItemId,
   isPremium = false,
   onRemove,
-  onSettings,
   onSizeChange,
+  onItemSelect,
   children,
   className = ''
 }: WidgetBaseProps) {
+  const [showSettings, setShowSettings] = useState(false)
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -94,13 +101,58 @@ export default function WidgetBase({
               </div>
             )}
 
-            {onSettings && (
-              <button
-                onClick={onSettings}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors duration-150"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
+            {/* Settings button */}
+            {onItemSelect && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className={`p-2 rounded-lg transition-colors duration-150 ${
+                    showSettings
+                      ? 'text-disney-blue bg-blue-50'
+                      : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+
+                {/* Settings Dropdown */}
+                <AnimatePresence>
+                  {showSettings && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-20 p-3"
+                      >
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-2">
+                              Select Item to Display
+                            </label>
+                            <ItemSelector
+                              widgetId={id}
+                              widgetType={widgetType}
+                              selectedItemId={selectedItemId}
+                              onItemSelect={(itemId) => {
+                                onItemSelect(itemId)
+                                setShowSettings(false)
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Overlay to close settings */}
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowSettings(false)}
+                      />
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             )}
 
             {onRemove && (

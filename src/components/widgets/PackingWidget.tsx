@@ -1,16 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Package, CheckCircle, Circle, Plus } from 'lucide-react'
-import Link from 'next/link'
-import WidgetBase, { WidgetSize } from './WidgetBase'
-import { WidgetConfigManager } from '@/lib/widgetConfig'
-
-interface PackingWidgetProps {
-  id: string
-  onRemove?: () => void
-  onSettings?: () => void
-}
+import { Package, Check } from 'lucide-react'
+import WidgetBase, { type WidgetSize } from './WidgetBase'
+import { WidgetConfigManager, type SavedPackingList } from '@/lib/widgetConfig'
 
 interface PackingItem {
   id: string
@@ -19,8 +12,15 @@ interface PackingItem {
   category: string
 }
 
+interface PackingWidgetProps {
+  id: string
+  onRemove: () => void
+  onSettings?: () => void
+}
+
 export default function PackingWidget({ id, onRemove, onSettings }: PackingWidgetProps) {
-  const [config, setConfig] = useState<{ size: WidgetSize } | null>(null)
+  const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
+  const [selectedPackingList, setSelectedPackingList] = useState<SavedPackingList | null>(null)
   const [packingItems, setPackingItems] = useState<PackingItem[]>([])
   const [completionStats, setCompletionStats] = useState({ completed: 0, total: 0 })
 
@@ -28,34 +28,115 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
     // Load widget config
     const widgetConfig = WidgetConfigManager.getConfig(id)
     if (widgetConfig) {
-      setConfig({ size: widgetConfig.size })
+      setConfig({ size: widgetConfig.size, selectedItemId: widgetConfig.selectedItemId })
     } else {
       // Default config
-      const defaultConfig = { size: 'medium' as WidgetSize }
+      const defaultConfig = { size: 'medium' as WidgetSize, selectedItemId: undefined }
       setConfig(defaultConfig)
       WidgetConfigManager.addConfig({
         id,
         type: 'packing',
         size: 'medium',
+        selectedItemId: undefined,
         settings: {}
       })
     }
-
-    // Load saved packing items
-    const items = WidgetConfigManager.getPackingData()
-    setPackingItems(items)
-
-    const completed = items.filter(item => item.checked).length
-    setCompletionStats({ completed, total: items.length })
   }, [id])
 
-    const toggleItem = (itemId: string) => {
+  useEffect(() => {
+    // Load selected packing list data
+    if (config?.selectedItemId) {
+      const packingList = WidgetConfigManager.getSelectedItemData('packing', config.selectedItemId) as SavedPackingList
+      if (packingList) {
+        setSelectedPackingList(packingList)
+        setPackingItems(packingList.items)
+        const completed = packingList.items.filter(item => item.checked).length
+        setCompletionStats({ completed, total: packingList.items.length })
+      } else {
+        // Selected item not found, fall back to live app state
+        const currentState = WidgetConfigManager.getCurrentPackingState()
+        if (currentState?.items) {
+          setSelectedPackingList(null)
+          setPackingItems(currentState.items)
+          const completed = currentState.items.filter((item: any) => item.checked).length
+          setCompletionStats({ completed, total: currentState.items.length })
+        } else {
+          // Fallback to old widget data
+          setSelectedPackingList(null)
+          const items = WidgetConfigManager.getPackingData()
+          setPackingItems(items)
+          const completed = items.filter(item => item.checked).length
+          setCompletionStats({ completed, total: items.length })
+        }
+      }
+    } else {
+      // No item selected, use live app state as default
+      const currentState = WidgetConfigManager.getCurrentPackingState()
+      if (currentState?.items) {
+        setPackingItems(currentState.items)
+        setSelectedPackingList(null)
+        const completed = currentState.items.filter((item: any) => item.checked).length
+        setCompletionStats({ completed, total: currentState.items.length })
+      } else {
+        // Fallback to old widget data if no live state exists
+        const items = WidgetConfigManager.getPackingData()
+        setPackingItems(items)
+        setSelectedPackingList(null)
+        const completed = items.filter(item => item.checked).length
+        setCompletionStats({ completed, total: items.length })
+      }
+    }
+  }, [config])
+
+  // Add polling to check for updates from main app
+  useEffect(() => {
+    if (!config?.selectedItemId) {
+      // Only poll for live updates when using default (no specific item selected)
+      const pollInterval = setInterval(() => {
+        const currentState = WidgetConfigManager.getCurrentPackingState()
+        if (currentState?.items) {
+          setPackingItems(currentState.items)
+          const completed = currentState.items.filter((item: any) => item.checked).length
+          setCompletionStats({ completed, total: currentState.items.length })
+        }
+      }, 2000) // Check every 2 seconds
+
+      return () => clearInterval(pollInterval)
+    }
+  }, [config?.selectedItemId])
+
+  const toggleItem = (itemId: string) => {
     const updatedItems = packingItems.map(item =>
       item.id === itemId ? { ...item, checked: !item.checked } : item
     )
 
     setPackingItems(updatedItems)
-    WidgetConfigManager.updatePackingData(updatedItems)
+
+    // Update storage - save to the selected list or default data
+    if (config?.selectedItemId && selectedPackingList) {
+      // Update the saved packing list directly in localStorage
+      const savedLists = WidgetConfigManager.getAvailablePackingLists()
+      const updatedLists = savedLists.map(list =>
+        list.id === config.selectedItemId
+          ? { ...list, items: updatedItems, updatedAt: new Date().toISOString() }
+          : list
+      )
+
+      // Save back to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('disney-packing-lists', JSON.stringify({ lists: updatedLists }))
+      }
+
+      // Update local state
+      const updatedList = updatedLists.find(list => list.id === config.selectedItemId)
+      if (updatedList) {
+        setSelectedPackingList(updatedList)
+      }
+    } else {
+      // Update default widget data and save to live state
+      WidgetConfigManager.updatePackingData(updatedItems)
+      WidgetConfigManager.saveCurrentPackingState(updatedItems)
+    }
 
     const completed = updatedItems.filter(item => item.checked).length
     setCompletionStats({ completed, total: updatedItems.length })
@@ -66,106 +147,121 @@ export default function PackingWidget({ id, onRemove, onSettings }: PackingWidge
     setConfig(prev => prev ? { ...prev, size: newSize } : { size: newSize })
   }
 
+  const handleItemSelect = (itemId: string | null) => {
+    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    setConfig(prev => prev ? { ...prev, selectedItemId: itemId || undefined } : { size: 'medium', selectedItemId: itemId || undefined })
+  }
+
   if (!config) {
     return <div>Loading...</div>
   }
 
+  const { size } = config
   const completionPercentage = completionStats.total > 0 ? (completionStats.completed / completionStats.total) * 100 : 0
 
-  if (packingItems.length === 0) {
-    return (
-      <WidgetBase
-        id={id}
-        title="Packing List"
-        icon={Package}
-        iconColor="bg-gradient-to-br from-disney-green to-disney-teal"
-        size={config.size}
-        onRemove={onRemove}
-        onSettings={onSettings}
-        onSizeChange={handleSizeChange}
-      >
-        <div className="flex flex-col items-center justify-center h-full text-center">
-          <Plus className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">
-            No Packing Items
-          </h3>
-          <p className="text-gray-500 mb-6 max-w-sm">
-            Start building your Disney packing checklist to stay organized for your trip!
+  // Get items to display based on size
+  const getItemsToShow = () => {
+    const maxItems = size === 'small' ? 3 : size === 'medium' ? 4 : 8
+    return packingItems.slice(0, maxItems)
+  }
+
+  const renderPackingList = () => {
+    if (packingItems.length === 0) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-center">
+          <Package className="w-12 h-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No Packing List</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {config.selectedItemId
+              ? 'Selected packing list not found'
+              : 'Create a packing list or select a saved one'}
           </p>
-          <Link
-            href="/packing"
-            className="bg-gradient-to-r from-disney-green to-disney-teal text-white px-4 py-2 rounded-lg hover:shadow-md transition-all duration-200"
+          <button
+            onClick={() => window.location.href = '/packing'}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
-            Add Items
-          </Link>
+            {config.selectedItemId ? 'Go to Packing' : 'Create Packing List'}
+          </button>
         </div>
-      </WidgetBase>
+      )
+    }
+
+    const itemsToShow = getItemsToShow()
+    const remainingItems = packingItems.length - itemsToShow.length
+
+    return (
+      <div className="h-full flex flex-col">
+        {/* Header with list name and progress */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-gray-800 text-sm truncate">
+              {selectedPackingList?.name || 'My Packing List'}
+            </h3>
+            <span className="text-xs text-gray-500">
+              {completionStats.completed}/{completionStats.total}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${completionPercentage}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Packing items */}
+        <div className="flex-1 space-y-2 overflow-hidden">
+          {itemsToShow.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => toggleItem(item.id)}
+              className={`w-full p-2 rounded-lg border transition-all duration-200 text-left ${
+                item.checked
+                  ? 'bg-green-50 border-green-200 text-green-800'
+                  : 'bg-white border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${
+                  item.checked
+                    ? 'bg-green-600 border-green-600'
+                    : 'border-gray-300'
+                }`}>
+                  {item.checked && <Check className="w-3 h-3 text-white" />}
+                </div>
+                <span className={`text-sm truncate ${item.checked ? 'line-through' : ''}`}>
+                  {item.name}
+                </span>
+              </div>
+            </button>
+          ))}
+
+          {remainingItems > 0 && (
+            <div className="text-center py-2">
+              <span className="text-xs text-gray-500">
+                +{remainingItems} more item{remainingItems !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
     )
   }
 
   return (
     <WidgetBase
       id={id}
-      title="Packing List"
+      title="Packing Checklist"
       icon={Package}
-      iconColor="bg-gradient-to-br from-disney-green to-disney-teal"
-      size={config.size}
+      iconColor="bg-gradient-to-r from-green-600 to-emerald-600"
+      widgetType="packing"
+      size={size}
+      selectedItemId={config.selectedItemId}
       onRemove={onRemove}
-      onSettings={onSettings}
       onSizeChange={handleSizeChange}
+      onItemSelect={handleItemSelect}
     >
-      <div className="flex flex-col h-full">
-        {/* Progress Overview */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-600">Progress</span>
-            <span className="text-sm font-medium">
-              {completionStats.completed} / {completionStats.total} items
-            </span>
-          </div>
-
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-            <div
-              className="bg-gradient-to-r from-disney-green to-disney-teal h-2 rounded-full transition-all duration-300"
-              style={{ width: `${completionPercentage}%` }}
-            />
-          </div>
-
-          <div className="text-xs text-gray-500 text-center">
-            {completionPercentage.toFixed(0)}% complete
-          </div>
-        </div>
-
-        {/* Recent Items */}
-        <div className={`space-y-2 mb-4 overflow-y-auto ${config.size === 'small' ? 'max-h-24' : config.size === 'large' ? 'max-h-48' : 'max-h-32'}`}>
-          {packingItems.slice(0, config.size === 'large' ? 8 : config.size === 'small' ? 3 : 4).map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-              onClick={() => toggleItem(item.id)}
-            >
-              {item.checked ? (
-                <CheckCircle className="w-4 h-4 text-disney-green" />
-              ) : (
-                <Circle className="w-4 h-4 text-gray-400" />
-              )}
-              <span className={`text-sm flex-1 ${item.checked ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                {item.name}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-auto">
-          <Link
-            href="/packing"
-            className="w-full bg-gradient-to-r from-disney-green to-disney-teal text-white text-sm py-2 px-3 rounded-lg hover:shadow-md transition-all duration-200 text-center block"
-          >
-            View Full List
-          </Link>
-        </div>
-      </div>
+      {renderPackingList()}
     </WidgetBase>
   )
 }

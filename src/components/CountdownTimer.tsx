@@ -30,6 +30,7 @@ import {
   type DisneyPark,
   type CountdownTheme
 } from '@/config'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
 
 interface CountdownData {
   days: number
@@ -113,6 +114,13 @@ export default function CountdownTimer(): JSX.Element {
   useEffect(() => {
     localStorage.setItem('disney-countdown-settings', JSON.stringify(settings))
   }, [settings])
+
+  // Auto-save current state for widgets
+  useEffect(() => {
+    if (targetDate) {
+      WidgetConfigManager.saveCurrentCountdownState(targetDate, 'My Disney Trip', selectedPark)
+    }
+  }, [targetDate, selectedPark])
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null

@@ -27,6 +27,7 @@ import {
   type StoredBudgetData,
   type BudgetStorage
 } from '@/lib/storage'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
 
 // Color mappings for Tailwind classes to hex values
 const colorMap: Record<string, string> = {
@@ -114,6 +115,13 @@ export default function BudgetTracker() {
       saveCurrentBudget(false) // Silent save without showing modal
     }
   }, [totalBudget, categories, expenses, activeBudgetId, currentBudgetName])
+
+  // Auto-save current state for widgets (always save live state)
+  useEffect(() => {
+    if (totalBudget > 0 || expenses.length > 0 || categories.some(cat => cat.budget > 0)) {
+      WidgetConfigManager.saveCurrentBudgetState(totalBudget, categories, expenses)
+    }
+  }, [totalBudget, categories, expenses])
 
   const addExpense = () => {
     if (newExpense.description && newExpense.amount) {

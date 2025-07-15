@@ -28,6 +28,7 @@ import {
   type StoredPackingList,
   type PackingStorage
 } from '@/lib/storage'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
 
 interface PackingItem {
   id: string
@@ -92,6 +93,13 @@ export default function PackingChecklist() {
       saveCurrentList(false) // Silent save without showing modal
     }
   }, [items, selectedWeather, activeListId, currentListName])
+
+  // Auto-save current state for widgets (always save live state)
+  useEffect(() => {
+    if (items.length > 0) {
+      WidgetConfigManager.saveCurrentPackingState(items, selectedWeather)
+    }
+  }, [items, selectedWeather])
 
   const addItem = () => {
     if (newItem.name.trim()) {

@@ -1,165 +1,321 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { DollarSign, TrendingUp, Settings, Crown } from 'lucide-react'
-import Link from 'next/link'
-import { PremiumBadge } from '@/components/ui'
-import WidgetBase, { WidgetSize } from './WidgetBase'
+import { DollarSign, TrendingUp, Crown } from 'lucide-react'
+import WidgetBase, { type WidgetSize } from './WidgetBase'
+import { WidgetConfigManager, type SavedBudget } from '@/lib/widgetConfig'
 
 interface BudgetWidgetProps {
-  size?: WidgetSize
-  onRemove?: () => void
+  id: string
+  onRemove: () => void
   onSettings?: () => void
-  onSizeChange?: (size: WidgetSize) => void
 }
 
-interface BudgetData {
-  total: number
-  spent: number
-  remaining: number
-  categories: {
-    accommodation: number
-    food: number
-    tickets: number
-    souvenirs: number
-  }
+interface BudgetCategory {
+  id: string
+  name: string
+  budget: number
+  color: string
+  icon: string
 }
 
-export default function BudgetWidget({ size = 'medium', onRemove, onSettings, onSizeChange }: BudgetWidgetProps) {
-  const [budget, setBudget] = useState<BudgetData>({
-    total: 3000,
-    spent: 1250,
-    remaining: 1750,
-    categories: {
-      accommodation: 800,
-      food: 200,
-      tickets: 150,
-      souvenirs: 100
+interface Expense {
+  id: string
+  category: string
+  description: string
+  amount: number
+  date: string
+  isEstimate: boolean
+}
+
+export default function BudgetWidget({ id, onRemove, onSettings }: BudgetWidgetProps) {
+  const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
+  const [selectedBudget, setSelectedBudget] = useState<SavedBudget | null>(null)
+  const [totalSpent, setTotalSpent] = useState(0)
+
+  useEffect(() => {
+    // Load widget config
+    const widgetConfig = WidgetConfigManager.getConfig(id)
+    if (widgetConfig) {
+      setConfig({ size: widgetConfig.size, selectedItemId: widgetConfig.selectedItemId })
+    } else {
+      // Default config
+      const defaultConfig = { size: 'medium' as WidgetSize, selectedItemId: undefined }
+      setConfig(defaultConfig)
+      WidgetConfigManager.addConfig({
+        id,
+        type: 'budget',
+        size: 'medium',
+        selectedItemId: undefined,
+        settings: {}
+      })
     }
-  })
+  }, [id])
+
+  useEffect(() => {
+    // Load selected budget data
+    if (config?.selectedItemId) {
+      const budget = WidgetConfigManager.getSelectedItemData('budget', config.selectedItemId) as SavedBudget
+      if (budget) {
+        setSelectedBudget(budget)
+        const spent = budget.expenses.reduce((sum, expense) => sum + expense.amount, 0)
+        setTotalSpent(spent)
+      } else {
+        // Selected item not found, fall back to live app state
+        const currentState = WidgetConfigManager.getCurrentBudgetState()
+        if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
+          const liveBudget: SavedBudget = {
+            id: 'live',
+            name: 'Current Budget',
+            totalBudget: currentState.totalBudget,
+            categories: currentState.categories,
+            expenses: currentState.expenses,
+            createdAt: new Date().toISOString(),
+            updatedAt: currentState.updatedAt || new Date().toISOString()
+          }
+          setSelectedBudget(liveBudget)
+          const spent = currentState.expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0)
+          setTotalSpent(spent)
+        } else {
+          setSelectedBudget(null)
+          setTotalSpent(0)
+        }
+      }
+    } else {
+      // No item selected, use live app state as default
+      const currentState = WidgetConfigManager.getCurrentBudgetState()
+      if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
+        const liveBudget: SavedBudget = {
+          id: 'live',
+          name: 'Current Budget',
+          totalBudget: currentState.totalBudget,
+          categories: currentState.categories,
+          expenses: currentState.expenses,
+          createdAt: new Date().toISOString(),
+          updatedAt: currentState.updatedAt || new Date().toISOString()
+        }
+        setSelectedBudget(liveBudget)
+        const spent = currentState.expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0)
+        setTotalSpent(spent)
+      } else {
+        // Fallback to saved budgets if no live state
+        const budgets = WidgetConfigManager.getAvailableBudgets()
+        if (budgets.length > 0) {
+          const defaultBudget = budgets[0]
+          setSelectedBudget(defaultBudget)
+          const spent = defaultBudget.expenses.reduce((sum, expense) => sum + expense.amount, 0)
+          setTotalSpent(spent)
+        } else {
+          setSelectedBudget(null)
+          setTotalSpent(0)
+        }
+      }
+    }
+  }, [config])
+
+  // Add polling to check for updates from main app
+  useEffect(() => {
+    if (!config?.selectedItemId) {
+      // Only poll for live updates when using default (no specific item selected)
+      const pollInterval = setInterval(() => {
+        const currentState = WidgetConfigManager.getCurrentBudgetState()
+        if (currentState && (currentState.totalBudget > 0 || currentState.expenses.length > 0)) {
+          const liveBudget: SavedBudget = {
+            id: 'live',
+            name: 'Current Budget',
+            totalBudget: currentState.totalBudget,
+            categories: currentState.categories,
+            expenses: currentState.expenses,
+            createdAt: new Date().toISOString(),
+            updatedAt: currentState.updatedAt || new Date().toISOString()
+          }
+          setSelectedBudget(liveBudget)
+          const spent = currentState.expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0)
+          setTotalSpent(spent)
+        }
+      }, 2000) // Check every 2 seconds
+
+      return () => clearInterval(pollInterval)
+    }
+  }, [config?.selectedItemId])
+
+  const handleSizeChange = (newSize: WidgetSize) => {
+    WidgetConfigManager.updateConfig(id, { size: newSize })
+    setConfig(prev => prev ? { ...prev, size: newSize } : { size: newSize })
+  }
+
+  const handleItemSelect = (itemId: string | null) => {
+    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    setConfig(prev => prev ? { ...prev, selectedItemId: itemId || undefined } : { size: 'medium', selectedItemId: itemId || undefined })
+  }
+
+  if (!config) {
+    return <div>Loading...</div>
+  }
+
+  const { size } = config
 
   const isPremiumUser = () => {
     // This would check actual subscription status
     return true
   }
 
-  const spentPercentage = (budget.spent / budget.total) * 100
+  const getTopCategories = () => {
+    if (!selectedBudget) return []
 
-  if (!isPremiumUser()) {
-    return (
-      <WidgetBase
-        id="budget"
-        title="Budget"
-        icon={DollarSign}
-        iconColor="bg-gradient-to-br from-disney-gold to-disney-orange"
-        size={size}
-        isPremium={true}
-        onRemove={onRemove}
-        onSettings={onSettings}
-        onSizeChange={onSizeChange}
-        className="bg-gradient-to-br from-disney-gold/10 to-disney-orange/10 border-disney-gold/20"
-      >
-        <div className="flex flex-col items-center justify-center h-full text-center">
-          <Crown className="w-12 h-12 text-disney-gold mb-4" />
-          <p className="text-sm text-gray-600 mb-4">
-            Upgrade to Premium to track your budget
+    const categorySpending = selectedBudget.categories.map(cat => {
+      const categoryExpenses = selectedBudget.expenses
+        .filter(expense => expense.category === cat.id)
+        .reduce((sum, expense) => sum + expense.amount, 0)
+
+      return {
+        name: cat.name,
+        budget: cat.budget,
+        spent: categoryExpenses,
+        color: cat.color
+      }
+    })
+
+    return categorySpending
+      .sort((a, b) => b.spent - a.spent)
+      .slice(0, size === 'small' ? 2 : size === 'medium' ? 3 : 5)
+  }
+
+  const renderBudget = () => {
+    if (!isPremiumUser()) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-center relative">
+          <div className="absolute top-2 right-2">
+            <Crown className="w-6 h-6 text-yellow-500" />
+          </div>
+          <DollarSign className="w-12 h-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">Premium Feature</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upgrade to Premium to access budget tracking
           </p>
-          <button className="btn-premium text-xs py-2 px-4">
-            Upgrade Now
+          <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-lg hover:shadow-lg transition-all text-sm">
+            Upgrade to Premium
           </button>
         </div>
-      </WidgetBase>
+      )
+    }
+
+    if (!selectedBudget) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-center">
+          <DollarSign className="w-12 h-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No Budget Set</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {config.selectedItemId
+              ? 'Selected budget not found'
+              : 'Create a budget or select a saved one'}
+          </p>
+          <button
+            onClick={() => window.location.href = '/budget'}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          >
+            {config.selectedItemId ? 'Go to Budget' : 'Create Budget'}
+          </button>
+        </div>
+      )
+    }
+
+    const spentPercentage = selectedBudget.totalBudget > 0 ? (totalSpent / selectedBudget.totalBudget) * 100 : 0
+    const remaining = selectedBudget.totalBudget - totalSpent
+    const topCategories = getTopCategories()
+
+    return (
+      <div className="h-full flex flex-col">
+        {/* Header with budget name */}
+        <div className="mb-4">
+          <h3 className="font-semibold text-gray-800 text-sm truncate mb-2">
+            {selectedBudget.name}
+          </h3>
+
+          {/* Budget overview */}
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <div className="text-center">
+              <div className="text-lg font-bold text-green-600">
+                ${selectedBudget.totalBudget.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-500">Total Budget</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-600">
+                ${totalSpent.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-500">Spent</div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+            <div
+              className={`h-2 rounded-full transition-all duration-300 ${
+                spentPercentage > 90 ? 'bg-red-500' :
+                spentPercentage > 75 ? 'bg-yellow-500' : 'bg-blue-600'
+              }`}
+              style={{ width: `${Math.min(spentPercentage, 100)}%` }}
+            />
+          </div>
+
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>{spentPercentage.toFixed(0)}% used</span>
+            <span className={remaining >= 0 ? 'text-green-600' : 'text-red-600'}>
+              ${Math.abs(remaining).toLocaleString()} {remaining >= 0 ? 'left' : 'over'}
+            </span>
+          </div>
+        </div>
+
+        {/* Category breakdown */}
+        {size !== 'small' && topCategories.length > 0 && (
+          <div className="flex-1 overflow-hidden">
+            <h4 className="text-xs font-medium text-gray-700 mb-2">Top Categories</h4>
+            <div className="space-y-2">
+              {topCategories.map((category, index) => {
+                const percentage = category.budget > 0 ? (category.spent / category.budget) * 100 : 0
+                return (
+                  <div key={index} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <span className="truncate">{category.name}</span>
+                    </div>
+                    <div className="text-right ml-2">
+                      <div className="font-medium">
+                        ${category.spent.toLocaleString()}
+                      </div>
+                      <div className="text-gray-500">
+                        /{category.budget.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     )
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/20 h-full"
+    <WidgetBase
+      id={id}
+      title="Budget Tracker"
+      icon={DollarSign}
+      iconColor="bg-gradient-to-r from-blue-600 to-cyan-600"
+      widgetType="budget"
+      size={size}
+      selectedItemId={config.selectedItemId}
+      isPremium={true}
+      onRemove={onRemove}
+      onSizeChange={handleSizeChange}
+      onItemSelect={handleItemSelect}
     >
-      {/* Widget Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2">
-          <div className="bg-gradient-to-br from-disney-gold to-disney-orange p-2 rounded-lg">
-            <DollarSign className="w-4 h-4 text-white" />
-          </div>
-          <h3 className="font-semibold text-gray-800 flex items-center space-x-2">
-            <span>Budget</span>
-            <PremiumBadge />
-          </h3>
-        </div>
-
-        <div className="flex items-center space-x-1">
-          {onSettings && (
-            <button
-              onClick={onSettings}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
-          {onRemove && (
-            <button
-              onClick={onRemove}
-              className="p-1 text-gray-400 hover:text-red-500 rounded"
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Budget Overview */}
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-600">Spent</span>
-          <span className="text-sm font-medium">${budget.spent} / ${budget.total}</span>
-        </div>
-
-        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-          <div
-            className={`h-2 rounded-full transition-all duration-300 ${
-              spentPercentage > 80
-                ? 'bg-gradient-to-r from-red-400 to-red-500'
-                : spentPercentage > 60
-                ? 'bg-gradient-to-r from-yellow-400 to-orange-500'
-                : 'bg-gradient-to-r from-disney-gold to-disney-orange'
-            }`}
-            style={{ width: `${Math.min(spentPercentage, 100)}%` }}
-          />
-        </div>
-
-        <div className="flex justify-between text-xs text-gray-500">
-          <span>{spentPercentage.toFixed(1)}% used</span>
-          <span>${budget.remaining} left</span>
-        </div>
-      </div>
-
-      {/* Top Categories */}
-      <div className="space-y-2 mb-3">
-        <h4 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Top Spending</h4>
-        {Object.entries(budget.categories)
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 2)
-          .map(([category, amount]) => (
-            <div key={category} className="flex justify-between items-center">
-              <span className="text-sm capitalize">{category}</span>
-              <span className="text-sm font-medium text-disney-gold">${amount}</span>
-            </div>
-          ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="space-y-2">
-        <Link
-          href="/budget"
-          className="w-full bg-gradient-to-r from-disney-gold to-disney-orange text-white text-sm py-2 px-3 rounded-lg hover:shadow-md transition-all duration-200 text-center block"
-        >
-          View Full Budget
-        </Link>
-      </div>
-    </motion.div>
+      {renderBudget()}
+    </WidgetBase>
   )
 }

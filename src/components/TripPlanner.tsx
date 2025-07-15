@@ -30,6 +30,7 @@ import {
   type StoredTripPlan,
   type TripPlanStorage
 } from '@/lib/storage'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
 
 interface Activity {
   id: string
@@ -89,6 +90,13 @@ export default function TripPlanner() {
       saveCurrentPlan(false) // Silent save without showing modal
     }
   }, [days, activePlanId, currentPlanName])
+
+  // Auto-save current state for widgets (always save live state)
+  useEffect(() => {
+    if (days.length > 0) {
+      WidgetConfigManager.saveCurrentTripPlanState(days)
+    }
+  }, [days])
 
   const addNewDay = () => {
     // Clear previous errors

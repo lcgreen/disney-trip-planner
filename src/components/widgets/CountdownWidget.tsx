@@ -1,20 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Calendar, AlertCircle } from 'lucide-react'
-import Link from 'next/link'
-import WidgetBase, { WidgetSize } from './WidgetBase'
-import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { Clock } from 'lucide-react'
+import WidgetBase, { type WidgetSize } from './WidgetBase'
+import { WidgetConfigManager, type SavedCountdown } from '@/lib/widgetConfig'
 
 interface CountdownWidgetProps {
   id: string
-  onRemove?: () => void
+  onRemove: () => void
   onSettings?: () => void
 }
 
 export default function CountdownWidget({ id, onRemove, onSettings }: CountdownWidgetProps) {
-  const [config, setConfig] = useState<{ size: WidgetSize } | null>(null)
-  const [tripDate, setTripDate] = useState<string>('')
+  const [config, setConfig] = useState<{ size: WidgetSize; selectedItemId?: string } | null>(null)
+  const [selectedCountdown, setSelectedCountdown] = useState<SavedCountdown | null>(null)
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -26,32 +25,106 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
     // Load widget config
     const widgetConfig = WidgetConfigManager.getConfig(id)
     if (widgetConfig) {
-      setConfig({ size: widgetConfig.size })
+      setConfig({ size: widgetConfig.size, selectedItemId: widgetConfig.selectedItemId })
     } else {
       // Default config
-      const defaultConfig = { size: 'medium' as WidgetSize }
+      const defaultConfig = { size: 'medium' as WidgetSize, selectedItemId: undefined }
       setConfig(defaultConfig)
       WidgetConfigManager.addConfig({
         id,
         type: 'countdown',
         size: 'medium',
+        selectedItemId: undefined,
         settings: {}
       })
-    }
-
-    // Load saved trip date
-    const countdownData = WidgetConfigManager.getCountdownData()
-    if (countdownData?.tripDate) {
-      setTripDate(countdownData.tripDate)
     }
   }, [id])
 
   useEffect(() => {
-    if (!tripDate) return
+    // Load selected countdown data
+    if (config?.selectedItemId) {
+      const countdown = WidgetConfigManager.getSelectedItemData('countdown', config.selectedItemId) as SavedCountdown
+      if (countdown) {
+        setSelectedCountdown(countdown)
+      } else {
+        // Selected item not found, fall back to live app state
+        const currentState = WidgetConfigManager.getCurrentCountdownState()
+        if (currentState?.tripDate) {
+          const fallbackCountdown: SavedCountdown = {
+            id: 'live',
+            name: currentState.title || 'My Disney Trip',
+            park: currentState.park || { name: 'Disney World' },
+            date: currentState.tripDate,
+            settings: {},
+            createdAt: new Date().toISOString()
+          }
+          setSelectedCountdown(fallbackCountdown)
+        } else {
+          setSelectedCountdown(null)
+        }
+      }
+    } else {
+      // No item selected, use live app state as default
+      const currentState = WidgetConfigManager.getCurrentCountdownState()
+      if (currentState?.tripDate) {
+        const liveCountdown: SavedCountdown = {
+          id: 'live',
+          name: currentState.title || 'My Disney Trip',
+          park: currentState.park || { name: 'Disney World' },
+          date: currentState.tripDate,
+          settings: {},
+          createdAt: new Date().toISOString()
+        }
+        setSelectedCountdown(liveCountdown)
+      } else {
+        // Fallback to old widget data if no live state exists
+        const countdownData = WidgetConfigManager.getCountdownData()
+        if (countdownData?.tripDate) {
+          const defaultCountdown: SavedCountdown = {
+            id: 'default',
+            name: countdownData.title || 'My Disney Trip',
+            park: { name: 'Disney World' },
+            date: countdownData.tripDate,
+            settings: {},
+            createdAt: new Date().toISOString()
+          }
+          setSelectedCountdown(defaultCountdown)
+        } else {
+          setSelectedCountdown(null)
+        }
+      }
+    }
+  }, [config])
+
+  // Add polling to check for updates from main app
+  useEffect(() => {
+    if (!config?.selectedItemId) {
+      // Only poll for live updates when using default (no specific item selected)
+      const pollInterval = setInterval(() => {
+        const currentState = WidgetConfigManager.getCurrentCountdownState()
+        if (currentState?.tripDate) {
+          const liveCountdown: SavedCountdown = {
+            id: 'live',
+            name: currentState.title || 'My Disney Trip',
+            park: currentState.park || { name: 'Disney World' },
+            date: currentState.tripDate,
+            settings: {},
+            createdAt: new Date().toISOString()
+          }
+          setSelectedCountdown(liveCountdown)
+        }
+      }, 2000) // Check every 2 seconds
+
+      return () => clearInterval(pollInterval)
+    }
+  }, [config?.selectedItemId])
+
+  useEffect(() => {
+    if (!selectedCountdown?.date) return
 
     const updateCountdown = () => {
       const now = new Date().getTime()
-      const target = new Date(tripDate).getTime()
+      const target = new Date(selectedCountdown.date).getTime()
       const difference = target - now
 
       if (difference > 0) {
@@ -67,45 +140,122 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
     updateCountdown()
     const interval = setInterval(updateCountdown, 1000)
     return () => clearInterval(interval)
-  }, [tripDate])
+  }, [selectedCountdown?.date])
 
-    const handleSizeChange = (newSize: WidgetSize) => {
+  const handleSizeChange = (newSize: WidgetSize) => {
     WidgetConfigManager.updateConfig(id, { size: newSize })
     setConfig(prev => prev ? { ...prev, size: newSize } : { size: newSize })
+  }
+
+  const handleItemSelect = (itemId: string | null) => {
+    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    setConfig(prev => prev ? { ...prev, selectedItemId: itemId || undefined } : { size: 'medium', selectedItemId: itemId || undefined })
   }
 
   if (!config) {
     return <div>Loading...</div>
   }
 
-  if (!tripDate) {
-    return (
-      <WidgetBase
-        id={id}
-        title="Disney Countdown"
-        icon={Clock}
-        iconColor="bg-gradient-to-br from-disney-blue to-disney-purple"
-        size={config.size}
-        onRemove={onRemove}
-        onSettings={onSettings}
-        onSizeChange={handleSizeChange}
-      >
-        <div className="flex flex-col items-center justify-center h-full text-center">
-          <AlertCircle className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">
-            No Trip Date Set
-          </h3>
-          <p className="text-gray-500 mb-6 max-w-sm">
-            Set your Disney trip date to start counting down to the magic!
+  const { size } = config
+
+  // Show different layouts based on size
+  const renderCountdown = () => {
+    if (!selectedCountdown) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-center">
+          <Clock className="w-12 h-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No Countdown Set</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {config.selectedItemId
+              ? 'Selected countdown not found'
+              : 'Create a countdown or select a saved one'}
           </p>
-          <Link
-            href="/countdown"
-            className="bg-gradient-to-r from-disney-blue to-disney-purple text-white px-4 py-2 rounded-lg hover:shadow-md transition-all duration-200"
+          <button
+            onClick={() => window.location.href = '/countdown'}
+            className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
           >
-            Set Trip Date
-          </Link>
+            {config.selectedItemId ? 'Go to Countdown' : 'Create Countdown'}
+          </button>
         </div>
-      </WidgetBase>
+      )
+    }
+
+    const formatTime = (value: number) => value.toString().padStart(2, '0')
+
+    if (size === 'small') {
+      return (
+        <div className="h-full flex flex-col justify-center">
+          <div className="text-center mb-4">
+            <h3 className="font-semibold text-gray-800 mb-1 truncate">{selectedCountdown.name}</h3>
+            <p className="text-xs text-gray-500 truncate">
+              {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="bg-gradient-to-r from-disney-blue to-purple-600 text-white rounded-lg p-3">
+              <div className="text-lg font-bold">{timeLeft.days}</div>
+              <div className="text-xs opacity-90">Days</div>
+            </div>
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-3">
+              <div className="text-lg font-bold">{formatTime(timeLeft.hours)}</div>
+              <div className="text-xs opacity-90">Hours</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (size === 'medium') {
+      return (
+        <div className="h-full flex flex-col justify-center">
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
+            <p className="text-sm text-gray-600">
+              {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="bg-gradient-to-r from-disney-blue to-purple-600 text-white rounded-lg p-4">
+              <div className="text-2xl font-bold">{timeLeft.days}</div>
+              <div className="text-sm opacity-90">Days</div>
+            </div>
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-4">
+              <div className="text-2xl font-bold">{formatTime(timeLeft.hours)}</div>
+              <div className="text-sm opacity-90">Hours</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Large size - show all units
+    return (
+      <div className="h-full flex flex-col justify-center">
+        <div className="text-center mb-6">
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
+          <p className="text-gray-600">
+            {selectedCountdown.park?.name} • {new Date(selectedCountdown.date).toLocaleDateString()}
+          </p>
+        </div>
+        <div className="grid grid-cols-4 gap-3 text-center">
+          <div className="bg-gradient-to-r from-disney-blue to-blue-600 text-white rounded-lg p-4">
+            <div className="text-2xl font-bold">{timeLeft.days}</div>
+            <div className="text-sm opacity-90">Days</div>
+          </div>
+          <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg p-4">
+            <div className="text-2xl font-bold">{formatTime(timeLeft.hours)}</div>
+            <div className="text-sm opacity-90">Hours</div>
+          </div>
+          <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg p-4">
+            <div className="text-2xl font-bold">{formatTime(timeLeft.minutes)}</div>
+            <div className="text-sm opacity-90">Minutes</div>
+          </div>
+          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-4">
+            <div className="text-2xl font-bold">{formatTime(timeLeft.seconds)}</div>
+            <div className="text-sm opacity-90">Seconds</div>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -114,68 +264,15 @@ export default function CountdownWidget({ id, onRemove, onSettings }: CountdownW
       id={id}
       title="Disney Countdown"
       icon={Clock}
-      iconColor="bg-gradient-to-br from-disney-blue to-disney-purple"
-      size={config.size}
+      iconColor="bg-gradient-to-r from-disney-blue to-purple-600"
+      widgetType="countdown"
+      size={size}
+      selectedItemId={config.selectedItemId}
       onRemove={onRemove}
-      onSettings={onSettings}
       onSizeChange={handleSizeChange}
+      onItemSelect={handleItemSelect}
     >
-      {/* Countdown Display */}
-      <div className="flex flex-col h-full">
-                <div className="flex-1 flex flex-col justify-center">
-          <div className="text-center mb-4">
-            <div className={`grid gap-3 mb-4 ${config.size === 'large' ? 'grid-cols-4' : 'grid-cols-2'}`}>
-              <div className="bg-gradient-to-br from-disney-blue/10 to-disney-purple/10 rounded-lg p-3">
-                <div className={`font-bold text-disney-blue ${config.size === 'large' ? 'text-3xl' : config.size === 'small' ? 'text-lg' : 'text-xl'}`}>
-                  {timeLeft.days}
-                </div>
-                <div className="text-xs text-gray-600">Days</div>
-              </div>
-              <div className="bg-gradient-to-br from-disney-blue/10 to-disney-purple/10 rounded-lg p-3">
-                <div className={`font-bold text-disney-blue ${config.size === 'large' ? 'text-3xl' : config.size === 'small' ? 'text-lg' : 'text-xl'}`}>
-                  {timeLeft.hours}
-                </div>
-                <div className="text-xs text-gray-600">Hours</div>
-              </div>
-              {config.size === 'large' && (
-                <>
-                  <div className="bg-gradient-to-br from-disney-blue/10 to-disney-purple/10 rounded-lg p-3">
-                    <div className="text-3xl font-bold text-disney-blue">{timeLeft.minutes}</div>
-                    <div className="text-xs text-gray-600">Minutes</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-disney-blue/10 to-disney-purple/10 rounded-lg p-3">
-                    <div className="text-3xl font-bold text-disney-blue">{timeLeft.seconds}</div>
-                    <div className="text-xs text-gray-600">Seconds</div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {config.size !== 'large' && (
-              <div className="text-sm text-gray-600 mb-3">
-                {timeLeft.minutes}m {timeLeft.seconds}s
-              </div>
-            )}
-
-            {tripDate && (
-              <div className="flex items-center justify-center space-x-1 text-xs text-gray-500">
-                <Calendar className="w-3 h-3" />
-                <span>{new Date(tripDate).toLocaleDateString()}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-auto">
-          <Link
-            href="/countdown"
-            className="w-full bg-gradient-to-r from-disney-blue to-disney-purple text-white text-sm py-2 px-3 rounded-lg hover:shadow-md transition-all duration-200 text-center block"
-          >
-            View Full Timer
-          </Link>
-        </div>
-      </div>
+      {renderCountdown()}
     </WidgetBase>
   )
 }
