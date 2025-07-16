@@ -530,7 +530,11 @@ describe('Widget Data Validation', () => {
       })
 
       invalidTimes.forEach(time => {
-        expect(validateTime(time)).toBe(false)
+        const result = validateTime(time)
+        if (result === true) {
+          console.log(`Unexpectedly valid time: "${time}"`)
+        }
+        expect(result).toBe(false)
       })
     })
 
