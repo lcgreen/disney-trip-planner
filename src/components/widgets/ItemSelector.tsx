@@ -9,13 +9,15 @@ interface ItemSelectorProps {
   widgetType: 'countdown' | 'planner' | 'budget' | 'packing'
   selectedItemId?: string
   onItemSelect: (itemId: string | null) => void
+  isDemoMode?: boolean
 }
 
 export default function ItemSelector({
   widgetId,
   widgetType,
   selectedItemId,
-  onItemSelect
+  onItemSelect,
+  isDemoMode = false
 }: ItemSelectorProps) {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -27,8 +29,8 @@ export default function ItemSelector({
       const pluginItems = plugin.getItems()
       setItems(pluginItems)
 
-      // If no item is selected and items are available, default to the first item
-      if (!selectedItemId && pluginItems.length > 0) {
+      // If no item is selected and items are available, default to the first item (but not in demo mode)
+      if (!selectedItemId && pluginItems.length > 0 && !isDemoMode) {
         onItemSelect(pluginItems[0].id)
       }
     }

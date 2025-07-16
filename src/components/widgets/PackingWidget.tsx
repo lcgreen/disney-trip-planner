@@ -14,6 +14,8 @@ interface PackingWidgetProps {
   onSettings?: () => void
   onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
+  isDemoMode?: boolean
+  isPremium?: boolean
 }
 
 interface PackingItem {
@@ -30,27 +32,34 @@ export default function PackingWidget({
   onRemove,
   onSettings,
   onWidthChange,
-  onItemSelect
+  onItemSelect,
+  isDemoMode = false,
+  isPremium = false
 }: PackingWidgetProps) {
   const [selectedPackingList, setSelectedPackingList] = useState<any>(null)
   const [packedItems, setPackedItems] = useState<PackingItem[]>([])
   const [unpackedItems, setUnpackedItems] = useState<PackingItem[]>([])
 
     useEffect(() => {
+    console.log('PackingWidget useEffect - widget id:', id, 'isDemoMode:', isDemoMode)
     // Load selected packing list data from plugin
     const packingPlugin = PluginRegistry.getPlugin('packing')
     if (packingPlugin) {
       // Get the widget configuration to see if a specific item is selected
       const widgetConfig = WidgetConfigManager.getConfig(id)
+      console.log('Widget config for', id, ':', widgetConfig)
       const selectedItemId = widgetConfig?.selectedItemId
+      console.log('Selected item ID:', selectedItemId)
 
       let packingList
       if (selectedItemId) {
         // Load the specific selected packing list
         packingList = packingPlugin.getItem(selectedItemId)
+        console.log('Loaded packing list by ID:', packingList)
       } else {
         // Load live/default data
         packingList = packingPlugin.getWidgetData(id)
+        console.log('Loaded packing list by widget ID:', packingList)
       }
 
       setSelectedPackingList(packingList)
@@ -61,12 +70,16 @@ export default function PackingWidget({
         const unpacked = packingList.items.filter((item: any) => !item.isPacked)
         setPackedItems(packed)
         setUnpackedItems(unpacked)
+        console.log('Set packed/unpacked items:', { packed: packed.length, unpacked: unpacked.length })
       } else {
         setPackedItems([])
         setUnpackedItems([])
+        console.log('No packing list items found')
       }
+    } else {
+      console.log('Packing plugin not found!')
     }
-  }, [id])
+  }, [id, isDemoMode])
 
   // Watch for changes in widget configuration
   useEffect(() => {
@@ -267,6 +280,8 @@ export default function PackingWidget({
       onRemove={onRemove}
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
+      isDemoMode={isDemoMode}
+      isPremium={isPremium}
     >
       {renderPackingList()}
     </WidgetBase>

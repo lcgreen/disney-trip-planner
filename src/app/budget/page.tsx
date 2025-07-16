@@ -7,6 +7,7 @@ import BudgetTracker from '@/components/BudgetTracker'
 import { PluginHeader, Modal, Badge } from '@/components/ui'
 import { type BudgetCategory as ConfigBudgetCategory } from '@/config'
 import { useUser } from '@/hooks/useUser'
+import PremiumRestriction from '@/components/PremiumRestriction'
 
 interface Expense {
   id: string
@@ -36,7 +37,7 @@ interface StoredBudgetData {
 }
 
 export default function BudgetPage() {
-  const { hasFeatureAccess } = useUser()
+  const { hasFeatureAccess, userLevel } = useUser()
   const [currentName, setCurrentName] = useState<string>('')
   const [canSave, setCanSave] = useState<boolean>(false)
   const [savedBudgets, setSavedBudgets] = useState<StoredBudgetData[]>([])
@@ -44,6 +45,18 @@ export default function BudgetPage() {
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [budgetToSave, setBudgetToSave] = useState<string>('')
   const [activeBudget, setActiveBudget] = useState<StoredBudgetData | null>(null)
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+      <PremiumRestriction
+        feature="Budget Tracker"
+        description="Track your Disney trip expenses and stay within your magical budget. Set spending limits by category and monitor your progress in real-time."
+        icon={<DollarSign className="w-12 h-12" />}
+        gradient="from-green-500 to-emerald-500"
+      />
+    )
+  }
 
   // Load saved budgets from localStorage on mount
   useEffect(() => {

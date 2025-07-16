@@ -14,6 +14,8 @@ interface CountdownWidgetProps {
   onSettings?: () => void
   onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
+  isDemoMode?: boolean
+  isPremium?: boolean
 }
 
 export default function CountdownWidget({
@@ -22,7 +24,9 @@ export default function CountdownWidget({
   onRemove,
   onSettings,
   onWidthChange,
-  onItemSelect
+  onItemSelect,
+  isDemoMode = false,
+  isPremium = false
 }: CountdownWidgetProps) {
   const [selectedCountdown, setSelectedCountdown] = useState<any>(null)
   const [timeLeft, setTimeLeft] = useState({
@@ -256,6 +260,8 @@ export default function CountdownWidget({
       onRemove={onRemove}
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
+      isDemoMode={isDemoMode}
+      isPremium={isPremium}
     >
       {renderCountdown()}
     </WidgetBase>

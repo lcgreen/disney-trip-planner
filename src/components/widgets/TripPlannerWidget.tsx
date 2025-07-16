@@ -5,6 +5,7 @@ import { Calendar, MapPin, Clock, Crown } from 'lucide-react'
 import WidgetBase, { type WidgetSize } from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useUser } from '@/hooks/useUser'
 import '@/plugins' // Import all plugins to register them
 
 interface TripPlannerWidgetProps {
@@ -14,6 +15,8 @@ interface TripPlannerWidgetProps {
   onSettings?: () => void
   onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
+  isDemoMode?: boolean
+  isPremium?: boolean
 }
 
 interface Activity {
@@ -38,8 +41,11 @@ export default function TripPlannerWidget({
   onRemove,
   onSettings,
   onWidthChange,
-  onItemSelect
+  onItemSelect,
+  isDemoMode = false,
+  isPremium = false
 }: TripPlannerWidgetProps) {
+  const { isPremium: userIsPremium } = useUser()
   const [selectedTripPlan, setSelectedTripPlan] = useState<any>(null)
   const [todaysActivities, setTodaysActivities] = useState<Activity[]>([])
 
@@ -146,8 +152,12 @@ export default function TripPlannerWidget({
   }
 
   const isPremiumUser = () => {
-    // This would check actual subscription status
-    return true
+    // In demo mode, show demo data regardless of premium status
+    if (isDemoMode) {
+      return true
+    }
+    // Otherwise, check actual user premium status
+    return userIsPremium
   }
 
   const getActivitiesToShow = () => {
@@ -269,6 +279,8 @@ export default function TripPlannerWidget({
       onRemove={onRemove}
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
+      isDemoMode={isDemoMode}
+      isPremium={isPremium}
     >
       {renderTripPlanner()}
     </WidgetBase>

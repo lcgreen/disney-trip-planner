@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DollarSign, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Crown } from 'lucide-react'
 import WidgetBase, { type WidgetSize } from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useUser } from '@/hooks/useUser'
 import '@/plugins' // Import all plugins to register them
 
 interface BudgetWidgetProps {
@@ -14,6 +15,8 @@ interface BudgetWidgetProps {
   onSettings?: () => void
   onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
+  isDemoMode?: boolean
+  isPremium?: boolean
 }
 
 interface Expense {
@@ -30,8 +33,11 @@ export default function BudgetWidget({
   onRemove,
   onSettings,
   onWidthChange,
-  onItemSelect
+  onItemSelect,
+  isDemoMode = false,
+  isPremium = false
 }: BudgetWidgetProps) {
+  const { isPremium: userIsPremium } = useUser()
   const [selectedBudget, setSelectedBudget] = useState<any>(null)
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([])
 
@@ -146,6 +152,25 @@ export default function BudgetWidget({
   }
 
   const renderBudget = () => {
+    // Check premium access (allow demo mode to bypass)
+    if (!isDemoMode && !userIsPremium) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-center relative">
+          <div className="absolute top-2 right-2">
+            <Crown className="w-6 h-6 text-yellow-500" />
+          </div>
+          <DollarSign className="w-12 h-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">Premium Feature</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upgrade to Premium to access budget tracking
+          </p>
+          <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-lg hover:shadow-lg transition-all text-sm">
+            Upgrade to Premium
+          </button>
+        </div>
+      )
+    }
+
     if (!selectedBudget) {
       return (
         <div className="h-full flex flex-col items-center justify-center text-center p-2">
@@ -259,6 +284,8 @@ export default function BudgetWidget({
       onRemove={onRemove}
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
+      isDemoMode={isDemoMode}
+      isPremium={isPremium}
     >
       {renderBudget()}
     </WidgetBase>

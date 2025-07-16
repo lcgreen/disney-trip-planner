@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Layout, Settings, Sparkles, GripVertical, Trash2, Clock, Calendar, DollarSign, Luggage, Crown, Star, Shield } from 'lucide-react'
+import { Plus, Layout, Settings, Sparkles, GripVertical, Trash2, Clock, Calendar, DollarSign, Luggage, Crown, Star, Shield, Lock } from 'lucide-react'
 import { clearInvalidCountdownData, validateAndCleanCountdownData, inspectLocalStorageData } from '@/lib/clearInvalidData'
 import {
   DndContext,
@@ -27,7 +27,9 @@ import { DragOverlay } from '@dnd-kit/core'
 import { PluginRegistry, type PluginWidget, PluginStorage } from '@/lib/pluginSystem'
 import { useUser } from '@/hooks/useUser'
 import { hasFeatureAccess, userManager, FEATURES, type FeatureAccess } from '@/lib/userManagement'
+import { WidgetConfigManager, type WidgetConfig } from '@/lib/widgetConfig'
 import '@/plugins' // Import all plugins to register them
+import demoConfig from '@/config/demo-dashboard.json'
 
 // Get widget components from plugins
 const getWidgetComponents = () => {
@@ -54,6 +56,11 @@ const getWidgetOptions = (hasFeatureAccess: (feature: string) => boolean, userLe
         return false // Admin users don't see regular widgets
       }
 
+      // Anonymous users can see all widgets on dashboard (they're shown as demo)
+      if (userLevel === 'anon') {
+        return true
+      }
+
       // Check if user has access to this plugin based on required level
       if (plugin.config.requiredLevel === 'premium') {
         return hasFeatureAccess('tripPlanner') // Use tripPlanner as proxy for premium access
@@ -61,7 +68,7 @@ const getWidgetOptions = (hasFeatureAccess: (feature: string) => boolean, userLe
       if (plugin.config.requiredLevel === 'standard') {
         return hasFeatureAccess('saveData') // Use saveData as proxy for standard access
       }
-      return true // anon level is always accessible
+      return true // standard level is always accessible for logged-in users
     })
     .map(plugin => ({
       type: plugin.config.widgetType,
@@ -69,7 +76,7 @@ const getWidgetOptions = (hasFeatureAccess: (feature: string) => boolean, userLe
       description: plugin.config.description,
       icon: plugin.config.icon,
       color: plugin.config.color,
-      isPremium: plugin.config.requiredLevel === 'premium',
+      isPremium: plugin.config.requiredLevel === 'premium' && userLevel !== 'anon', // Not premium for anon on dashboard
       requiredLevel: plugin.config.requiredLevel
     }))
 }
@@ -85,19 +92,247 @@ const getIconComponent = (iconName: string) => {
   return icons[iconName] || Clock
 }
 
+// In-memory demo data storage
+let demoData: {
+  countdowns: any[]
+  packingLists: any[]
+  budgets: any[]
+  tripPlans: any[]
+} = {
+  countdowns: [],
+  packingLists: [],
+  budgets: [],
+  tripPlans: []
+}
+
+// Get demo widgets from JSON config
+const createDemoWidgets = (): WidgetConfig[] => {
+  return demoConfig.widgets as WidgetConfig[]
+}
+
+// Load demo data from JSON config
+const createDemoData = () => {
+  demoData.countdowns = demoConfig.data.countdowns
+  demoData.packingLists = demoConfig.data.packingLists
+  demoData.budgets = demoConfig.data.budgets
+  demoData.tripPlans = demoConfig.data.tripPlans
+
+  return demoData
+}
+
+// Store original methods for restoration
+let originalPluginMethods: any = {}
+let originalWidgetConfigMethods: any = {}
+let demoWidgets: WidgetConfig[] = []
+
+// Override plugin methods and WidgetConfigManager for demo mode
+const createDemoPluginOverrides = () => {
+  console.log('Creating demo plugin overrides...')
+  console.log('Demo data available:', {
+    countdowns: demoData.countdowns.length,
+    packingLists: demoData.packingLists.length,
+    budgets: demoData.budgets.length,
+    tripPlans: demoData.tripPlans.length
+  })
+
+  const plugins = PluginRegistry.getAllPlugins()
+  console.log('Found plugins:', plugins.map(p => p.config.widgetType))
+
+  plugins.forEach(plugin => {
+    // Store original methods
+    originalPluginMethods[plugin.config.widgetType] = {
+      getItems: plugin.getItems.bind(plugin),
+      getItem: plugin.getItem.bind(plugin),
+      updateWidgetData: plugin.updateWidgetData?.bind(plugin)
+    }
+
+    // Override getItems method
+    plugin.getItems = function() {
+      console.log(`Plugin ${plugin.config.widgetType} getItems called`)
+      if (plugin.config.widgetType === 'countdown') {
+        console.log('Returning demo countdowns:', demoData.countdowns)
+        return demoData.countdowns
+      } else if (plugin.config.widgetType === 'packing') {
+        console.log('Returning demo packing lists:', demoData.packingLists)
+        return demoData.packingLists
+      } else if (plugin.config.widgetType === 'budget') {
+        console.log('Returning demo budgets:', demoData.budgets)
+        return demoData.budgets
+      } else if (plugin.config.widgetType === 'planner') {
+        console.log('Returning demo trip plans:', demoData.tripPlans)
+        return demoData.tripPlans
+      }
+      return originalPluginMethods[plugin.config.widgetType].getItems()
+    }
+
+    // Override getItem method
+    plugin.getItem = function(id: string) {
+      console.log(`Plugin ${plugin.config.widgetType} getItem called with id:`, id)
+      if (plugin.config.widgetType === 'countdown') {
+        const item = demoData.countdowns.find(item => item.id === id) || null
+        console.log('Found countdown item:', item)
+        return item
+      } else if (plugin.config.widgetType === 'packing') {
+        const item = demoData.packingLists.find(item => item.id === id) || null
+        console.log('Found packing item:', item)
+        return item
+      } else if (plugin.config.widgetType === 'budget') {
+        const item = demoData.budgets.find(item => item.id === id) || null
+        console.log('Found budget item:', item)
+        return item
+      } else if (plugin.config.widgetType === 'planner') {
+        const item = demoData.tripPlans.find(item => item.id === id) || null
+        console.log('Found planner item:', item)
+        return item
+      }
+      return originalPluginMethods[plugin.config.widgetType].getItem(id)
+    }
+
+    // Override updateWidgetData to prevent saving in demo mode
+    if (plugin.updateWidgetData) {
+      plugin.updateWidgetData = function(widgetId: string, data: any) {
+        console.log(`Plugin ${plugin.config.widgetType} updateWidgetData called with:`, { widgetId, data })
+        // In demo mode, update the in-memory data instead of saving
+        if (plugin.config.widgetType === 'countdown') {
+          const index = demoData.countdowns.findIndex(item => item.id === data.id)
+          if (index !== -1) {
+            demoData.countdowns[index] = data
+          }
+        } else if (plugin.config.widgetType === 'packing') {
+          const index = demoData.packingLists.findIndex(item => item.id === data.id)
+          if (index !== -1) {
+            demoData.packingLists[index] = data
+          }
+        } else if (plugin.config.widgetType === 'budget') {
+          const index = demoData.budgets.findIndex(item => item.id === data.id)
+          if (index !== -1) {
+            demoData.budgets[index] = data
+          }
+        } else if (plugin.config.widgetType === 'planner') {
+          const index = demoData.tripPlans.findIndex(item => item.id === data.id)
+          if (index !== -1) {
+            demoData.tripPlans[index] = data
+          }
+        }
+        // Don't call the original method - prevent saving to localStorage
+      }
+    }
+  })
+
+  // Store original WidgetConfigManager methods
+  originalWidgetConfigMethods = {
+    getConfig: WidgetConfigManager.getConfig.bind(WidgetConfigManager),
+    getConfigs: WidgetConfigManager.getConfigs.bind(WidgetConfigManager),
+    updateConfig: WidgetConfigManager.updateConfig.bind(WidgetConfigManager),
+    addConfig: WidgetConfigManager.addConfig.bind(WidgetConfigManager),
+    removeConfig: WidgetConfigManager.removeConfig.bind(WidgetConfigManager)
+  }
+
+  // Override WidgetConfigManager methods to work with in-memory demo data
+  WidgetConfigManager.getConfig = function(id: string) {
+    // First check demo widgets in memory
+    const demoConfig = demoWidgets.find(widget => widget.id === id)
+    if (demoConfig) {
+      console.log('Found demo config for', id, ':', demoConfig)
+      return demoConfig
+    }
+    // Fall back to original method for non-demo widgets
+    return originalWidgetConfigMethods.getConfig(id)
+  }
+
+  WidgetConfigManager.getConfigs = function() {
+    // Return demo widgets from memory instead of localStorage
+    console.log('Returning demo widgets from memory:', demoWidgets)
+    return demoWidgets
+  }
+
+  WidgetConfigManager.updateConfig = function(id: string, updates: any) {
+    console.log('WidgetConfigManager.updateConfig called with:', { id, updates })
+    // In demo mode, only update in memory, don't save to localStorage
+    const config = demoWidgets.find(widget => widget.id === id)
+    if (config) {
+      Object.assign(config, updates)
+      console.log('Updated demo config:', config)
+    }
+    // Don't call original method - prevent saving to localStorage
+  }
+
+  WidgetConfigManager.addConfig = function(config: WidgetConfig) {
+    console.log('WidgetConfigManager.addConfig called with:', config)
+    // In demo mode, only add to memory, don't save to localStorage
+    demoWidgets.push(config)
+    console.log('Added demo config, total demo widgets:', demoWidgets.length)
+    // Don't call original method - prevent saving to localStorage
+  }
+
+  WidgetConfigManager.removeConfig = function(id: string) {
+    console.log('WidgetConfigManager.removeConfig called with:', id)
+    // In demo mode, only remove from memory, don't save to localStorage
+    const index = demoWidgets.findIndex(config => config.id === id)
+    if (index !== -1) {
+      demoWidgets.splice(index, 1)
+      console.log('Removed demo config, remaining demo widgets:', demoWidgets.length)
+    }
+    // Don't call original method - prevent saving to localStorage
+  }
+
+  // Clear and initialize demo widgets in memory
+  demoWidgets = []
+  const demoWidgetsToAdd = createDemoWidgets()
+  demoWidgetsToAdd.forEach(widget => {
+    demoWidgets.push(widget)
+  })
+  console.log('Initialized demo widgets in memory:', demoWidgets)
+}
+
+// Restore original methods when not in demo mode
+const restoreOriginalMethods = () => {
+  console.log('Restoring original methods...')
+
+  // Restore plugin methods
+  const plugins = PluginRegistry.getAllPlugins()
+  plugins.forEach(plugin => {
+    if (originalPluginMethods[plugin.config.widgetType]) {
+      plugin.getItems = originalPluginMethods[plugin.config.widgetType].getItems
+      plugin.getItem = originalPluginMethods[plugin.config.widgetType].getItem
+      if (originalPluginMethods[plugin.config.widgetType].updateWidgetData) {
+        plugin.updateWidgetData = originalPluginMethods[plugin.config.widgetType].updateWidgetData
+      }
+    }
+  })
+
+  // Restore WidgetConfigManager methods
+  if (originalWidgetConfigMethods.getConfig) {
+    WidgetConfigManager.getConfig = originalWidgetConfigMethods.getConfig
+    WidgetConfigManager.getConfigs = originalWidgetConfigMethods.getConfigs
+    WidgetConfigManager.updateConfig = originalWidgetConfigMethods.updateConfig
+    WidgetConfigManager.addConfig = originalWidgetConfigMethods.addConfig
+    WidgetConfigManager.removeConfig = originalWidgetConfigMethods.removeConfig
+  }
+
+  // Clear demo widgets
+  demoWidgets = []
+
+  console.log('Original methods restored')
+}
+
 // Sortable Widget Wrapper Component
 function SortableWidget({
   widget,
   onRemove,
   onSettings,
   onWidthChange,
-  onItemSelect
+  onItemSelect,
+  isDemoMode,
+  userLevel
 }: {
-  widget: PluginWidget
+  widget: WidgetConfig
   onRemove: (id: string) => void
   onSettings: (id: string) => void
   onWidthChange: (id: string, width: string) => void
   onItemSelect: (id: string, itemId: string | null) => void
+  isDemoMode: boolean
+  userLevel: string
 }) {
   const {
     attributes,
@@ -130,10 +365,14 @@ function SortableWidget({
   const widgetComponents = getWidgetComponents()
   const WidgetComponent = widgetComponents[widget.type]
 
+  // Widgets are not premium on dashboard for anonymous users - they can see all widgets with demo data
+  const isPremium = false
+
   // Debug logging
   console.log('Widget type:', widget.type)
   console.log('Available widget components:', Object.keys(widgetComponents))
   console.log('WidgetComponent found:', !!WidgetComponent)
+  console.log('Is premium for user level:', userLevel, 'isPremium:', isPremium)
 
   // Handle missing widget component
   if (!WidgetComponent) {
@@ -169,13 +408,15 @@ function SortableWidget({
       className={`${getGridClasses(widget.width)} relative group ${isDragging ? 'opacity-30' : ''}`}
     >
       <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <button
-          {...attributes}
-          {...listeners}
-          className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white hover:shadow-lg cursor-grab active:cursor-grabbing transition-all duration-200"
-        >
-          <GripVertical className="w-4 h-4 text-gray-600" />
-        </button>
+        {!isDemoMode && (
+          <button
+            {...attributes}
+            {...listeners}
+            className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white hover:shadow-lg cursor-grab active:cursor-grabbing transition-all duration-200"
+          >
+            <GripVertical className="w-4 h-4 text-gray-600" />
+          </button>
+        )}
       </div>
 
       <WidgetComponent
@@ -185,6 +426,8 @@ function SortableWidget({
         onSettings={() => onSettings(widget.id)}
         onWidthChange={(width: string) => onWidthChange(widget.id, width)}
         onItemSelect={(itemId: string | null) => onItemSelect(widget.id, itemId)}
+        isDemoMode={isDemoMode}
+        isPremium={isPremium}
       />
     </motion.div>
   )
@@ -192,9 +435,10 @@ function SortableWidget({
 
 export default function DashboardPage() {
   const { userLevel, hasFeatureAccess: checkFeatureAccess } = useUser()
-  const [widgets, setWidgets] = useState<PluginWidget[]>([])
+  const [widgets, setWidgets] = useState<WidgetConfig[]>([])
   const [isAddingWidget, setIsAddingWidget] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [isDemoMode, setIsDemoMode] = useState(false)
 
   // DnD sensors
   const sensors = useSensors(
@@ -204,68 +448,106 @@ export default function DashboardPage() {
     })
   )
 
-    useEffect(() => {
+      useEffect(() => {
     // Debug plugin registration
     console.log('Dashboard loading - checking plugins...')
     const plugins = PluginRegistry.getAllPlugins()
     console.log('Registered plugins:', plugins.map(p => ({ id: p.config.id, widgetType: p.config.widgetType })))
 
-    // Load widget configs from storage
-    const savedWidgets = PluginStorage.getData<PluginWidget[]>('disney-widget-configs', [])
-    console.log('Saved widgets:', savedWidgets)
+    // For anonymous users, always create fresh demo widgets
+    if (userLevel === 'anon') {
+      console.log('User is anonymous, creating fresh demo setup...')
 
-    // Filter out invalid widgets (widgets with types that don't exist)
-    const validWidgetTypes = plugins.map(p => p.config.widgetType)
-    const validWidgets = savedWidgets.filter(widget => {
-      const isValid = validWidgetTypes.includes(widget.type)
-      if (!isValid) {
-        console.warn(`Removing invalid widget with type: ${widget.type}`)
-      }
-      return isValid
-    })
+      // Clear any existing localStorage data for anonymous users
+      localStorage.removeItem('widget-configs')
+      console.log('Cleared localStorage for anonymous user')
 
-    if (validWidgets.length !== savedWidgets.length) {
-      console.log(`Filtered out ${savedWidgets.length - validWidgets.length} invalid widgets`)
-      // Save the filtered widgets back to storage
-      PluginStorage.saveData('disney-widget-configs', validWidgets).catch(console.error)
+      // Clear any existing demo widgets to prevent duplicates
+      demoWidgets = []
+      console.log('Cleared existing demo widgets')
+
+      createDemoData() // Create demo data in memory
+      console.log('Created demo data:', demoData)
+
+      createDemoPluginOverrides() // Override plugin methods to use demo data
+
+      // Get demo widgets from the overridden WidgetConfigManager
+      const freshDemoWidgets = WidgetConfigManager.getConfigs()
+      console.log('Got demo widgets from WidgetConfigManager:', freshDemoWidgets)
+
+      setWidgets(freshDemoWidgets)
+      setIsDemoMode(true)
+      console.log('Demo mode setup complete')
+    } else {
+      // Non-anonymous user, restore original methods and use normal storage
+      console.log('User is not anonymous, restoring original methods...')
+      restoreOriginalMethods()
+
+      // Load widget configs from normal WidgetConfigManager
+      const savedWidgets = WidgetConfigManager.getConfigs()
+      console.log('Loaded widgets for non-anonymous user:', savedWidgets)
+
+      setWidgets(savedWidgets)
+      setIsDemoMode(false)
     }
-
-    setWidgets(validWidgets)
-  }, [])
+  }, [userLevel])
 
   const addWidget = (type: string) => {
+    // Prevent adding widgets in demo mode
+    if (isDemoMode) {
+      return
+    }
+
     const plugin = PluginRegistry.getAllPlugins().find(p => p.config.widgetType === type)
     if (!plugin) return
 
-    const newWidget = plugin.createWidget(`${type}-${Date.now()}`)
-    newWidget.order = widgets.length
+    const newWidget: WidgetConfig = {
+      id: `${type}-${Date.now()}`,
+      type: type as 'countdown' | 'planner' | 'budget' | 'packing',
+      size: 'medium',
+      order: widgets.length,
+      width: undefined,
+      selectedItemId: undefined,
+      settings: {}
+    }
 
-    const updatedWidgets = [...widgets, newWidget]
+    WidgetConfigManager.addConfig(newWidget)
+    const updatedWidgets = WidgetConfigManager.getConfigs()
     setWidgets(updatedWidgets)
-    PluginStorage.saveData('disney-widget-configs', updatedWidgets).catch(console.error)
     setIsAddingWidget(false)
   }
 
   const removeWidget = (id: string) => {
-    const updatedWidgets = widgets.filter(w => w.id !== id)
-    const reordered = updatedWidgets.map((widget, index) => ({
-      ...widget,
-      order: index
-    }))
-    setWidgets(reordered)
-    PluginStorage.saveData('disney-widget-configs', reordered).catch(console.error)
+    // Prevent removing widgets in demo mode
+    if (isDemoMode) {
+      return
+    }
+
+    WidgetConfigManager.removeConfig(id)
+    const updatedWidgets = WidgetConfigManager.getConfigs()
+    setWidgets(updatedWidgets)
   }
 
   const handleWidthChange = (id: string, width: string) => {
-    const updatedWidgets = widgets.map(w => w.id === id ? { ...w, width } : w)
+    // Prevent width changes in demo mode
+    if (isDemoMode) {
+      return
+    }
+
+    WidgetConfigManager.updateConfig(id, { width })
+    const updatedWidgets = WidgetConfigManager.getConfigs()
     setWidgets(updatedWidgets)
-    PluginStorage.saveData('disney-widget-configs', updatedWidgets).catch(console.error)
   }
 
   const handleItemSelect = (id: string, itemId: string | null) => {
-    const updatedWidgets = widgets.map(w => w.id === id ? { ...w, selectedItemId: itemId || undefined } : w)
+    // Prevent item selection changes in demo mode
+    if (isDemoMode) {
+      return
+    }
+
+    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    const updatedWidgets = WidgetConfigManager.getConfigs()
     setWidgets(updatedWidgets)
-    PluginStorage.saveData('disney-widget-configs', updatedWidgets).catch(console.error)
   }
 
   const handleDragStart = (event: DragEndEvent) => {
@@ -273,6 +555,12 @@ export default function DashboardPage() {
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
+    // Prevent drag and drop in demo mode
+    if (isDemoMode) {
+      setActiveId(null)
+      return
+    }
+
     const { active, over } = event
     setActiveId(null)
 
@@ -286,8 +574,12 @@ export default function DashboardPage() {
         order: index
       }))
 
+      // Update the order in WidgetConfigManager
+      reorderedWidgets.forEach(widget => {
+        WidgetConfigManager.updateConfig(widget.id, { order: widget.order })
+      })
+
       setWidgets(reorderedWidgets)
-      PluginStorage.saveData('disney-widget-configs', reorderedWidgets).catch(console.error)
     }
   }
 
@@ -324,13 +616,18 @@ export default function DashboardPage() {
               {userLevel === 'anon' && (
                 <div className="flex items-center space-x-2 mt-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-blue-600 font-medium">Changes won&apos;t save in demo mode</span>
+                  <span className="text-sm text-blue-600 font-medium">
+                    {isDemoMode
+                      ? 'Demo dashboard with sample data - create account to customize'
+                      : 'Changes won&apos;t save in demo mode'
+                    }
+                  </span>
                 </div>
               )}
             </div>
 
             <div className="flex items-center space-x-3">
-              {process.env.NODE_ENV === 'development' && (
+              {process.env.NODE_ENV === 'development' && userLevel === 'admin' && (
                 <div className="relative group">
                   <button
                     className="bg-gray-500 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-gray-600 transition-all duration-200 text-sm"
@@ -362,7 +659,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
-              {userLevel !== 'admin' && (
+              {userLevel !== 'admin' && !isDemoMode && (
                 <button
                   onClick={() => setIsAddingWidget(true)}
                   className="bg-gradient-to-r from-disney-blue to-disney-purple text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:shadow-lg transition-all duration-200"
@@ -371,9 +668,43 @@ export default function DashboardPage() {
                   <span>{userLevel === 'anon' ? 'Try Widget' : 'Add Widget'}</span>
                 </button>
               )}
+              {isDemoMode && (
+                <button
+                  className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:shadow-lg transition-all duration-200"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Create Account</span>
+                </button>
+              )}
             </div>
           </div>
         </motion.div>
+
+        {/* Demo Mode Banner */}
+        {isDemoMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-800">Welcome to Disney Trip Planner!</h3>
+                  <p className="text-blue-700 text-sm">
+                    This is your demo dashboard with sample data. Create a free account to customize your own widgets and save your data.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Lock className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-blue-600 font-medium">Demo Mode</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Admin Dashboard */}
         {userLevel === 'admin' ? (
@@ -497,6 +828,8 @@ export default function DashboardPage() {
                       }}
                       onWidthChange={handleWidthChange}
                       onItemSelect={handleItemSelect}
+                      isDemoMode={isDemoMode}
+                      userLevel={userLevel}
                     />
                   ))}
               </SortableContext>
@@ -519,6 +852,8 @@ export default function DashboardPage() {
                         onSettings={() => {}}
                         onWidthChange={() => {}}
                         onItemSelect={() => {}}
+                        isDemoMode={isDemoMode}
+                        isPremium={false}
                       />
                     )
                   })()}
@@ -528,8 +863,8 @@ export default function DashboardPage() {
           </DndContext>
         )}
 
-        {/* Empty State - Only show for non-admin users */}
-        {userLevel !== 'admin' && widgets.length === 0 && (
+        {/* Empty State - Only show for non-admin users who aren't in demo mode */}
+        {userLevel !== 'admin' && widgets.length === 0 && !isDemoMode && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -583,8 +918,8 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Add Widget Modal - Only show for non-admin users */}
-        {userLevel !== 'admin' && isAddingWidget && (
+        {/* Add Widget Modal - Only show for non-admin users who aren't in demo mode */}
+        {userLevel !== 'admin' && isAddingWidget && !isDemoMode && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -598,7 +933,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-gray-800">Add Widget</h3>
-                                        <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600">
                       {userLevel === 'anon'
                         ? 'Try widgets in demo mode (changes won&apos;t save)'
                         : 'Choose a widget to add to your dashboard'
@@ -621,7 +956,7 @@ export default function DashboardPage() {
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                     <span className="text-sm font-medium text-blue-800">Demo Mode</span>
                   </div>
-                                    <p className="text-sm text-blue-700">
+                  <p className="text-sm text-blue-700">
                     You&apos;re in demo mode. Widgets will work but won&apos;t save your data.
                     <button className="ml-2 text-blue-600 hover:text-blue-800 underline font-medium">
                       Create free account

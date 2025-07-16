@@ -1,0 +1,153 @@
+{
+  "widgets": [
+    {
+      "id": "demo-countdown-1",
+      "type": "countdown",
+      "size": "medium",
+      "order": 0,
+      "width": "2",
+      "selectedItemId": "demo-countdown-item-1",
+      "settings": {}
+    },
+    {
+      "id": "demo-packing-1",
+      "type": "packing",
+      "size": "medium",
+      "order": 1,
+      "width": "2",
+      "selectedItemId": "demo-packing-item-1",
+      "settings": {}
+    },
+    {
+      "id": "demo-budget-1",
+      "type": "budget",
+      "size": "medium",
+      "order": 2,
+      "width": "2",
+      "selectedItemId": "demo-budget-item-1",
+      "settings": {}
+    },
+    {
+      "id": "demo-planner-1",
+      "type": "planner",
+      "size": "medium",
+      "order": 3,
+      "width": "2",
+      "selectedItemId": "demo-planner-item-1",
+      "settings": {}
+    }
+  ],
+  "data": {
+    "countdowns": [
+      {
+        "id": "demo-countdown-item-1",
+        "name": "Disney World Family Trip",
+        "park": { "name": "Walt Disney World Resort" },
+        "date": "2025-03-15T00:00:00.000Z",
+        "settings": {},
+        "createdAt": "2025-01-15T00:00:00.000Z"
+      }
+    ],
+    "packingLists": [
+      {
+        "id": "demo-packing-item-1",
+        "name": "Family Disney Trip Packing",
+        "tripType": "family",
+        "duration": 7,
+        "season": "spring",
+        "items": [
+          { "id": "item-1", "name": "Mickey Ears", "category": "accessories", "packed": false },
+          { "id": "item-2", "name": "Comfortable Shoes", "category": "clothing", "packed": false },
+          { "id": "item-3", "name": "Sunscreen", "category": "toiletries", "packed": false }
+        ],
+        "createdAt": "2025-01-15T00:00:00.000Z"
+      }
+    ],
+    "budgets": [
+      {
+        "id": "demo-budget-item-1",
+        "name": "Disney World Budget",
+        "totalBudget": 5000,
+        "currency": "USD",
+        "categories": [
+          { "id": "cat-1", "name": "Accommodation", "budget": 2000, "spent": 0 },
+          { "id": "cat-2", "name": "Tickets", "budget": 1500, "spent": 0 },
+          { "id": "cat-3", "name": "Food", "budget": 1000, "spent": 0 },
+          { "id": "cat-4", "name": "Souvenirs", "budget": 500, "spent": 0 }
+        ],
+        "createdAt": "2025-01-15T00:00:00.000Z"
+      }
+    ],
+    "tripPlans": [
+      {
+        "id": "demo-planner-item-1",
+        "name": "Disney World Itinerary",
+        "days": [
+          {
+            "id": "day-1",
+            "date": "2025-03-15T00:00:00.000Z",
+            "park": "Magic Kingdom",
+            "activities": [
+              {
+                "id": "act-1",
+                "time": "9:00 AM",
+                "title": "Space Mountain",
+                "location": "Tomorrowland",
+                "type": "attraction",
+                "priority": "high"
+              },
+              {
+                "id": "act-2",
+                "time": "11:30 AM",
+                "title": "Be Our Guest Restaurant",
+                "location": "Fantasyland",
+                "type": "dining",
+                "priority": "medium"
+              },
+              {
+                "id": "act-3",
+                "time": "2:00 PM",
+                "title": "Seven Dwarfs Mine Train",
+                "location": "Fantasyland",
+                "type": "attraction",
+                "priority": "high"
+              }
+            ]
+          },
+          {
+            "id": "day-2",
+            "date": "2025-03-16T00:00:00.000Z",
+            "park": "Epcot",
+            "activities": [
+              {
+                "id": "act-4",
+                "time": "10:00 AM",
+                "title": "Test Track",
+                "location": "Future World",
+                "type": "attraction",
+                "priority": "high"
+              },
+              {
+                "id": "act-5",
+                "time": "12:30 PM",
+                "title": "Le Cellier Steakhouse",
+                "location": "Canada Pavilion",
+                "type": "dining",
+                "priority": "medium"
+              },
+              {
+                "id": "act-6",
+                "time": "3:00 PM",
+                "title": "Frozen Ever After",
+                "location": "Norway Pavilion",
+                "type": "attraction",
+                "priority": "medium"
+              }
+            ]
+          }
+        ],
+        "createdAt": "2025-01-15T00:00:00.000Z"
+      }
+    ]
+  }
+}

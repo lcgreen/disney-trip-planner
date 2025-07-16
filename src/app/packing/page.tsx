@@ -7,9 +7,10 @@ import PackingChecklist from '@/components/PackingChecklist'
 import { PluginHeader, Modal } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { packingStorage, storageUtils, type StoredPackingList } from '@/lib/storage'
+import PremiumRestriction from '@/components/PremiumRestriction'
 
 export default function PackingPage() {
-  const { hasFeatureAccess } = useUser()
+  const { hasFeatureAccess, userLevel } = useUser()
   const [currentName, setCurrentName] = useState<string>('')
   const [canSave, setCanSave] = useState<boolean>(false)
   const [showSaveModal, setShowSaveModal] = useState<boolean>(false)
@@ -17,6 +18,18 @@ export default function PackingPage() {
   const [savedLists, setSavedLists] = useState<StoredPackingList[]>([])
   const [listToSave, setListToSave] = useState<string>('')
   const packingRef = useRef<{ saveCurrentList: () => void; loadList: (list: StoredPackingList) => void }>(null)
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+      <PremiumRestriction
+        feature="Packing Checklist"
+        description="Create and manage comprehensive packing lists for your Disney trip. Never forget the essentials with our Disney-optimized categories and smart suggestions."
+        icon={<Package className="w-12 h-12" />}
+        gradient="from-orange-500 to-amber-500"
+      />
+    )
+  }
 
   // Load saved lists on component mount
   useEffect(() => {

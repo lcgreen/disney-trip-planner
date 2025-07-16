@@ -48,6 +48,7 @@ const navigationItems: NavigationItem[] = [
     href: '/packing',
     label: 'Packing List',
     icon: Package,
+    isPremium: true,
   },
   {
     href: '/test-user-levels',
@@ -130,40 +131,32 @@ export default function Navigation() {
           <ul className="space-y-2">
             {navigationItems.map((item) => {
               const isActive = pathname === item.href
-              const canAccess = !item.isPremium || checkFeatureAccess(item.isPremium ? 'tripPlanner' : 'countdown')
+              // Allow all navigation for anonymous users, but show premium badges
+              const canAccess = userLevel === 'anon' || !item.isPremium || checkFeatureAccess(item.isPremium ? 'tripPlanner' : 'countdown')
 
               return (
                 <li key={item.href}>
-                                      <Link
-                      href={canAccess ? item.href : '#'}
-                      onClick={(e) => {
-                        if (!canAccess) {
-                          e.preventDefault()
-                          // Show premium modal here
-                          return
-                        }
-                        setIsOpen(false)
-                      }}
-                      className={`
-                        flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm
-                        ${isActive
-                          ? 'bg-gradient-to-r from-disney-blue to-disney-purple text-white shadow-lg'
-                          : canAccess
-                          ? 'text-gray-700 hover:bg-gray-100 hover:shadow-md'
-                          : 'text-gray-400 cursor-not-allowed opacity-50'
-                        }
-                      `}
-                    >
-                                          <item.icon className="w-4 h-4" />
-                      <span className="font-medium">{item.label}</span>
-                    {item.isPremium && !canAccess && (
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`
+                      flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm
+                      ${isActive
+                        ? 'bg-gradient-to-r from-disney-blue to-disney-purple text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-gray-100 hover:shadow-md'
+                      }
+                    `}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span className="font-medium">{item.label}</span>
+                    {item.isPremium && userLevel === 'anon' && (
                       <Crown className="w-4 h-4 text-disney-gold ml-auto" />
                     )}
-                                         {item.isPremium && canAccess && (
-                       <div className="ml-auto">
-                         <PremiumBadge />
-                       </div>
-                     )}
+                    {item.isPremium && userLevel !== 'anon' && canAccess && (
+                      <div className="ml-auto">
+                        <PremiumBadge />
+                      </div>
+                    )}
                   </Link>
                 </li>
               )

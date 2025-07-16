@@ -6,8 +6,11 @@ import { Calendar } from 'lucide-react'
 import { PluginHeader, Modal, Badge } from '@/components/ui'
 import TripPlanner from '@/components/TripPlanner'
 import type { StoredTripPlan } from '@/lib/storage'
+import { useUser } from '@/hooks/useUser'
+import PremiumRestriction from '@/components/PremiumRestriction'
 
 export default function PlannerPage() {
+  const { userLevel } = useUser()
   const [currentName, setCurrentName] = useState<string>('')
   const [canSave, setCanSave] = useState<boolean>(false)
   const [savedPlans, setSavedPlans] = useState<StoredTripPlan[]>([])
@@ -15,6 +18,18 @@ export default function PlannerPage() {
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [planToSave, setPlanToSave] = useState<string>('')
   const [activePlan, setActivePlan] = useState<StoredTripPlan | null>(null)
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+      <PremiumRestriction
+        feature="Trip Planner"
+        description="Create detailed day-by-day itineraries for your Disney adventure. Plan attractions, dining, shows, and more with our interactive timeline builder."
+        icon={<Calendar className="w-12 h-12" />}
+        gradient="from-purple-500 to-pink-500"
+      />
+    )
+  }
 
   // Load saved plans from localStorage on mount
   useEffect(() => {

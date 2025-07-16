@@ -6,14 +6,29 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import PackingChecklist from '@/components/PackingChecklist'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useUser } from '@/hooks/useUser'
+import PremiumRestriction from '@/components/PremiumRestriction'
 
 function NewPackingContent() {
+  const { userLevel } = useUser()
   const searchParams = useSearchParams()
   const router = useRouter()
   const widgetId = searchParams.get('widgetId')
   const editItemId = searchParams.get('editItemId')
   const [isCreating, setIsCreating] = useState(false)
   const [createdItemId, setCreatedItemId] = useState<string | null>(null)
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+      <PremiumRestriction
+        feature="Packing Checklist"
+        description="Create and manage comprehensive packing lists for your Disney trip. Never forget the essentials with our Disney-optimized categories and smart suggestions."
+        icon={<Package className="w-12 h-12" />}
+        gradient="from-orange-500 to-amber-500"
+      />
+    )
+  }
 
   // Handle edit mode - load existing item for editing
   useEffect(() => {

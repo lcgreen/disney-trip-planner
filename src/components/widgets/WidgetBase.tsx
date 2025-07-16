@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings, X, Plus, LucideIcon } from 'lucide-react'
+import { Settings, X, Plus, Crown, LucideIcon } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
 import ItemSelector from './ItemSelector'
 
@@ -18,6 +18,7 @@ interface WidgetBaseProps {
   width?: string // Custom width (1-4 columns)
   selectedItemId?: string
   isPremium?: boolean
+  isDemoMode?: boolean
   onRemove?: () => void
   onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
@@ -61,6 +62,7 @@ export default function WidgetBase({
   width,
   selectedItemId,
   isPremium = false,
+  isDemoMode = false,
   onRemove,
   onWidthChange,
   onItemSelect,
@@ -96,8 +98,8 @@ export default function WidgetBase({
           </div>
 
           <div className="flex items-center space-x-1 flex-shrink-0">
-            {/* Width selector */}
-            {onWidthChange && (
+            {/* Width selector - hidden in demo mode */}
+            {onWidthChange && !isDemoMode && (
               <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 {widthOptions.map((option) => (
                   <button
@@ -118,8 +120,8 @@ export default function WidgetBase({
               </div>
             )}
 
-            {/* Settings button */}
-            {onItemSelect && (
+            {/* Settings button - hidden in demo mode */}
+            {onItemSelect && !isDemoMode && (
               <div className="relative">
                 <button
                   onClick={() => setShowSettings(!showSettings)}
@@ -156,6 +158,7 @@ export default function WidgetBase({
                                 onItemSelect(itemId)
                                 setShowSettings(false)
                               }}
+                              isDemoMode={isDemoMode}
                             />
                           </div>
 
@@ -213,7 +216,8 @@ export default function WidgetBase({
               </div>
             )}
 
-            {onRemove && (
+            {/* Remove button - hidden in demo mode */}
+            {onRemove && !isDemoMode && (
               <button
                 onClick={onRemove}
                 className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors duration-150"
@@ -225,8 +229,10 @@ export default function WidgetBase({
         </div>
 
         {/* Widget Content */}
-        <div className="flex-1 p-3 widget-scroll overflow-hidden">
+        <div className="flex-1 p-3 widget-scroll overflow-hidden relative">
           {children}
+
+
         </div>
       </div>
     </motion.div>

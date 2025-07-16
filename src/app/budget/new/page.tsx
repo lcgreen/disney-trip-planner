@@ -6,14 +6,29 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import BudgetTracker from '@/components/BudgetTracker'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useUser } from '@/hooks/useUser'
+import PremiumRestriction from '@/components/PremiumRestriction'
 
 function NewBudgetContent() {
+  const { userLevel } = useUser()
   const searchParams = useSearchParams()
   const router = useRouter()
   const widgetId = searchParams.get('widgetId')
   const editItemId = searchParams.get('editItemId')
   const [isCreating, setIsCreating] = useState(false)
   const [createdItemId, setCreatedItemId] = useState<string | null>(null)
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+      <PremiumRestriction
+        feature="Budget Tracker"
+        description="Track your Disney trip expenses and stay within your magical budget. Set spending limits by category and monitor your progress in real-time."
+        icon={<DollarSign className="w-12 h-12" />}
+        gradient="from-green-500 to-emerald-500"
+      />
+    )
+  }
 
   // Handle edit mode - load existing item for editing
   useEffect(() => {
