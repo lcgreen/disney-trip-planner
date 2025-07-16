@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { Settings } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { PluginRegistry } from '@/lib/pluginSystem'
 import { hasLevelAccess } from '@/lib/userManagement'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { type WidgetConfig } from '@/types'
-import { CountdownWidget, TripPlannerWidget, BudgetWidget, PackingWidget } from '@/components/widgets'
+import { CountdownWidget, TripPlannerWidget, BudgetWidget, PackingWidget, WidgetConfigManager as WidgetConfigManagerComponent } from '@/components/widgets'
 import { Button, Badge } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
 
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const { userLevel, hasFeatureAccess } = useUser()
   const [widgets, setWidgets] = useState<WidgetConfig[]>([])
   const [showAddWidget, setShowAddWidget] = useState(false)
+  const [showConfigManager, setShowConfigManager] = useState(false)
 
   // Load widgets on mount
   useEffect(() => {
@@ -75,6 +77,24 @@ export default function DashboardPage() {
     newOrder.splice(toIndex, 0, movedItem)
 
     WidgetConfigManager.reorderWidgetsSync(newOrder)
+    const updatedWidgets = WidgetConfigManager.getConfigs()
+    setWidgets(updatedWidgets)
+  }
+
+  const handleWidthChange = (widgetId: string, newWidth: string) => {
+    // Only allow authenticated users to change widget width
+    if (userLevel === 'anon') return
+
+    WidgetConfigManager.updateConfigSync(widgetId, { width: newWidth })
+    const updatedWidgets = WidgetConfigManager.getConfigs()
+    setWidgets(updatedWidgets)
+  }
+
+  const handleItemSelect = (widgetId: string, itemId: string | null) => {
+    // Only allow authenticated users to select items
+    if (userLevel === 'anon') return
+
+    WidgetConfigManager.updateConfigSync(widgetId, { selectedItemId: itemId || undefined })
     const updatedWidgets = WidgetConfigManager.getConfigs()
     setWidgets(updatedWidgets)
   }
@@ -143,49 +163,66 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* User Level Badge */}
-          <div className="flex justify-center space-x-2">
-            <Badge
-              variant={userLevel === 'premium' ? 'success' : userLevel === 'standard' ? 'info' : 'warning'}
-              size="lg"
-            >
-              {userLevel === 'premium' ? 'Premium User' : userLevel === 'standard' ? 'Standard User' : 'Anonymous User'}
-            </Badge>
-            {userLevel === 'anon' && (
-              <Badge variant="warning" size="lg">
-                Demo Mode
+          {/* User Level Badge and Actions */}
+          <div className="flex justify-center items-center space-x-4">
+            <div className="flex space-x-2">
+              <Badge
+                variant={userLevel === 'premium' ? 'success' : userLevel === 'standard' ? 'info' : 'warning'}
+                size="lg"
+              >
+                {userLevel === 'premium' ? 'Premium User' : userLevel === 'standard' ? 'Standard User' : 'Anonymous User'}
               </Badge>
+              {userLevel === 'anon' && (
+                <Badge variant="warning" size="lg">
+                  Demo Mode
+                </Badge>
+              )}
+            </div>
+
+            {/* Widget Configuration Button - Only show for authenticated users */}
+            {userLevel !== 'anon' && (
+              <Button
+                onClick={() => setShowConfigManager(true)}
+                variant="secondary"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                <Settings className="w-4 h-4" />
+                Configure Widgets
+              </Button>
             )}
           </div>
 
           {/* Widgets Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {widgets.map((widget, index) => {
-              const WidgetComponent = getWidgetComponent(widget.type)
-              if (!WidgetComponent) return null
+            {widgets
+              .filter(widget => !widget.settings?.hidden) // Hide widgets marked as hidden
+              .map((widget, index) => {
+                const WidgetComponent = getWidgetComponent(widget.type)
+                if (!WidgetComponent) return null
 
-              return (
-                <motion.div
-                  key={widget.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative"
-                >
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                    <WidgetComponent
-                      id={widget.id}
-                      width={widget.width}
-                      onRemove={() => removeWidget(widget.id)}
-                      onSettings={() => {}}
-                      onWidthChange={() => {}}
-                      onItemSelect={() => {}}
-                      isDemoMode={userLevel === 'anon'}
-                    />
-                  </div>
-                </motion.div>
-              )
-            })}
+                return (
+                  <motion.div
+                    key={widget.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="relative"
+                  >
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                      <WidgetComponent
+                        id={widget.id}
+                        width={widget.width}
+                        onRemove={() => removeWidget(widget.id)}
+                        onSettings={() => {}}
+                        onWidthChange={(newWidth) => handleWidthChange(widget.id, newWidth)}
+                        onItemSelect={(itemId) => handleItemSelect(widget.id, itemId)}
+                        isDemoMode={userLevel === 'anon'}
+                      />
+                    </div>
+                  </motion.div>
+                )
+              })}
 
             {/* Add Widget Button - Only show for authenticated users */}
             {userLevel !== 'anon' && (
@@ -257,6 +294,15 @@ export default function DashboardPage() {
               </motion.div>
             </div>
           )}
+
+          {/* Widget Configuration Manager */}
+          <WidgetConfigManagerComponent
+            isOpen={showConfigManager}
+            onClose={() => setShowConfigManager(false)}
+            onConfigsChange={setWidgets}
+            currentConfigs={widgets}
+            userLevel={userLevel}
+          />
         </motion.div>
       </div>
     </div>

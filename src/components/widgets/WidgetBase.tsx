@@ -4,7 +4,7 @@ import { ReactNode, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Settings, X, Plus, Crown, LucideIcon } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
-import ItemSelector from './ItemSelector'
+import WidgetConfigSelectorDialog from './WidgetConfigSelectorDialog'
 import { WidgetSize } from '@/types'
 
 interface WidgetBaseProps {
@@ -66,23 +66,16 @@ export default function WidgetBase({
   children,
   className = ''
 }: WidgetBaseProps) {
-  const [showSettings, setShowSettings] = useState(false)
+  const [showConfigDialog, setShowConfigDialog] = useState(false)
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className={`
-        ${sizeClasses[size]}
-        ${width ? widthOptions.find(w => w.value === width)?.class || gridSpanClasses[size] : gridSpanClasses[size]}
-        bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-white/30
-        hover:shadow-lg hover:bg-white/95 transition-all duration-200
-        ${className}
-      `}
+      className={`h-72 col-span-1 bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-white/30 hover:shadow-lg hover:bg-white/95 transition-all duration-200 ${className}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
     >
       <div className="h-full flex flex-col">
-        {/* Widget Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100/50">
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div className={`${iconColor} p-2 rounded-lg shadow-sm flex-shrink-0`}>
@@ -92,128 +85,32 @@ export default function WidgetBase({
               <h3 className="font-semibold text-gray-800 text-sm truncate">{title}</h3>
             </div>
           </div>
-
           <div className="flex items-center space-x-1 flex-shrink-0">
-            {/* Width selector - hidden in demo mode */}
-            {onWidthChange && !isDemoMode && (
+            {/* Widget width controls (if applicable) */}
+            {onWidthChange && (
               <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                {widthOptions.map((option) => (
+                {[1, 2, 3, 4].map((col) => (
                   <button
-                    key={option.value}
-                    onClick={() => onWidthChange(option.value)}
-                    title={option.label}
-                    className={`
-                      w-6 h-6 rounded flex items-center justify-center text-xs font-medium transition-all duration-150
-                      ${width === option.value
-                        ? 'bg-white text-disney-blue shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                      }
-                    `}
+                    key={col}
+                    className={`w-6 h-6 rounded flex items-center justify-center text-xs font-medium transition-all duration-150 ${width === String(col) ? 'bg-disney-blue text-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+                    onClick={() => onWidthChange(String(col))}
+                    title={`${col} Column${col > 1 ? 's' : ''}`}
                   >
-                    {option.value}
+                    {col}
                   </button>
                 ))}
               </div>
             )}
-
-            {/* Settings button - hidden in demo mode */}
+            {/* Settings button directly opens the config dialog */}
             {onItemSelect && !isDemoMode && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  aria-label="Settings"
-                  className={`p-2 rounded-lg transition-colors duration-150 ${
-                    showSettings
-                      ? 'text-disney-blue bg-blue-50'
-                      : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Settings className="w-4 h-4" />
-                </button>
-
-                {/* Settings Dropdown */}
-                <AnimatePresence>
-                  {showSettings && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-20 p-3"
-                      >
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-2">
-                              Select Item to Display
-                            </label>
-                            <ItemSelector
-                              widgetId={id}
-                              widgetType={widgetType}
-                              selectedItemId={selectedItemId}
-                              onItemSelect={(itemId) => {
-                                onItemSelect(itemId)
-                                setShowSettings(false)
-                              }}
-                              isDemoMode={isDemoMode}
-                            />
-                          </div>
-
-                          {/* Edit Configuration Button */}
-                          {selectedItemId && (
-                            <div>
-                              <button
-                                onClick={() => {
-                                  const appRoute = widgetType === 'countdown' ? 'countdown' :
-                                                 widgetType === 'planner' ? 'planner' :
-                                                 widgetType === 'budget' ? 'budget' :
-                                                 'packing'
-                                  window.location.href = `/${appRoute}/new?widgetId=${id}&editItemId=${selectedItemId}`
-                                  setShowSettings(false)
-                                }}
-                                className="w-full px-3 py-2 text-sm bg-disney-blue text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-                              >
-                                <Settings className="w-4 h-4" />
-                                Edit Configuration
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Create New Button */}
-                          <div>
-                            <button
-                              onClick={() => {
-                                const appRoute = widgetType === 'countdown' ? 'countdown' :
-                                               widgetType === 'planner' ? 'planner' :
-                                               widgetType === 'budget' ? 'budget' :
-                                               'packing'
-                                window.location.href = `/${appRoute}/new?widgetId=${id}`
-                                setShowSettings(false)
-                              }}
-                              className="w-full px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Create New {widgetType === 'countdown' ? 'Countdown' :
-                                          widgetType === 'planner' ? 'Trip Plan' :
-                                          widgetType === 'budget' ? 'Budget' :
-                                          'Packing List'}
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      {/* Overlay to close settings */}
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowSettings(false)}
-                      />
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
+              <button
+                onClick={() => setShowConfigDialog(true)}
+                aria-label="Settings"
+                className={`p-2 rounded-lg transition-colors duration-150 text-disney-blue bg-blue-50`}
+              >
+                <Settings className="w-4 h-4" />
+              </button>
             )}
-
-            {/* Remove button - hidden in demo mode */}
             {onRemove && !isDemoMode && (
               <button
                 onClick={onRemove}
@@ -225,13 +122,37 @@ export default function WidgetBase({
             )}
           </div>
         </div>
-
         {/* Widget Content */}
         <div className="flex-1 p-3 widget-scroll overflow-hidden relative">
           {children}
-
-
         </div>
+        {/* Widget Config Selector Dialog */}
+        <WidgetConfigSelectorDialog
+          isOpen={showConfigDialog}
+          onClose={() => setShowConfigDialog(false)}
+          widgetType={widgetType}
+          selectedItemId={selectedItemId}
+          onSelect={(itemId: string) => {
+            onItemSelect?.(itemId)
+            setShowConfigDialog(false)
+          }}
+          onEdit={(itemId: string) => {
+            const appRoute = widgetType === 'countdown' ? 'countdown' :
+                           widgetType === 'planner' ? 'planner' :
+                           widgetType === 'budget' ? 'budget' :
+                           'packing'
+            window.location.href = `/${appRoute}/new?widgetId=${id}&editItemId=${itemId}`
+            setShowConfigDialog(false)
+          }}
+          onCreateNew={() => {
+            const appRoute = widgetType === 'countdown' ? 'countdown' :
+                           widgetType === 'planner' ? 'planner' :
+                           widgetType === 'budget' ? 'budget' :
+                           'packing'
+            window.location.href = `/${appRoute}/new?widgetId=${id}`
+            setShowConfigDialog(false)
+          }}
+        />
       </div>
     </motion.div>
   )

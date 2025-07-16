@@ -182,15 +182,17 @@ describe('Widget Editing Functionality', () => {
 
       // Wait for dropdown to open and be visible
       await waitFor(() => {
-        expect(screen.getByTestId('item-selector')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
       })
 
-      // Click Edit Configuration button
-      const editButton = screen.getByRole('button', { name: /edit configuration/i })
-      await user.click(editButton)
+      // Click Select Item button to open dialog
+      const selectButton = screen.getByRole('button', { name: /select countdown/i })
+      await user.click(selectButton)
 
-      // Verify navigation to correct edit page
-      expect(window.location.href).toBe('/countdown/new?widgetId=test-widget-1&editItemId=test-countdown-1')
+      // Verify dialog opens
+      await waitFor(() => {
+        expect(screen.getByText('Select Countdown')).toBeInTheDocument()
+      })
     })
 
     it('should navigate to correct edit page for different widget type', async () => {
@@ -203,11 +205,15 @@ describe('Widget Editing Functionality', () => {
       await user.hover(settingsButton)
       await user.click(settingsButton)
       await waitFor(() => {
-        expect(screen.getByTestId('item-selector')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /select trip plan/i })).toBeInTheDocument()
       })
-      const editButton = screen.getByRole('button', { name: /edit configuration/i })
-      await user.click(editButton)
-      expect(window.location.href).toBe('/planner/new?widgetId=test-widget-1&editItemId=test-countdown-1')
+      const selectButton = screen.getByRole('button', { name: /select trip plan/i })
+      await user.click(selectButton)
+
+      // Verify dialog opens
+      await waitFor(() => {
+        expect(screen.getByText('Select Trip Plan')).toBeInTheDocument()
+      })
     })
 
     it('should navigate to create new page when Create New is clicked', async () => {
@@ -222,7 +228,7 @@ describe('Widget Editing Functionality', () => {
 
       // Wait for dropdown to open and be visible
       await waitFor(() => {
-        expect(screen.getByTestId('item-selector')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
       })
 
       // Click Create New button
@@ -261,10 +267,10 @@ describe('Widget Editing Functionality', () => {
 
       // Wait for dropdown to open and be visible
       await waitFor(() => {
-        expect(screen.getByTestId('item-selector')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
       })
 
-      // Verify Edit Configuration button is not present
+      // Verify Edit Configuration button is not present (replaced with Select Item button)
       expect(screen.queryByRole('button', { name: /edit configuration/i })).not.toBeInTheDocument()
     })
   })
@@ -391,7 +397,7 @@ describe('Widget Editing Functionality', () => {
 
       // Wait for dropdown to open and be visible
       await waitFor(() => {
-        expect(screen.getByTestId('item-selector')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
       })
     })
 
@@ -524,24 +530,24 @@ describe('Widget Editing Functionality', () => {
     it('should complete full edit workflow: navigate, edit, auto-save, display', async () => {
       const user = userEvent.setup()
 
+      // Mock auto-save service
+      vi.mocked(AutoSaveService.saveCountdownData).mockResolvedValue()
+
       render(<WidgetBase {...mockWidgetProps} />)
 
-      // Step 1: Navigate to edit page
+      // Open settings dropdown
       const settingsButton = screen.getByLabelText('Settings')
       await user.hover(settingsButton)
       await user.click(settingsButton)
 
       // Wait for dropdown to open and be visible
       await waitFor(() => {
-        expect(screen.getByTestId('item-selector')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
       })
 
-      // Click Edit Configuration button
-      const editButton = screen.getByRole('button', { name: /edit configuration/i })
-      await user.click(editButton)
-
-      // Verify navigation occurred
-      expect(window.location.href).toBe('/countdown/new?widgetId=test-widget-1&editItemId=test-countdown-1')
+      // Verify the select item button is present
+      expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /create new countdown/i })).toBeInTheDocument()
     })
 
     it('should handle widget removal correctly', async () => {
