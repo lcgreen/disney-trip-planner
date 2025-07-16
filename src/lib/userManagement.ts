@@ -42,12 +42,6 @@ export const FEATURES: Record<string, FeatureAccess> = {
     description: 'Basic countdown timer',
     isEnabled: true
   },
-  packing: {
-    feature: 'packing',
-    level: UserLevel.PREMIUM,
-    description: 'Packing checklist',
-    isEnabled: true
-  },
 
   // Standard features - available to standard and premium users
   saveData: {
@@ -76,10 +70,22 @@ export const FEATURES: Record<string, FeatureAccess> = {
     description: 'Advanced trip planning',
     isEnabled: true
   },
+  tripPlanner: {
+    feature: 'tripPlanner',
+    level: UserLevel.PREMIUM,
+    description: 'Advanced trip planning',
+    isEnabled: true
+  },
   budget: {
     feature: 'budget',
     level: UserLevel.PREMIUM,
     description: 'Budget tracking and analysis',
+    isEnabled: true
+  },
+  packing: {
+    feature: 'packing',
+    level: UserLevel.PREMIUM,
+    description: 'Packing checklist',
     isEnabled: true
   },
   advancedAnalytics: {
@@ -251,22 +257,72 @@ export class UserManager {
     return this.currentUser?.level === UserLevel.ADMIN
   }
 
-  // Feature access control
+  // Enhanced feature access control with better error handling and logging
   hasFeatureAccess(feature: string): boolean {
-    if (!this.currentUser) return false
+    if (!this.currentUser) {
+      console.debug(`Feature access denied for '${feature}': No user`)
+      return false
+    }
 
     const featureDef = FEATURES[feature]
-    if (!featureDef) return false
+    if (!featureDef) {
+      console.warn(`Feature '${feature}' not found in FEATURES definition`)
+      return false
+    }
 
     const userLevel = this.currentUser.level
     const requiredLevel = featureDef.level
 
     // Admin only has access to admin features
     if (userLevel === UserLevel.ADMIN) {
-      return requiredLevel === UserLevel.ADMIN
+      const hasAccess = requiredLevel === UserLevel.ADMIN
+      console.debug(`Admin feature access for '${feature}': ${hasAccess}`)
+      return hasAccess
     }
 
+    let hasAccess = false
     switch (requiredLevel) {
+      case UserLevel.ANON:
+        hasAccess = true
+        break
+      case UserLevel.STANDARD:
+        hasAccess = userLevel === UserLevel.STANDARD || userLevel === UserLevel.PREMIUM
+        break
+      case UserLevel.PREMIUM:
+        hasAccess = userLevel === UserLevel.PREMIUM
+        break
+      case UserLevel.ADMIN:
+        hasAccess = false // Only admin users can access admin features
+        break
+      default:
+        hasAccess = false
+    }
+
+    console.debug(`Feature access for '${feature}': User level ${userLevel}, required ${requiredLevel}, access: ${hasAccess}`)
+    return hasAccess
+  }
+
+  // Check access by required level string (for plugin compatibility)
+  hasLevelAccess(requiredLevel: 'anon' | 'standard' | 'premium' | 'admin'): boolean {
+    if (!this.currentUser) return false
+
+    const userLevel = this.currentUser.level
+    const levelMap = {
+      'anon': UserLevel.ANON,
+      'standard': UserLevel.STANDARD,
+      'premium': UserLevel.PREMIUM,
+      'admin': UserLevel.ADMIN
+    }
+
+    const requiredUserLevel = levelMap[requiredLevel]
+    if (!requiredUserLevel) return false
+
+    // Admin only has access to admin features
+    if (userLevel === UserLevel.ADMIN) {
+      return requiredUserLevel === UserLevel.ADMIN
+    }
+
+    switch (requiredUserLevel) {
       case UserLevel.ANON:
         return true
       case UserLevel.STANDARD:
@@ -274,7 +330,7 @@ export class UserManager {
       case UserLevel.PREMIUM:
         return userLevel === UserLevel.PREMIUM
       case UserLevel.ADMIN:
-        return false // Only admin users can access admin features
+        return false
       default:
         return false
     }
@@ -357,13 +413,17 @@ export class UserManager {
 // Export singleton instance
 export const userManager = UserManager.getInstance()
 
-// Utility functions
+// Enhanced utility functions with better error handling
 export const getUserLevel = (): UserLevel => {
   return userManager.getCurrentUser()?.level || UserLevel.ANON
 }
 
 export const hasFeatureAccess = (feature: string): boolean => {
   return userManager.hasFeatureAccess(feature)
+}
+
+export const hasLevelAccess = (requiredLevel: 'anon' | 'standard' | 'premium' | 'admin'): boolean => {
+  return userManager.hasLevelAccess(requiredLevel)
 }
 
 export const isPremiumUser = (): boolean => {

@@ -1,32 +1,35 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Package } from 'lucide-react'
-import PackingChecklist from '@/components/PackingChecklist'
-import { PluginHeader, Modal, FeatureGuard } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
-import { packingStorage, storageUtils, type StoredPackingList } from '@/lib/storage'
+import { UnifiedStorage } from '@/lib/unifiedStorage'
+import { PluginHeader, Modal, FeatureGuard } from '@/components/ui'
+import PackingChecklist from '@/components/PackingChecklist'
+import { StoredPackingList } from '@/lib/storage'
 
 export default function PackingPage() {
-  const { hasFeatureAccess, userLevel } = useUser()
-  const [currentName, setCurrentName] = useState<string>('')
-  const [canSave, setCanSave] = useState<boolean>(false)
-  const [showSaveModal, setShowSaveModal] = useState<boolean>(false)
-  const [showLoadModal, setShowLoadModal] = useState<boolean>(false)
+  const { userLevel } = useUser()
+  const [currentName, setCurrentName] = useState('')
   const [savedLists, setSavedLists] = useState<StoredPackingList[]>([])
-  const [listToSave, setListToSave] = useState<string>('')
-  const packingRef = useRef<{ saveCurrentList: () => void; loadList: (list: StoredPackingList) => void }>(null)
+  const [activeList, setActiveList] = useState<StoredPackingList | null>(null)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showLoadModal, setShowLoadModal] = useState(false)
+  const [listToSave, setListToSave] = useState('')
+  const [canSave, setCanSave] = useState(false)
 
-  // Load saved lists on component mount
+  // Load saved lists on mount
   useEffect(() => {
-    const storage = storageUtils.initializePackingStorage()
-    setSavedLists(storage.lists)
+    const lists = UnifiedStorage.getPluginItems<StoredPackingList>('packing')
+    setSavedLists(lists)
   }, [])
 
-  const handleSave = (name: string) => {
-    setListToSave(name)
-    setShowSaveModal(true)
+  const handleSave = () => {
+    if (currentName.trim()) {
+      setListToSave(currentName.trim())
+      setShowSaveModal(true)
+    }
   }
 
   const handleLoad = () => {
@@ -35,243 +38,149 @@ export default function PackingPage() {
 
   const handleNew = () => {
     setCurrentName('')
-    setCanSave(false)
-    // The PackingChecklist component will handle resetting its internal state
-  }
-
-  const handleSaveConfirm = () => {
-    if (!listToSave.trim()) return
-
-    setCurrentName(listToSave.trim())
-    setCanSave(false)
+    setActiveList(null)
     setListToSave('')
-    setShowSaveModal(false)
-
-    // Trigger save in the component
-    if (packingRef.current?.saveCurrentList) {
-      packingRef.current.saveCurrentList()
-    }
-  }
-
-  const handleLoadConfirm = (list: StoredPackingList) => {
-    setCurrentName(list.name)
     setCanSave(false)
-    setShowLoadModal(false)
-
-    // Trigger load in the component
-    if (packingRef.current?.loadList) {
-      packingRef.current.loadList(list)
-    }
   }
 
-  const handleDeleteList = (listId: string) => {
-    packingStorage.update(storage => {
-      const lists = storage?.lists?.filter(list => list.id !== listId) || []
-      const activeListId = storage?.activeListId === listId ? undefined : storage?.activeListId
+  const confirmSave = () => {
+    if (listToSave.trim()) {
+      const listData: StoredPackingList = {
+        id: `packing-${Date.now()}`,
+        name: listToSave.trim(),
+        items: activeList?.items || [],
+        selectedWeather: activeList?.selectedWeather || ['sunny'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
 
-      return { lists, activeListId }
-    })
-
-    const storage = packingStorage.get()!
-    setSavedLists(storage.lists)
-
-    if (currentName && storage.activeListId === listId) {
-      setCurrentName('')
+      UnifiedStorage.addPluginItem('packing', listData)
+      setSavedLists(prev => [...prev, listData])
+      setActiveList(listData)
+      setCurrentName(listData.name)
+      setShowSaveModal(false)
+      setListToSave('')
       setCanSave(false)
     }
   }
 
-  // Show premium restriction for anonymous users
-  if (userLevel === 'anon') {
-    return (
-      <FeatureGuard feature="packing" requiredLevel="premium">
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
-            >
-              <PluginHeader
-                title="Disney Packing Checklist"
-                description="Never forget the essentials with our Disney-optimized packing lists"
-                icon={<Package className="w-8 h-8" />}
-                gradient="bg-gradient-to-r from-disney-green to-disney-teal"
-                currentName={currentName}
-                onSave={handleSave}
-                onLoad={handleLoad}
-                onNew={handleNew}
-                canSave={canSave}
-                placeholder="Name this packing list..."
-                saveButtonText="Save List"
-                loadButtonText="Load List"
-                newButtonText="New List"
-                saveModalTitle="Save Packing List"
-                saveModalDescription="Save your current packing list to access it later. Your list will be stored locally in your browser."
-              />
-
-              {/* Content */}
-              <div className="p-6">
-                <PackingChecklist
-                  ref={packingRef}
-                  currentName={currentName}
-                  onNameChange={setCurrentName}
-                  onCanSaveChange={setCanSave}
-                  savedLists={savedLists}
-                  onDeleteList={handleDeleteList}
-                />
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </FeatureGuard>
-    )
+  const handleSelectLoad = (list: StoredPackingList) => {
+    setActiveList(list)
+    setCurrentName(list.name)
+    setShowLoadModal(false)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
-        >
-          <PluginHeader
-            title="Disney Packing Checklist"
-            description="Never forget the essentials with our Disney-optimized packing lists"
-            icon={<Package className="w-8 h-8" />}
-            gradient="bg-gradient-to-r from-disney-green to-disney-teal"
-            currentName={currentName}
-            onSave={handleSave}
-            onLoad={handleLoad}
-            onNew={handleNew}
-            canSave={canSave}
-            placeholder="Name this packing list..."
-            saveButtonText="Save List"
-            loadButtonText="Load List"
-            newButtonText="New List"
-            saveModalTitle="Save Packing List"
-            saveModalDescription="Save your current packing list to access it later. Your list will be stored locally in your browser."
-          />
-
-          {/* Content */}
-          <div className="p-6">
-            <PackingChecklist
-              ref={packingRef}
+    <FeatureGuard requiredLevel="premium">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
+          >
+            <PluginHeader
+              title="Disney Packing Checklist"
+              description="Never forget to pack the essentials for your magical Disney adventure"
+              icon={<Package className="w-8 h-8" />}
+              gradient="bg-gradient-to-r from-green-500 to-emerald-500"
+              isPremium={true}
               currentName={currentName}
-              onNameChange={setCurrentName}
-              onCanSaveChange={setCanSave}
-              savedLists={savedLists}
-              onDeleteList={handleDeleteList}
+              onSave={handleSave}
+              onLoad={handleLoad}
+              onNew={handleNew}
+              canSave={canSave}
+              placeholder="Name this packing list..."
+              saveButtonText="Save List"
+              loadButtonText="Load List"
+              newButtonText="New List"
+              saveModalTitle="Save Packing List"
+              saveModalDescription="Save your current packing list to access it later. Your list will be stored locally in your browser."
             />
-          </div>
-        </motion.div>
+
+            {/* Content */}
+            <div className="p-6">
+              <PackingChecklist
+                currentName={currentName}
+                onNameChange={setCurrentName}
+                onCanSaveChange={setCanSave}
+                savedLists={savedLists}
+              />
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Save Modal */}
-      {hasFeatureAccess('saveData') && (
-        <Modal
-          isOpen={showSaveModal}
-          onClose={() => setShowSaveModal(false)}
-          title="Save Packing List"
-          size="md"
-        >
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Save your current packing list to access it later. Your list will be stored locally in your browser.
-            </p>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">List Name</label>
-              <input
-                type="text"
-                value={listToSave}
-                onChange={(e) => setListToSave(e.target.value)}
-                placeholder="Enter a name for your packing list..."
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-transparent"
-                autoFocus
-              />
-            </div>
+      <Modal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        title="Save Packing List"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Save your current packing list to access it later. Your list will be stored locally in your browser.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              List Name
+            </label>
+            <input
+              type="text"
+              value={listToSave}
+              onChange={(e) => setListToSave(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="My Disney Packing List"
+            />
           </div>
-          <div className="flex gap-3 mt-6">
+          <div className="flex space-x-3">
             <button
-              onClick={handleSaveConfirm}
+              onClick={confirmSave}
               disabled={!listToSave.trim()}
-              className="btn-disney flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save List
             </button>
             <button
               onClick={() => setShowSaveModal(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               Cancel
             </button>
           </div>
-        </Modal>
-      )}
+        </div>
+      </Modal>
 
       {/* Load Modal */}
-      {hasFeatureAccess('saveData') && (
-        <Modal
-          isOpen={showLoadModal}
-          onClose={() => setShowLoadModal(false)}
-          title="Load Packing List"
-          size="lg"
-        >
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Choose a saved packing list to load. This will replace your current list.
+      <Modal
+        isOpen={showLoadModal}
+        onClose={() => setShowLoadModal(false)}
+        title="Load Packing List"
+      >
+        <div className="space-y-4">
+          {savedLists.length === 0 ? (
+            <p className="text-gray-600 text-center py-8">
+              No saved lists found. Create a new packing list to get started!
             </p>
-            {savedLists.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No saved packing lists found.</p>
-                <p className="text-sm">Create and save a list to see it here.</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {savedLists.map((list) => (
-                  <div
-                    key={list.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-                  >
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{list.name}</h4>
-                      <p className="text-sm text-gray-500">
-                        {list.items.length} items • Updated {new Date(list.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleLoadConfirm(list)}
-                        className="btn-disney px-4 py-2"
-                      >
-                        Load
-                      </button>
-                      <button
-                        onClick={() => handleDeleteList(list.id)}
-                        className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-200"
-                      >
-                        Delete
-                      </button>
-                    </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {savedLists.map((list) => (
+                <button
+                  key={list.id}
+                  onClick={() => handleSelectLoad(list)}
+                  className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="font-medium text-gray-800">{list.name}</div>
+                  <div className="text-sm text-gray-500">
+                    {list.items.length} items • Last updated {new Date(list.updatedAt).toLocaleDateString()}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end mt-6">
-            <button
-              onClick={() => setShowLoadModal(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-          </div>
-        </Modal>
-      )}
-    </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+    </FeatureGuard>
   )
 }
