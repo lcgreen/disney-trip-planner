@@ -145,6 +145,7 @@ export default function PluginPageWrapper<T extends PluginData>({
                 icon={<Icon className="w-8 h-8" />}
                 gradient={gradient}
                 isPremium={true}
+                showPreview={true}
                 currentName={currentName}
                 onSave={handleSave}
                 onLoad={handleLoad}
@@ -188,6 +189,7 @@ export default function PluginPageWrapper<T extends PluginData>({
                 icon={<Icon className="w-8 h-8" />}
                 gradient={gradient}
                 isPremium={true}
+                showPreview={false}
                 currentName={currentName}
                 onSave={handleSave}
                 onLoad={handleLoad}
