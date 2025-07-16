@@ -23,6 +23,7 @@ vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
 }))
 
 // Mock components to avoid complex rendering
@@ -97,40 +98,40 @@ describe('Page Access Control', () => {
     it('should NOT allow standard users to access Budget page', () => {
       render(<BudgetPage />)
 
-            // Standard users should see a premium restriction
+                        // Standard users should see a preview with overlay
       const budgetTracker = screen.queryByTestId('budget-tracker')
-      const premiumFeatureHeading = screen.queryByText('Premium Feature')
+      const upgradeButton = screen.queryByText('Upgrade Now')
 
-      // Standard users should NOT see the actual component
-      expect(budgetTracker).not.toBeInTheDocument()
-      // Standard users should see the premium restriction
-      expect(premiumFeatureHeading).toBeInTheDocument()
+      // Standard users should see the preview component
+      expect(budgetTracker).toBeInTheDocument()
+      // Standard users should see the upgrade button from preview overlay
+      expect(upgradeButton).toBeInTheDocument()
     })
 
     it('should NOT allow standard users to access Planner page', () => {
       render(<PlannerPage />)
 
-            // Standard users should see a premium restriction
+                        // Standard users should see a preview with overlay
       const tripPlanner = screen.queryByTestId('trip-planner')
-      const premiumFeatureHeading = screen.queryByText('Premium Feature')
+      const upgradeButton = screen.queryByText('Upgrade Now')
 
-      // Standard users should NOT see the actual component
-      expect(tripPlanner).not.toBeInTheDocument()
-      // Standard users should see the premium restriction
-      expect(premiumFeatureHeading).toBeInTheDocument()
+      // Standard users should see the preview component
+      expect(tripPlanner).toBeInTheDocument()
+      // Standard users should see the upgrade button from preview overlay
+      expect(upgradeButton).toBeInTheDocument()
     })
 
     it('should NOT allow standard users to access Packing page', () => {
       render(<PackingPage />)
 
-            // Standard users should see a premium restriction
+                        // Standard users should see a preview with overlay
       const packingChecklist = screen.queryByTestId('packing-checklist')
-      const premiumFeatureHeading = screen.queryByText('Premium Feature')
+      const upgradeButton = screen.queryByText('Upgrade Now')
 
-      // Standard users should NOT see the actual component
-      expect(packingChecklist).not.toBeInTheDocument()
-      // Standard users should see the premium restriction
-      expect(premiumFeatureHeading).toBeInTheDocument()
+      // Standard users should see the preview component
+      expect(packingChecklist).toBeInTheDocument()
+      // Standard users should see the upgrade button from preview overlay
+      expect(upgradeButton).toBeInTheDocument()
     })
 
     it('should ALLOW standard users to access Countdown page', () => {
@@ -169,34 +170,34 @@ describe('Page Access Control', () => {
     it('should NOT allow anonymous users to access Budget page', () => {
       render(<BudgetPage />)
 
-            // Anonymous users should see a premium restriction
+                        // Anonymous users should see a preview with overlay
       const budgetTracker = screen.queryByTestId('budget-tracker')
-      const premiumFeatureHeading = screen.queryByText('Premium Feature')
+      const upgradeButton = screen.queryByText('Upgrade Now')
 
-      expect(budgetTracker).not.toBeInTheDocument()
-      expect(premiumFeatureHeading).toBeInTheDocument()
+      expect(budgetTracker).toBeInTheDocument()
+      expect(upgradeButton).toBeInTheDocument()
     })
 
     it('should NOT allow anonymous users to access Planner page', () => {
       render(<PlannerPage />)
 
-            // Anonymous users should see a premium restriction
+                        // Anonymous users should see a preview with overlay
       const tripPlanner = screen.queryByTestId('trip-planner')
-      const premiumFeatureHeading = screen.queryByText('Premium Feature')
+      const upgradeButton = screen.queryByText('Upgrade Now')
 
-      expect(tripPlanner).not.toBeInTheDocument()
-      expect(premiumFeatureHeading).toBeInTheDocument()
+      expect(tripPlanner).toBeInTheDocument()
+      expect(upgradeButton).toBeInTheDocument()
     })
 
     it('should NOT allow anonymous users to access Packing page', () => {
       render(<PackingPage />)
 
-            // Anonymous users should see a premium restriction
+                        // Anonymous users should see a preview with overlay
       const packingChecklist = screen.queryByTestId('packing-checklist')
-      const premiumFeatureHeading = screen.queryByText('Premium Feature')
+      const upgradeButton = screen.queryByText('Upgrade Now')
 
-      expect(packingChecklist).not.toBeInTheDocument()
-      expect(premiumFeatureHeading).toBeInTheDocument()
+      expect(packingChecklist).toBeInTheDocument()
+      expect(upgradeButton).toBeInTheDocument()
     })
 
     it('should ALLOW anonymous users to access Countdown page', () => {

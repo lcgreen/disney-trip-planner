@@ -58,6 +58,7 @@ export {
 
 // Overlays
 export { Modal, ConfirmModal } from './Modal'
+export { default as PreviewOverlay } from './PreviewOverlay'
 
 // Plugin Components
 export { default as PluginHeader } from './PluginHeader'

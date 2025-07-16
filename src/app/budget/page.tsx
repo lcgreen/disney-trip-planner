@@ -35,6 +35,7 @@ export default function BudgetPage() {
       gradient="bg-gradient-to-r from-disney-gold to-disney-orange"
       pluginId="budget"
       isPremium={true}
+      showPreview={true}
       currentName={currentName}
       onNameChange={setCurrentName}
       onSave={handleSave}

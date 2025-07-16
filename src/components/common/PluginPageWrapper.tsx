@@ -3,7 +3,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { LucideIcon } from 'lucide-react'
-import { PluginHeader, Modal, Badge } from '@/components/ui'
+import { PluginHeader, Modal, Badge, PreviewOverlay } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { UnifiedStorage } from '@/lib/unifiedStorage'
 import { PluginData } from '@/types'
@@ -15,6 +15,7 @@ interface PluginPageWrapperProps<T extends PluginData> {
   gradient: string
   pluginId: string
   isPremium?: boolean
+  showPreview?: boolean
   children: ReactNode
   onSave?: (data: Partial<T>) => void
   onLoad?: (item: T) => void
@@ -37,6 +38,7 @@ export default function PluginPageWrapper<T extends PluginData>({
   gradient,
   pluginId,
   isPremium = false,
+  showPreview = false,
   children,
   onSave,
   onLoad,
@@ -123,52 +125,98 @@ export default function PluginPageWrapper<T extends PluginData>({
     setCanSave?.(canSave)
   }, [canSave, setCanSave])
 
-  // Show premium restriction for users without premium access
+  // Handle premium restrictions
   if (isPremium && !userIsPremium) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
-          >
-            <PluginHeader
-              title={title}
-              description={description}
-              icon={<Icon className="w-8 h-8" />}
-              gradient={gradient}
-              isPremium={true}
-              currentName={currentName}
-              onSave={handleSave}
-              onLoad={handleLoad}
-              onNew={handleNew}
-              canSave={canSave}
-              placeholder={placeholder}
-              saveButtonText={saveButtonText}
-              loadButtonText={loadButtonText}
-              newButtonText={newButtonText}
-              saveModalTitle={saveModalTitle}
-              saveModalDescription={saveModalDescription}
-            />
-            <div className="p-6">
-              <div className="text-center py-12">
-                <Icon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">Premium Feature</h3>
-                <p className="text-gray-500 mb-4">This feature requires a premium account.</p>
-                <button
-                  onClick={() => window.location.href = '/upgrade'}
-                  className="px-6 py-3 bg-disney-gold text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
-                >
-                  Upgrade to Premium
-                </button>
-              </div>
-            </div>
-          </motion.div>
+    // Show preview mode if enabled, otherwise show full restriction
+    if (showPreview) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
+            >
+              <PluginHeader
+                title={title}
+                description={description}
+                icon={<Icon className="w-8 h-8" />}
+                gradient={gradient}
+                isPremium={true}
+                currentName={currentName}
+                onSave={handleSave}
+                onLoad={handleLoad}
+                onNew={handleNew}
+                canSave={canSave}
+                placeholder={placeholder}
+                saveButtonText={saveButtonText}
+                loadButtonText={loadButtonText}
+                newButtonText={newButtonText}
+                saveModalTitle={saveModalTitle}
+                saveModalDescription={saveModalDescription}
+              />
+
+              <PreviewOverlay
+                title={`${title} Preview`}
+                description={`See what you can do with ${title}. Upgrade to unlock full functionality and save your progress.`}
+                feature={pluginId}
+                isPreviewMode={true}
+                className="p-6"
+              >
+                {children}
+              </PreviewOverlay>
+            </motion.div>
+          </div>
         </div>
-      </div>
-    )
+      )
+    } else {
+      // Show full restriction
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
+            >
+              <PluginHeader
+                title={title}
+                description={description}
+                icon={<Icon className="w-8 h-8" />}
+                gradient={gradient}
+                isPremium={true}
+                currentName={currentName}
+                onSave={handleSave}
+                onLoad={handleLoad}
+                onNew={handleNew}
+                canSave={canSave}
+                placeholder={placeholder}
+                saveButtonText={saveButtonText}
+                loadButtonText={loadButtonText}
+                newButtonText={newButtonText}
+                saveModalTitle={saveModalTitle}
+                saveModalDescription={saveModalDescription}
+              />
+              <div className="p-6">
+                <div className="text-center py-12">
+                  <Icon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Premium Feature</h3>
+                  <p className="text-gray-500 mb-4">This feature requires a premium account.</p>
+                  <button
+                    onClick={() => window.location.href = '/upgrade'}
+                    className="px-6 py-3 bg-disney-gold text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+                  >
+                    Upgrade to Premium
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )
+    }
   }
 
   return (

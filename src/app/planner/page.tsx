@@ -35,6 +35,7 @@ export default function PlannerPage() {
       gradient="bg-gradient-to-r from-park-magic to-park-epcot"
       pluginId="planner"
       isPremium={true}
+      showPreview={true}
       currentName={currentName}
       onNameChange={setCurrentName}
       onSave={handleSave}

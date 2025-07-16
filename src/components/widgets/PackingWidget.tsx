@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Luggage, CheckCircle, Circle, Package } from 'lucide-react'
+import { Luggage, CheckCircle, Circle, Package, Crown } from 'lucide-react'
 import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useUser } from '@/hooks/useUser'
+import { PreviewOverlay } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
 
@@ -35,6 +37,7 @@ export default function PackingWidget({
   onItemSelect,
   isDemoMode = false
 }: PackingWidgetProps) {
+  const { isPremium: userIsPremium } = useUser()
   const [selectedPackingList, setSelectedPackingList] = useState<any>(null)
   const [packedItems, setPackedItems] = useState<PackingItem[]>([])
   const [unpackedItems, setUnpackedItems] = useState<PackingItem[]>([])
@@ -186,6 +189,50 @@ export default function PackingWidget({
   }
 
   const renderPackingList = () => {
+    // Check premium access (allow demo mode to bypass)
+    if (!isDemoMode && !userIsPremium) {
+      return (
+        <PreviewOverlay
+          title="Packing List"
+          description="Make sure you're prepared for your magical Disney adventure with our comprehensive packing guide!"
+          feature="packing"
+          isPreviewMode={true}
+          className="h-full"
+        >
+          <div className="space-y-3 p-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">Disney Vacation Packing</div>
+              <div className="text-xs text-gray-500">75% Complete</div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <div className="text-xs">
+                  <div className="font-medium">Comfortable Shoes</div>
+                  <div className="text-gray-500">Essentials</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <Circle className="w-4 h-4 text-gray-600" />
+                <div className="text-xs">
+                  <div className="font-medium">Portable Charger</div>
+                  <div className="text-gray-500">Electronics</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <Circle className="w-4 h-4 text-gray-600" />
+                <div className="text-xs">
+                  <div className="font-medium">Disney Autograph Book</div>
+                  <div className="text-gray-500">Souvenirs</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </PreviewOverlay>
+      )
+    }
+
     if (!selectedPackingList) {
       return (
         <div className="h-full flex flex-col items-center justify-center text-center p-2">

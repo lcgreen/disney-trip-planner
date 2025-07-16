@@ -35,6 +35,7 @@ export default function PackingPage() {
       gradient="bg-gradient-to-r from-green-500 to-emerald-500"
       pluginId="packing"
       isPremium={true}
+      showPreview={true}
       currentName={currentName}
       onNameChange={setCurrentName}
       onSave={handleSave}
@@ -49,9 +50,9 @@ export default function PackingPage() {
       saveModalDescription="Save your current packing list to access it later. Your list will be stored locally in your browser."
     >
       <PackingChecklist
-        currentName={currentName}
+        name={currentName}
         onNameChange={setCurrentName}
-        onCanSaveChange={setCanSave}
+        setCanSave={setCanSave}
       />
     </PluginPageWrapper>
   )

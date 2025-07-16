@@ -6,6 +6,7 @@ import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useUser } from '@/hooks/useUser'
+import { PreviewOverlay } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
 
@@ -172,20 +173,48 @@ export default function BudgetWidget({
   const renderBudget = () => {
     // Check premium access (allow demo mode to bypass)
     if (!isDemoMode && !userIsPremium) {
+      // Show preview with demo data
+      const demoStats = calculateBudgetStats()
+
       return (
-        <div className="h-full flex flex-col items-center justify-center text-center relative">
-          <div className="absolute top-2 right-2">
-            <Crown className="w-6 h-6 text-yellow-500" />
+        <PreviewOverlay
+          title="Budget Tracker"
+          description="Track your Disney vacation expenses and stay within budget for the most magical trip ever!"
+          feature="budget"
+          isPreviewMode={true}
+          className="h-full"
+        >
+          <div className="space-y-4 p-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">£{demoStats.spent}</div>
+                <div className="text-xs text-gray-500">Spent</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-600">£{demoStats.remaining}</div>
+                <div className="text-xs text-gray-500">Remaining</div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-gray-700">Recent Expenses</div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span>Park Tickets</span>
+                  <span className="font-medium">£150</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>Hotel</span>
+                  <span className="font-medium">£200</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>Meals</span>
+                  <span className="font-medium">£80</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <DollarSign className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">Premium Feature</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Upgrade to Premium to access budget tracking
-          </p>
-          <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-lg hover:shadow-lg transition-all text-sm">
-            Upgrade to Premium
-          </button>
-        </div>
+        </PreviewOverlay>
       )
     }
 

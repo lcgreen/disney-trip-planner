@@ -6,6 +6,7 @@ import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useUser } from '@/hooks/useUser'
+import { PreviewOverlay } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
 
@@ -207,19 +208,44 @@ export default function TripPlannerWidget({
   const renderTripPlanner = () => {
     if (!isPremiumUser()) {
       return (
-        <div className="h-full flex flex-col items-center justify-center text-center relative">
-          <div className="absolute top-2 right-2">
-            <Crown className="w-6 h-6 text-yellow-500" />
+        <PreviewOverlay
+          title="Trip Planner"
+          description="Plan your magical Disney adventure day by day with our comprehensive trip planner!"
+          feature="planner"
+          isPreviewMode={true}
+          className="h-full"
+        >
+          <div className="space-y-3 p-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-purple-600" />
+              <div className="text-sm font-medium">Today's Plans</div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
+                <Clock className="w-3 h-3 text-purple-600" />
+                <div className="text-xs">
+                  <div className="font-medium">9:00 AM - Magic Kingdom</div>
+                  <div className="text-gray-500">Space Mountain</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                <MapPin className="w-3 h-3 text-blue-600" />
+                <div className="text-xs">
+                  <div className="font-medium">2:00 PM - Fantasyland</div>
+                  <div className="text-gray-500">Character Meet & Greet</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+                <Clock className="w-3 h-3 text-green-600" />
+                <div className="text-xs">
+                  <div className="font-medium">7:00 PM - Dinner</div>
+                  <div className="text-gray-500">Be Our Guest Restaurant</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <Calendar className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">Premium Feature</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Upgrade to Premium to access trip planning
-          </p>
-          <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-lg hover:shadow-lg transition-all text-sm">
-            Upgrade to Premium
-          </button>
-        </div>
+        </PreviewOverlay>
       )
     }
 
