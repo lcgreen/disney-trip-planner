@@ -2,11 +2,11 @@ import { Luggage } from 'lucide-react'
 import {
   PluginInterface,
   PluginConfig,
-  PluginData,
   PluginWidget,
-  PluginRegistry,
-  PluginStorage
+  PluginRegistry
 } from '@/lib/pluginSystem'
+import { UnifiedStorage } from '@/lib/unifiedStorage'
+import { PackingData } from '@/types'
 import PackingWidget from '@/components/widgets/PackingWidget'
 
 // Debug import
@@ -18,11 +18,6 @@ export interface PackingItem {
   category: string
   isPacked: boolean
   isEssential: boolean
-}
-
-export interface PackingData extends PluginData {
-  items: PackingItem[]
-  selectedWeather: string[]
 }
 
 export class PackingPlugin implements PluginInterface {
@@ -72,16 +67,12 @@ export class PackingPlugin implements PluginInterface {
       updatedAt: new Date().toISOString()
     }
 
-    const items = this.getItems()
-    items.push(newItem)
-    await PluginStorage.saveData(this.getStorageKeys().items, { lists: items })
-
+    await UnifiedStorage.addPluginItem('packing', newItem)
     return id
   }
 
   getItems(): PackingData[] {
-    const data = PluginStorage.getData(this.getStorageKeys().items, { lists: [] })
-    return data.lists || []
+    return UnifiedStorage.getPluginItems<PackingData>('packing')
   }
 
   getItem(id: string): PackingData | null {
@@ -90,18 +81,11 @@ export class PackingPlugin implements PluginInterface {
   }
 
   updateItem(id: string, data: Partial<PackingData>): void {
-    const items = this.getItems()
-    const index = items.findIndex(item => item.id === id)
-    if (index >= 0) {
-      items[index] = { ...items[index], ...data, updatedAt: new Date().toISOString() }
-      PluginStorage.saveData(this.getStorageKeys().items, { lists: items })
-    }
+    UnifiedStorage.updatePluginItem('packing', id, data)
   }
 
   deleteItem(id: string): void {
-    const items = this.getItems()
-    const filtered = items.filter(item => item.id !== id)
-    PluginStorage.saveData(this.getStorageKeys().items, { lists: filtered })
+    UnifiedStorage.deletePluginItem('packing', id)
   }
 
   getWidgetData(widgetId: string, itemId?: string): any {
@@ -116,7 +100,7 @@ export class PackingPlugin implements PluginInterface {
 
   updateWidgetData(widgetId: string, data: any): void {
     // Update current state
-    PluginStorage.saveData(this.getStorageKeys().current, {
+    UnifiedStorage.saveData(this.getStorageKeys().current, {
       items: data.items || [],
       selectedWeather: data.selectedWeather || [],
       updatedAt: new Date().toISOString()

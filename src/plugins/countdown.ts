@@ -2,22 +2,15 @@ import { Clock } from 'lucide-react'
 import {
   PluginInterface,
   PluginConfig,
-  PluginData,
   PluginWidget,
-  PluginRegistry,
-  PluginStorage
+  PluginRegistry
 } from '@/lib/pluginSystem'
+import { UnifiedStorage } from '@/lib/unifiedStorage'
+import { CountdownData } from '@/types'
 import CountdownWidget from '@/components/widgets/CountdownWidget'
 
 // Debug import
 console.log('CountdownWidget import:', !!CountdownWidget)
-
-export interface CountdownData extends PluginData {
-  tripDate: string
-  park?: any
-  settings?: any
-  theme?: any
-}
 
 export class CountdownPlugin implements PluginInterface {
   config: PluginConfig = {
@@ -62,37 +55,28 @@ export class CountdownPlugin implements PluginInterface {
       name: name || 'My Disney Trip',
       tripDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
       park: { name: 'Disney World' },
-      settings: {},
+      settings: {
+        showMilliseconds: false,
+        showTimezone: true,
+        showTips: true,
+        showAttractions: true,
+        playSound: true,
+        autoRefresh: true,
+        digitStyle: 'modern' as const,
+        layout: 'horizontal' as const,
+        fontSize: 'medium' as const,
+        backgroundEffect: 'gradient' as const
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
 
-    const items = this.getItems()
-    items.push(newItem)
-    await PluginStorage.saveData(this.getStorageKeys().items, { countdowns: items })
-
-    // Also save to the main localStorage key for compatibility (with permission check)
-    if (typeof window !== 'undefined') {
-      try {
-        const { userManager } = await import('@/lib/userManagement')
-        if (userManager.hasFeatureAccess('saveData')) {
-          localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: items }))
-        }
-      } catch (error) {
-        console.warn('Could not check user permissions for localStorage save')
-      }
-    }
-
+    await UnifiedStorage.addPluginItem('countdown', newItem)
     return id
   }
 
   getItems(): CountdownData[] {
-    const data = PluginStorage.getData(this.getStorageKeys().items, { countdowns: [] })
-    const items = data.countdowns || []
-
-
-
-    return items
+    return UnifiedStorage.getPluginItems<CountdownData>('countdown')
   }
 
   getItem(id: string): CountdownData | null {
@@ -116,28 +100,11 @@ export class CountdownPlugin implements PluginInterface {
   }
 
   updateItem(id: string, data: Partial<CountdownData>): void {
-    const items = this.getItems()
-    const index = items.findIndex(item => item.id === id)
-    if (index >= 0) {
-      items[index] = { ...items[index], ...data, updatedAt: new Date().toISOString() }
-      PluginStorage.saveData(this.getStorageKeys().items, { countdowns: items })
-
-      // Also save to the main localStorage key for compatibility
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: items }))
-      }
-    }
+    UnifiedStorage.updatePluginItem('countdown', id, data)
   }
 
   deleteItem(id: string): void {
-    const items = this.getItems()
-    const filtered = items.filter(item => item.id !== id)
-    PluginStorage.saveData(this.getStorageKeys().items, { countdowns: filtered })
-
-    // Also save to the main localStorage key for compatibility
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: filtered }))
-    }
+    UnifiedStorage.deletePluginItem('countdown', id)
   }
 
   getWidgetData(widgetId: string, itemId?: string): any {
@@ -152,7 +119,7 @@ export class CountdownPlugin implements PluginInterface {
 
   updateWidgetData(widgetId: string, data: any): void {
     // Update current state
-    PluginStorage.saveData(this.getStorageKeys().current, {
+    UnifiedStorage.saveData(this.getStorageKeys().current, {
       tripDate: data.tripDate,
       title: data.name,
       park: data.park,

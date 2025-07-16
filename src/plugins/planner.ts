@@ -2,11 +2,11 @@ import { Calendar } from 'lucide-react'
 import {
   PluginInterface,
   PluginConfig,
-  PluginData,
   PluginWidget,
-  PluginRegistry,
-  PluginStorage
+  PluginRegistry
 } from '@/lib/pluginSystem'
+import { UnifiedStorage } from '@/lib/unifiedStorage'
+import { PlannerData } from '@/types'
 import TripPlannerWidget from '@/components/widgets/TripPlannerWidget'
 
 // Debug import
@@ -26,10 +26,6 @@ export interface DayPlan {
   date: string
   park: string
   activities: Activity[]
-}
-
-export interface PlannerData extends PluginData {
-  days: DayPlan[]
 }
 
 export class PlannerPlugin implements PluginInterface {
@@ -78,16 +74,12 @@ export class PlannerPlugin implements PluginInterface {
       updatedAt: new Date().toISOString()
     }
 
-    const items = this.getItems()
-    items.push(newItem)
-    await PluginStorage.saveData(this.getStorageKeys().items, { plans: items })
-
+    await UnifiedStorage.addPluginItem('planner', newItem)
     return id
   }
 
   getItems(): PlannerData[] {
-    const data = PluginStorage.getData(this.getStorageKeys().items, { plans: [] })
-    return data.plans || []
+    return UnifiedStorage.getPluginItems<PlannerData>('planner')
   }
 
   getItem(id: string): PlannerData | null {
@@ -96,18 +88,11 @@ export class PlannerPlugin implements PluginInterface {
   }
 
   updateItem(id: string, data: Partial<PlannerData>): void {
-    const items = this.getItems()
-    const index = items.findIndex(item => item.id === id)
-    if (index >= 0) {
-      items[index] = { ...items[index], ...data, updatedAt: new Date().toISOString() }
-      PluginStorage.saveData(this.getStorageKeys().items, { plans: items })
-    }
+    UnifiedStorage.updatePluginItem('planner', id, data)
   }
 
   deleteItem(id: string): void {
-    const items = this.getItems()
-    const filtered = items.filter(item => item.id !== id)
-    PluginStorage.saveData(this.getStorageKeys().items, { plans: filtered })
+    UnifiedStorage.deletePluginItem('planner', id)
   }
 
   getWidgetData(widgetId: string, itemId?: string): any {
@@ -122,7 +107,7 @@ export class PlannerPlugin implements PluginInterface {
 
   updateWidgetData(widgetId: string, data: any): void {
     // Update current state
-    PluginStorage.saveData(this.getStorageKeys().current, {
+    UnifiedStorage.saveData(this.getStorageKeys().current, {
       days: data.days || [],
       updatedAt: new Date().toISOString()
     })

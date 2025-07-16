@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Settings, X, Plus, Crown, LucideIcon } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
 import ItemSelector from './ItemSelector'
-
-export type WidgetSize = 'small' | 'medium' | 'large' | 'wide' | 'tall' | 'full'
+import { WidgetSize } from '@/types'
 
 interface WidgetBaseProps {
   id: string

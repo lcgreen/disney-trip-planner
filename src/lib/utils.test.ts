@@ -34,48 +34,48 @@ describe('Utility Functions', () => {
 
   describe('getSafeTextColor function', () => {
     it('should return white for dark backgrounds', () => {
-      expect(getSafeTextColor('#000000')).toBe('text-white')
-      expect(getSafeTextColor('#1a1a1a')).toBe('text-white')
-      expect(getSafeTextColor('#333333')).toBe('text-white')
+      expect(getSafeTextColor('#000000', 'white')).toBe('text-white')
+      expect(getSafeTextColor('#1a1a1a', 'white')).toBe('text-white')
+      expect(getSafeTextColor('#333333', 'white')).toBe('text-white')
     })
 
     it('should return black for light backgrounds', () => {
-      expect(getSafeTextColor('#ffffff')).toBe('text-black')
-      expect(getSafeTextColor('#f0f0f0')).toBe('text-black')
-      expect(getSafeTextColor('#e0e0e0')).toBe('text-black')
+      expect(getSafeTextColor('#ffffff', 'black')).toBe('text-black')
+      expect(getSafeTextColor('#f0f0f0', 'black')).toBe('text-black')
+      expect(getSafeTextColor('#e0e0e0', 'black')).toBe('text-black')
     })
 
     it('should handle hex colors without #', () => {
-      expect(getSafeTextColor('000000')).toBe('text-white')
-      expect(getSafeTextColor('ffffff')).toBe('text-black')
+      expect(getSafeTextColor('000000', 'white')).toBe('text-white')
+      expect(getSafeTextColor('ffffff', 'black')).toBe('text-black')
     })
 
     it('should handle rgb colors', () => {
-      expect(getSafeTextColor('rgb(0, 0, 0)')).toBe('text-white')
-      expect(getSafeTextColor('rgb(255, 255, 255)')).toBe('text-black')
+      expect(getSafeTextColor('rgb(0, 0, 0)', 'white')).toBe('text-white')
+      expect(getSafeTextColor('rgb(255, 255, 255)', 'black')).toBe('text-black')
     })
 
     it('should handle rgba colors', () => {
-      expect(getSafeTextColor('rgba(0, 0, 0, 1)')).toBe('text-white')
-      expect(getSafeTextColor('rgba(255, 255, 255, 1)')).toBe('text-black')
+      expect(getSafeTextColor('rgba(0, 0, 0, 1)', 'white')).toBe('text-white')
+      expect(getSafeTextColor('rgba(255, 255, 255, 1)', 'black')).toBe('text-black')
     })
 
     it('should handle hsl colors', () => {
-      expect(getSafeTextColor('hsl(0, 0%, 0%)')).toBe('text-white')
-      expect(getSafeTextColor('hsl(0, 0%, 100%)')).toBe('text-black')
+      expect(getSafeTextColor('hsl(0, 0%, 0%)', 'white')).toBe('text-white')
+      expect(getSafeTextColor('hsl(0, 0%, 100%)', 'black')).toBe('text-black')
     })
 
     it('should handle invalid colors gracefully', () => {
-      expect(getSafeTextColor('invalid')).toBe('text-black')
-      expect(getSafeTextColor('')).toBe('text-black')
-      expect(getSafeTextColor(null as any)).toBe('text-black')
-      expect(getSafeTextColor(undefined as any)).toBe('text-black')
+      expect(getSafeTextColor('invalid', 'black')).toBe('text-black')
+      expect(getSafeTextColor('', 'black')).toBe('text-black')
+      expect(getSafeTextColor(null as any, 'black')).toBe('text-black')
+      expect(getSafeTextColor(undefined as any, 'black')).toBe('text-black')
     })
 
     it('should handle edge case colors', () => {
       // Test colors that are close to the threshold
-      expect(getSafeTextColor('#666666')).toBe('text-white')
-      expect(getSafeTextColor('#999999')).toBe('text-black')
+      expect(getSafeTextColor('#666666', 'white')).toBe('text-white')
+      expect(getSafeTextColor('#999999', 'black')).toBe('text-black')
     })
   })
 })

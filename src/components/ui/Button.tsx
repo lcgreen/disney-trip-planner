@@ -68,9 +68,76 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const Comp = asChild ? Slot : 'button'
 
+    // If asChild is true, ensure children is a single React element
+    if (asChild && (!React.isValidElement(children) || React.Children.count(children) !== 1)) {
+      throw new Error('Button with asChild=true requires a single React element child.');
+    }
+
+    // If asChild is true, we need to handle loading and icons differently
+    // since Radix Slot requires exactly one child
+    if (asChild) {
+      const child = React.Children.only(children);
+
+      // Ensure child is a valid React element
+      if (!React.isValidElement(child)) {
+        throw new Error('Button with asChild=true requires a single React element child.');
+      }
+
+      // Clone the child and merge our props
+      return React.cloneElement(child, {
+        className: cn(
+          buttonVariants({ variant, size, fullWidth, className }),
+          isDisabled && 'opacity-50 cursor-not-allowed',
+          child.props.className
+        ),
+        disabled: isDisabled,
+        ...props,
+      } as any, (
+        <>
+          {loading && (
+            <svg
+              className="animate-spin -ml-1 mr-2 h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          )}
+
+          {icon && iconPosition === 'left' && !loading && (
+            <span className="mr-2 flex items-center">{icon}</span>
+          )}
+
+          {child.props.children}
+
+          {icon && iconPosition === 'right' && !loading && (
+            <span className="ml-2 flex items-center">{icon}</span>
+          )}
+        </>
+      ));
+    }
+
+    let safeChildren = children;
+
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, fullWidth, className }))}
+        className={cn(
+          buttonVariants({ variant, size, fullWidth, className }),
+          isDisabled && 'opacity-50 cursor-not-allowed'
+        )}
         ref={ref}
         disabled={isDisabled}
         {...props}
@@ -102,7 +169,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           <span className="mr-2 flex items-center">{icon}</span>
         )}
 
-        {children}
+        {safeChildren}
 
         {icon && iconPosition === 'right' && !loading && (
           <span className="ml-2 flex items-center">{icon}</span>

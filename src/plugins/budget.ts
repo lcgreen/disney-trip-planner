@@ -2,21 +2,17 @@ import { DollarSign } from 'lucide-react'
 import {
   PluginInterface,
   PluginConfig,
-  PluginData,
   PluginWidget,
-  PluginRegistry,
-  PluginStorage
+  PluginRegistry
 } from '@/lib/pluginSystem'
+import { UnifiedStorage } from '@/lib/unifiedStorage'
+import { BudgetData } from '@/types'
 import BudgetWidget from '@/components/widgets/BudgetWidget'
 
 // Debug import
 console.log('BudgetWidget import:', !!BudgetWidget)
 
-export interface BudgetData extends PluginData {
-  totalBudget: number
-  categories: any[]
-  expenses: any[]
-}
+
 
 export class BudgetPlugin implements PluginInterface {
   config: PluginConfig = {
@@ -66,16 +62,12 @@ export class BudgetPlugin implements PluginInterface {
       updatedAt: new Date().toISOString()
     }
 
-    const items = this.getItems()
-    items.push(newItem)
-    await PluginStorage.saveData(this.getStorageKeys().items, { budgets: items })
-
+    await UnifiedStorage.addPluginItem('budget', newItem)
     return id
   }
 
   getItems(): BudgetData[] {
-    const data = PluginStorage.getData(this.getStorageKeys().items, { budgets: [] })
-    return data.budgets || []
+    return UnifiedStorage.getPluginItems<BudgetData>('budget')
   }
 
   getItem(id: string): BudgetData | null {
@@ -84,18 +76,11 @@ export class BudgetPlugin implements PluginInterface {
   }
 
   updateItem(id: string, data: Partial<BudgetData>): void {
-    const items = this.getItems()
-    const index = items.findIndex(item => item.id === id)
-    if (index >= 0) {
-      items[index] = { ...items[index], ...data, updatedAt: new Date().toISOString() }
-      PluginStorage.saveData(this.getStorageKeys().items, { budgets: items })
-    }
+    UnifiedStorage.updatePluginItem('budget', id, data)
   }
 
   deleteItem(id: string): void {
-    const items = this.getItems()
-    const filtered = items.filter(item => item.id !== id)
-    PluginStorage.saveData(this.getStorageKeys().items, { budgets: filtered })
+    UnifiedStorage.deletePluginItem('budget', id)
   }
 
   getWidgetData(widgetId: string, itemId?: string): any {
@@ -110,7 +95,7 @@ export class BudgetPlugin implements PluginInterface {
 
   updateWidgetData(widgetId: string, data: any): void {
     // Update current state
-    PluginStorage.saveData(this.getStorageKeys().current, {
+    UnifiedStorage.saveData(this.getStorageKeys().current, {
       totalBudget: data.totalBudget || 0,
       categories: data.categories || [],
       expenses: data.expenses || [],

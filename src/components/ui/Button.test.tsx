@@ -242,7 +242,7 @@ describe('Button Component', () => {
       onMouseDown: vi.fn(),
       onMouseUp: vi.fn(),
       onKeyUp: vi.fn(),
-      onKeyPress: vi.fn()
+      onKeyDown: vi.fn()
     }
 
     render(<Button {...handlers}>Multiple Events</Button>)
@@ -254,13 +254,13 @@ describe('Button Component', () => {
     fireEvent.mouseDown(button)
     fireEvent.mouseUp(button)
     fireEvent.keyUp(button, { key: 'a' })
-    fireEvent.keyPress(button, { key: 'a' })
+    fireEvent.keyDown(button, { key: 'a' })
 
     expect(handlers.onClick).toHaveBeenCalledTimes(1)
     expect(handlers.onDoubleClick).toHaveBeenCalledTimes(1)
     expect(handlers.onMouseDown).toHaveBeenCalledTimes(1)
     expect(handlers.onMouseUp).toHaveBeenCalledTimes(1)
     expect(handlers.onKeyUp).toHaveBeenCalledTimes(1)
-    expect(handlers.onKeyPress).toHaveBeenCalledTimes(1)
+    expect(handlers.onKeyDown).toHaveBeenCalledTimes(1)
   })
 })
