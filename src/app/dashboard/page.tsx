@@ -82,11 +82,6 @@ export default function DashboardPage() {
   const getWidgetOptions = (hasFeatureAccess: (feature: string) => boolean, userLevel: string) => {
     return PluginRegistry.getAllPlugins()
       .filter(plugin => {
-        // Admin users only see admin features, not regular user widgets
-        if (userLevel === 'admin') {
-          return false // Admin users don't see regular widgets
-        }
-
         // Anonymous users can see all widgets on dashboard (they're shown as demo)
         if (userLevel === 'anon') {
           return true

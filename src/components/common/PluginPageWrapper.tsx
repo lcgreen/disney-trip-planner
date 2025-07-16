@@ -51,7 +51,7 @@ export default function PluginPageWrapper<T extends PluginData>({
   saveModalTitle = `Save ${pluginId.charAt(0).toUpperCase() + pluginId.slice(1)}`,
   saveModalDescription = `Save your current ${pluginId} to access it later. Your data will be stored locally in your browser.`
 }: PluginPageWrapperProps<T>) {
-  const { hasFeatureAccess, userLevel } = useUser()
+  const { hasFeatureAccess, userLevel, isPremium: userIsPremium } = useUser()
   const [savedItems, setSavedItems] = useState<T[]>([])
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showLoadModal, setShowLoadModal] = useState(false)
@@ -123,8 +123,8 @@ export default function PluginPageWrapper<T extends PluginData>({
     setCanSave?.(canSave)
   }, [canSave, setCanSave])
 
-  // Show premium restriction for anonymous users if required
-  if (isPremium && userLevel === 'anon') {
+  // Show premium restriction for users without premium access
+  if (isPremium && !userIsPremium) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

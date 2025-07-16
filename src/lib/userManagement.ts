@@ -246,11 +246,11 @@ export class UserManager {
   }
 
   isPremium(): boolean {
-    return this.currentUser?.level === UserLevel.PREMIUM
+    return this.currentUser?.level === UserLevel.PREMIUM || this.currentUser?.level === UserLevel.ADMIN
   }
 
   isStandard(): boolean {
-    return this.currentUser?.level === UserLevel.STANDARD || this.currentUser?.level === UserLevel.PREMIUM
+    return this.currentUser?.level === UserLevel.STANDARD || this.currentUser?.level === UserLevel.PREMIUM || this.currentUser?.level === UserLevel.ADMIN
   }
 
   isAdmin(): boolean {
@@ -273,11 +273,10 @@ export class UserManager {
     const userLevel = this.currentUser.level
     const requiredLevel = featureDef.level
 
-    // Admin only has access to admin features
+    // Admin users have access to ALL features
     if (userLevel === UserLevel.ADMIN) {
-      const hasAccess = requiredLevel === UserLevel.ADMIN
-      console.debug(`Admin feature access for '${feature}': ${hasAccess}`)
-      return hasAccess
+      console.debug(`Admin feature access for '${feature}': true`)
+      return true
     }
 
     let hasAccess = false
@@ -317,9 +316,9 @@ export class UserManager {
     const requiredUserLevel = levelMap[requiredLevel]
     if (!requiredUserLevel) return false
 
-    // Admin only has access to admin features
+    // Admin users have access to ALL levels
     if (userLevel === UserLevel.ADMIN) {
-      return requiredUserLevel === UserLevel.ADMIN
+      return true
     }
 
     switch (requiredUserLevel) {
@@ -388,6 +387,8 @@ export class UserManager {
         return { items: 10, storage: '10MB' }
       case UserLevel.PREMIUM:
         return { items: -1, storage: 'unlimited' } // -1 means unlimited
+      case UserLevel.ADMIN:
+        return { items: -1, storage: 'unlimited' } // Admin users have unlimited access
       default:
         return { items: 1, storage: '1MB' }
     }
