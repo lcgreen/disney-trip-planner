@@ -97,13 +97,6 @@ describe('Widget Editing Functionality', () => {
 
     // Clear widget configs before each test
     WidgetConfigManager.removeConfigSync('test-widget')
-    
-    // Mock plugin data
-    const mockPlugin = {
-      getItem: vi.fn().mockReturnValue(null),
-      getWidgetData: vi.fn().mockReturnValue(null),
-    }
-    vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockPlugin)
   })
 
   afterEach(() => {
@@ -312,9 +305,17 @@ describe('Widget Editing Functionality', () => {
           tripDate: '2024-12-25',
           park: { name: 'Magic Kingdom', gradient: 'from-red-500 to-blue-500' }
         }),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue({
+          id: 'countdown-1',
+          name: 'Disney World Trip',
+          tripDate: '2024-12-25',
+          park: { name: 'Magic Kingdom', gradient: 'from-red-500 to-blue-500' }
+        }),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockCountdownPlugin)
+
+      // Set up widget configuration with selected item
+      WidgetConfigManager.updateConfig('test-widget', { selectedItemId: 'countdown-1' })
 
       render(<CountdownWidget {...mockProps} />)
 
@@ -349,9 +350,17 @@ describe('Widget Editing Functionality', () => {
           total: 5000,
           categories: { 'Tickets': 2000, 'Food': 1500, 'Souvenirs': 1500 }
         }),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue({
+          id: 'budget-1',
+          name: 'Disney Budget',
+          total: 5000,
+          categories: { 'Tickets': 2000, 'Food': 1500, 'Souvenirs': 1500 }
+        }),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockBudgetPlugin)
+
+      // Set up widget configuration with selected item
+      WidgetConfigManager.updateConfig('test-widget', { selectedItemId: 'budget-1' })
 
       render(<BudgetWidget {...mockProps} />)
 
@@ -382,9 +391,18 @@ describe('Widget Editing Functionality', () => {
             { id: '1', date: '2024-12-25', time: '09:00', activity: 'Magic Kingdom', park: 'Magic Kingdom' }
           ]
         }),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue({
+          id: 'planner-1',
+          name: 'Disney Trip Plan',
+          plans: [
+            { id: '1', date: '2024-12-25', time: '09:00', activity: 'Magic Kingdom', park: 'Magic Kingdom' }
+          ]
+        }),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockPlannerPlugin)
+
+      // Set up widget configuration with selected item
+      WidgetConfigManager.updateConfig('test-widget', { selectedItemId: 'planner-1' })
 
       render(<TripPlannerWidget {...mockProps} />)
 
@@ -415,9 +433,18 @@ describe('Widget Editing Functionality', () => {
             { id: '1', name: 'Mickey Ears', checked: false, category: 'Accessories' }
           ]
         }),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue({
+          id: 'packing-1',
+          name: 'Disney Packing List',
+          items: [
+            { id: '1', name: 'Mickey Ears', checked: false, category: 'Accessories' }
+          ]
+        }),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockPackingPlugin)
+
+      // Set up widget configuration with selected item
+      WidgetConfigManager.updateConfig('test-widget', { selectedItemId: 'packing-1' })
 
       render(<PackingWidget {...mockProps} />)
 
@@ -484,7 +511,7 @@ describe('Widget Editing Functionality', () => {
 
       const mockCountdownPlugin = {
         getItem: vi.fn().mockReturnValue(mockCountdownData),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue(mockCountdownData),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockCountdownPlugin)
 
@@ -517,7 +544,7 @@ describe('Widget Editing Functionality', () => {
 
       const mockBudgetPlugin = {
         getItem: vi.fn().mockReturnValue(mockBudgetData),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue(mockBudgetData),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockBudgetPlugin)
 
@@ -549,7 +576,7 @@ describe('Widget Editing Functionality', () => {
 
       const mockPlannerPlugin = {
         getItem: vi.fn().mockReturnValue(mockPlannerData),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue(mockPlannerData),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockPlannerPlugin)
 
@@ -582,7 +609,7 @@ describe('Widget Editing Functionality', () => {
 
       const mockPackingPlugin = {
         getItem: vi.fn().mockReturnValue(mockPackingData),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue(mockPackingData),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockPackingPlugin)
 
@@ -635,7 +662,19 @@ describe('Widget Editing Functionality', () => {
             tripDate: '2024-12-26',
             park: { name: 'Epcot', gradient: 'from-green-500 to-blue-500' }
           }),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn()
+          .mockReturnValueOnce({
+            id: 'countdown-1',
+            name: 'First Countdown',
+            tripDate: '2024-12-25',
+            park: { name: 'Magic Kingdom', gradient: 'from-red-500 to-blue-500' }
+          })
+          .mockReturnValueOnce({
+            id: 'countdown-2',
+            name: 'Second Countdown',
+            tripDate: '2024-12-26',
+            park: { name: 'Epcot', gradient: 'from-green-500 to-blue-500' }
+          }),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockCountdownPlugin)
 
@@ -681,10 +720,13 @@ describe('Widget Editing Functionality', () => {
 
       const mockCountdownPlugin = {
         getItem: vi.fn().mockReturnValue(mockCountdownData),
-        getWidgetData: vi.fn(),
+        getWidgetData: vi.fn().mockReturnValue(mockCountdownData),
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockCountdownPlugin)
 
+      // Step 1: Ensure no widget configuration exists
+      WidgetConfigManager.removeConfigSync('test-widget')
+      
       // Step 1: Render widget with no selected item
       render(<CountdownWidget {...mockProps} />)
 
@@ -754,6 +796,13 @@ describe('Widget Editing Functionality', () => {
         logout: vi.fn(),
         ensureUser: vi.fn(),
       })
+
+      // Mock plugin to return null for demo mode
+      const mockCountdownPlugin = {
+        getItem: vi.fn().mockReturnValue(null),
+        getWidgetData: vi.fn().mockReturnValue(null),
+      }
+      vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockCountdownPlugin)
 
       render(<CountdownWidget {...mockProps} isDemoMode={true} />)
 
