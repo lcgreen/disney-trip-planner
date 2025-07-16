@@ -10,7 +10,8 @@ import {
   CategoryBadge,
   Select,
   ParkSelect,
-  Button
+  Button,
+  AutoSaveIndicator
 } from '@/components/ui'
 import {
   getAllActivityTypes,
@@ -23,6 +24,9 @@ import {
   getParkById
 } from '@/config'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useAutoSave } from '@/hooks/useAutoSave'
+import { AutoSaveService } from '@/lib/autoSaveService'
+import { useUser } from '@/hooks/useUser'
 import { PlannerData, PlannerDay, PlannerPlan } from '@/types'
 
 interface TripPlannerProps {
@@ -52,7 +56,9 @@ export default function TripPlanner({
   activePlan = null,
   setCanSave
 }: TripPlannerProps) {
+  const { userLevel, upgradeToPremium } = useUser()
   const [days, setDays] = useState<PlannerDay[]>([])
+  const [currentName, setCurrentName] = useState(name)
   const [showAddDay, setShowAddDay] = useState(false)
   const [showAddPlan, setShowAddPlan] = useState(false)
   const [editingPlan, setEditingPlan] = useState<PlannerPlan | null>(null)
@@ -68,18 +74,28 @@ export default function TripPlanner({
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState({ date: '', park: '' })
 
+  // Update currentName when name prop changes
+  useEffect(() => {
+    setCurrentName(name)
+  }, [name])
+
   // Load initial data
   useEffect(() => {
+    console.log('[TripPlanner] Loading from activePlan:', { isEditMode, activePlan })
     if (isEditMode && activePlan) {
+      console.log('[TripPlanner] Setting days from activePlan:', activePlan.days)
       setDays(activePlan.days)
     }
   }, [isEditMode, activePlan])
 
   // Load created item in edit mode
   useEffect(() => {
+    console.log('[TripPlanner] Loading from createdItemId:', { isEditMode, createdItemId })
     if (isEditMode && createdItemId) {
       const tripPlan = WidgetConfigManager.getSelectedItemData('planner', createdItemId) as PlannerData
+      console.log('[TripPlanner] Found trip plan from WidgetConfigManager:', tripPlan)
       if (tripPlan) {
+        console.log('[TripPlanner] Setting days from WidgetConfigManager:', tripPlan.days)
         setDays(tripPlan.days)
         onNameChange?.(tripPlan.name)
       }
@@ -94,8 +110,62 @@ export default function TripPlanner({
       })
     }
     const hasPlans = days.some(day => day.plans.length > 0)
-    setCanSave?.(hasPlans && name.trim().length > 0)
-  }, [days, name, onSave, setCanSave])
+    setCanSave?.(hasPlans && currentName.trim().length > 0)
+  }, [days, currentName, onSave, setCanSave])
+
+  // Auto-save functionality for widget editing
+  const autoSaveData = widgetId && isEditMode ? {
+    id: createdItemId || activePlan?.id || Date.now().toString(),
+    name: currentName || 'New Trip Plan',
+    days,
+    createdAt: activePlan?.createdAt || new Date().toISOString()
+  } : null
+
+  // Debug logging for auto-save data
+  useEffect(() => {
+    if (widgetId && isEditMode) {
+      console.log('[AutoSave Data] Current auto-save data:', autoSaveData)
+    }
+  }, [autoSaveData, widgetId, isEditMode])
+
+  const { forceSave, isSaving, lastSaved, error } = useAutoSave(
+    autoSaveData,
+    async (data) => {
+      if (data) {
+        console.log('[AutoSave] Attempting to save trip plan data:', data)
+        try {
+          await AutoSaveService.saveTripPlanData(data, widgetId || undefined)
+        } catch (error) {
+          console.error('[AutoSave] Error in save function:', error)
+          throw error
+        }
+      }
+    },
+    {
+      enabled: !!autoSaveData,
+      delay: 1000, // 1 second delay
+      onSave: () => {
+        console.log('[AutoSave] Successfully auto-saved trip plan changes')
+      },
+      onError: (error) => {
+        console.error('[AutoSave] Auto-save failed:', error)
+      }
+    }
+  )
+
+  // Debug logging for auto-save conditions
+  useEffect(() => {
+    console.log('[AutoSave Debug] Conditions:', {
+      widgetId,
+      isEditMode,
+      hasActivePlan: !!activePlan,
+      hasAutoSaveData: !!autoSaveData,
+      autoSaveEnabled: !!autoSaveData,
+      autoSaveData: autoSaveData,
+      daysLength: days.length,
+      currentName
+    })
+  }, [widgetId, isEditMode, activePlan, autoSaveData, days.length, currentName])
 
   const addNewDay = () => {
     // Clear previous errors
@@ -202,10 +272,59 @@ export default function TripPlanner({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-lg md:text-xl text-gray-600 mb-8"
+            className="text-lg md:text-xl text-gray-600 mb-4"
           >
             Plan your magical Disney adventure day by day with our comprehensive trip planner!
           </motion.p>
+
+          {/* Name input for widget editing */}
+          {widgetId && isEditMode && (
+            <div className="flex justify-center mb-4">
+              <input
+                type="text"
+                value={currentName}
+                onChange={(e) => setCurrentName(e.target.value)}
+                placeholder="Enter trip plan name..."
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue text-center text-lg font-medium"
+                style={{ minWidth: '300px' }}
+              />
+            </div>
+          )}
+
+          {/* Auto-save indicator for widget editing */}
+          {widgetId && isEditMode && (
+            <div className="flex justify-center mb-4 gap-4">
+              <AutoSaveIndicator
+                isSaving={isSaving}
+                lastSaved={lastSaved}
+                error={error}
+                className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm"
+              />
+              <button
+                onClick={() => {
+                  console.log('[Manual Test] Force saving trip plan data:', autoSaveData)
+                  forceSave()
+                }}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                Test Save
+              </button>
+              {userLevel === 'anon' && (
+                <button
+                  onClick={() => {
+                    console.log('[Debug] Upgrading user to premium')
+                    upgradeToPremium()
+                  }}
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                >
+                  Upgrade to Premium
+                </button>
+              )}
+              <div className="text-xs text-gray-500">
+                User Level: {userLevel}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Overview */}

@@ -39,8 +39,8 @@ function NewPlannerContent() {
       setIsCreating(true)
 
       // Short delay for smooth UX
-      setTimeout(() => {
-        const itemId = WidgetConfigManager.createAndLinkItem(widgetId, 'planner')
+      setTimeout(async () => {
+        const itemId = await WidgetConfigManager.createAndLinkItem(widgetId, 'planner')
         if (itemId) {
           setCreatedItemId(itemId)
           setIsCreating(false)
@@ -150,6 +150,7 @@ function NewPlannerContent() {
               createdItemId={createdItemId}
               widgetId={widgetId}
               isEditMode={!!createdItemId || !!editItemId}
+              name={editItemId ? 'Edit Trip Plan' : 'New Trip Plan'}
             />
           </div>
         </motion.div>

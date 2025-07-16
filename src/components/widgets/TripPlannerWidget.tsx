@@ -33,7 +33,8 @@ interface DayPlan {
   id: string
   date: string
   park: string
-  activities: Activity[]
+  activities?: Activity[]
+  plans?: Activity[] // Support both demo and real data structures
 }
 
 export default function TripPlannerWidget({
@@ -68,12 +69,16 @@ export default function TripPlannerWidget({
             )
 
             if (todaysDay) {
-              setTodaysActivities(todaysDay.activities)
+              // Handle both demo data (activities) and real data (plans)
+              const activities = (todaysDay as any).activities || (todaysDay as any).plans || []
+              setTodaysActivities(activities)
             } else {
               // If no activities for today, show first day's activities
               const firstDay = demoTripPlan.days[0]
               if (firstDay) {
-                setTodaysActivities(firstDay.activities)
+                // Handle both demo data (activities) and real data (plans)
+                const activities = (firstDay as any).activities || (firstDay as any).plans || []
+                setTodaysActivities(activities)
               } else {
                 setTodaysActivities([])
               }
@@ -110,12 +115,16 @@ export default function TripPlannerWidget({
           )
 
           if (todaysDay) {
-            setTodaysActivities(todaysDay.activities)
+            // Handle both demo data (activities) and real data (plans)
+            const activities = (todaysDay as any).activities || (todaysDay as any).plans || []
+            setTodaysActivities(activities)
           } else {
             // If no activities for today, show first day's activities
             const firstDay = tripPlan.days[0]
             if (firstDay) {
-              setTodaysActivities(firstDay.activities)
+              // Handle both demo data (activities) and real data (plans)
+              const activities = (firstDay as any).activities || (firstDay as any).plans || []
+              setTodaysActivities(activities)
             } else {
               setTodaysActivities([])
             }
@@ -154,12 +163,16 @@ export default function TripPlannerWidget({
           )
 
           if (todaysDay) {
-            setTodaysActivities(todaysDay.activities)
+            // Handle both demo data (activities) and real data (plans)
+            const activities = (todaysDay as any).activities || (todaysDay as any).plans || []
+            setTodaysActivities(activities)
           } else {
             // If no activities for today, show first day's activities
             const firstDay = tripPlan.days[0]
             if (firstDay) {
-              setTodaysActivities(firstDay.activities)
+              // Handle both demo data (activities) and real data (plans)
+              const activities = (firstDay as any).activities || (firstDay as any).plans || []
+              setTodaysActivities(activities)
             } else {
               setTodaysActivities([])
             }
@@ -218,7 +231,7 @@ export default function TripPlannerWidget({
           <div className="space-y-3 p-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-purple-600" />
-              <div className="text-sm font-medium">Today's Plans</div>
+              <div className="text-sm font-medium">Today&apos;s Plans</div>
             </div>
 
             <div className="space-y-2">
@@ -249,7 +262,7 @@ export default function TripPlannerWidget({
       )
     }
 
-    if (!selectedTripPlan || todaysActivities.length === 0) {
+    if (!selectedTripPlan || !todaysActivities || todaysActivities.length === 0) {
       return (
         <div className="h-full flex flex-col items-center justify-center text-center p-2">
           <Calendar className="w-10 h-10 text-gray-300 mb-3" />

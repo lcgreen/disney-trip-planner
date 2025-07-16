@@ -213,6 +213,11 @@ export class AutoSaveService {
     try {
       // Check if user has save permissions
       const { userManager } = await import('@/lib/userManagement')
+      console.log('[AutoSaveService] Checking save permissions...')
+      console.log('[AutoSaveService] User level:', userManager.getCurrentUser()?.level)
+      console.log('[AutoSaveService] Has saveData access:', userManager.hasFeatureAccess('saveData'))
+      console.log('[AutoSaveService] Has planner access:', userManager.hasFeatureAccess('planner'))
+
       if (!userManager.hasFeatureAccess('saveData')) {
         console.warn('Auto-save blocked: User does not have save permissions')
         return

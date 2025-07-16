@@ -121,6 +121,7 @@ export default function WidgetBase({
               <div className="relative">
                 <button
                   onClick={() => setShowSettings(!showSettings)}
+                  aria-label="Settings"
                   className={`p-2 rounded-lg transition-colors duration-150 ${
                     showSettings
                       ? 'text-disney-blue bg-blue-50'
@@ -216,6 +217,7 @@ export default function WidgetBase({
             {onRemove && !isDemoMode && (
               <button
                 onClick={onRemove}
+                aria-label="Remove"
                 className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors duration-150"
               >
                 <X className="w-4 h-4" />

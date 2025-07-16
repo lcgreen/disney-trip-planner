@@ -256,6 +256,9 @@ export default function PackingWidget({
     const packedCount = packedItems.length
     const progressPercentage = totalItems > 0 ? (packedCount / totalItems) * 100 : 0
 
+    // Debug: Log progress percentage and selectedPackingList
+    console.log('Rendering progress:', progressPercentage, selectedPackingList)
+
     return (
       <div className="h-full flex flex-col">
         {/* Header */}

@@ -9,6 +9,9 @@ import { PremiumBadge } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { hasFeatureAccess } from '@/lib/userManagement'
 
+// Debug log to check if PremiumBadge is properly imported
+console.log('PremiumBadge imported:', PremiumBadge)
+
 interface NavigationItem {
   href: string
   label: string
@@ -154,7 +157,7 @@ export default function Navigation() {
                     )}
                     {item.requiredLevel === 'premium' && userLevel !== 'anon' && canAccess && (
                       <div className="ml-auto">
-                        <PremiumBadge />
+                        {PremiumBadge ? <PremiumBadge /> : <Crown className="w-4 h-4 text-disney-gold" />}
                       </div>
                     )}
                   </Link>

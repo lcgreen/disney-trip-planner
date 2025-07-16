@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+always run tests without watching, as it causes your terminal to hang

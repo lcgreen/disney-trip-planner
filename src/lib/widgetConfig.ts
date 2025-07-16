@@ -419,35 +419,11 @@ export class WidgetConfigManager {
     const existingPlans = this.getAvailableTripPlans()
     const defaultName = name || `Trip Plan ${existingPlans.length + 1}`
 
-    // Create with a sample day
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
-    const defaultPlans = [
-      {
-        id: '1',
-        date: tomorrow.toISOString().split('T')[0],
-        time: '9:00 AM',
-        activity: 'Park Opening',
-        park: 'Magic Kingdom'
-      },
-      {
-        id: '2',
-        date: tomorrow.toISOString().split('T')[0],
-        time: '12:00 PM',
-        activity: 'Lunch Break',
-        park: 'Magic Kingdom'
-      }
-    ]
-
+    // Create with empty days array - no sample data
     const newPlan: PlannerData = {
       id: Date.now().toString(),
       name: defaultName,
-      days: [{
-        id: '1',
-        date: tomorrow.toISOString().split('T')[0],
-        plans: defaultPlans
-      }],
+      days: [], // Start with empty days
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }

@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
+import React from 'react'
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
@@ -56,13 +57,29 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }))
 
 // Mock Framer Motion
+// Add display names to the motion components
+const motionDiv = React.forwardRef(({ children, ...props }: any, ref) =>
+  React.createElement('div', { ...props, ref }, children)
+)
+motionDiv.displayName = 'motion.div'
+
+const motionButton = React.forwardRef(({ children, ...props }: any, ref) =>
+  React.createElement('button', { ...props, ref }, children)
+)
+motionButton.displayName = 'motion.button'
+
+const motionSpan = React.forwardRef(({ children, ...props }: any, ref) =>
+  React.createElement('span', { ...props, ref }, children)
+)
+motionSpan.displayName = 'motion.span'
+
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => ({ type: 'div', props: { ...props, children } }),
-    button: ({ children, ...props }: any) => ({ type: 'button', props: { ...props, children } }),
-    span: ({ children, ...props }: any) => ({ type: 'span', props: { ...props, children } }),
+    div: motionDiv,
+    button: motionButton,
+    span: motionSpan,
   },
-  AnimatePresence: ({ children }: any) => children,
+  AnimatePresence: ({ children }: any) => (typeof children === 'function' ? children() : children),
 }))
 
 // Mock audio

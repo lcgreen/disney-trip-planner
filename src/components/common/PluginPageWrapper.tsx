@@ -73,7 +73,7 @@ export default function PluginPageWrapper<T extends PluginData>({
     setShowSaveModal(true)
   }
 
-  const confirmSave = async (data: Partial<T>) => {
+  const confirmSave = async () => {
     if (!itemToSave.trim()) return
 
     if (!hasFeatureAccess('saveData')) {
@@ -81,12 +81,13 @@ export default function PluginPageWrapper<T extends PluginData>({
       return
     }
 
+    // For now, we'll create a basic item structure
+    // The actual data should come from the child component via onSave prop
     const newItem: T = {
       id: Date.now().toString(),
       name: itemToSave.trim(),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...data
+      updatedAt: new Date().toISOString()
     } as T
 
     await UnifiedStorage.addPluginItem(pluginId, newItem)
@@ -280,6 +281,13 @@ export default function PluginPageWrapper<T extends PluginData>({
                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                   >
                     Cancel
+                  </button>
+                  <button
+                    onClick={confirmSave}
+                    disabled={!itemToSave.trim()}
+                    className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  >
+                    Save
                   </button>
                 </div>
               </div>

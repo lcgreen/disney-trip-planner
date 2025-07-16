@@ -191,7 +191,10 @@ export default function CountdownTimer({
     if (isEditMode && createdItemId) {
       const countdown = WidgetConfigManager.getSelectedItemData('countdown', createdItemId) as CountdownData
       if (countdown) {
-        setTargetDate(countdown.tripDate)
+        // Convert ISO date string to local datetime format for the input
+        const date = new Date(countdown.tripDate)
+        const localDateTime = date.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:mm
+        setTargetDate(localDateTime)
         // Ensure we get the complete park object with all properties
         const fullPark = getParkById(countdown.park?.id) || countdown.park
         setSelectedPark(fullPark)
@@ -441,7 +444,7 @@ export default function CountdownTimer({
   }
 
   const currentTheme = customTheme || {
-    gradient: selectedPark.gradient,
+    gradient: selectedPark?.gradient,
     textColor: 'text-white',
     digitBg: 'bg-white/20'
   }
@@ -835,7 +838,7 @@ export default function CountdownTimer({
                   key={park.id}
                   onClick={() => setSelectedPark(park)}
                   className={`group p-5 rounded-xl border-2 transition-all duration-300 ${
-                    selectedPark.id === park.id
+                    selectedPark?.id === park.id
                       ? `border-transparent bg-gradient-to-r ${park.gradient} text-white shadow-xl`
                       : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-lg'
                   }`}
