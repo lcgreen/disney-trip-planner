@@ -9,6 +9,9 @@ import {
 } from '@/lib/pluginSystem'
 import BudgetWidget from '@/components/widgets/BudgetWidget'
 
+// Debug import
+console.log('BudgetWidget import:', !!BudgetWidget)
+
 export interface BudgetData extends PluginData {
   totalBudget: number
   categories: any[]
@@ -24,6 +27,7 @@ export class BudgetPlugin implements PluginInterface {
     color: 'from-green-500 to-emerald-500',
     route: '/budget',
     widgetType: 'budget',
+    requiredLevel: 'premium',
     isPremium: true
   }
 
@@ -47,10 +51,11 @@ export class BudgetPlugin implements PluginInterface {
   }
 
   getWidgetComponent() {
+    console.log('BudgetPlugin.getWidgetComponent called, returning:', !!BudgetWidget)
     return BudgetWidget
   }
 
-  createItem(name?: string): string {
+  async createItem(name?: string): Promise<string> {
     const id = `budget-${Date.now()}`
     const newItem: BudgetData = {
       id,
@@ -64,7 +69,7 @@ export class BudgetPlugin implements PluginInterface {
 
     const items = this.getItems()
     items.push(newItem)
-    PluginStorage.saveData(this.getStorageKeys().items, { budgets: items })
+    await PluginStorage.saveData(this.getStorageKeys().items, { budgets: items })
 
     return id
   }

@@ -8,7 +8,8 @@ export interface PluginConfig {
   color: string
   route: string
   widgetType: string
-  isPremium?: boolean
+  requiredLevel?: 'anon' | 'standard' | 'premium'
+  isPremium?: boolean // Legacy support
 }
 
 export interface PluginData {
@@ -37,7 +38,7 @@ export interface PluginInterface {
   getWidgetComponent: () => React.ComponentType<any>
 
   // Data management
-  createItem: (name?: string) => string
+  createItem: (name?: string) => string | Promise<string>
   getItems: () => PluginData[]
   getItem: (id: string) => PluginData | null
   updateItem: (id: string, data: Partial<PluginData>) => void
@@ -84,14 +85,26 @@ export class PluginStorage {
     return saved ? JSON.parse(saved) : defaultValue
   }
 
-  static saveData<T>(key: string, data: T): void {
+    static async saveData<T>(key: string, data: T): Promise<void> {
     if (typeof window === 'undefined') return
+
+    // Check if user has save permissions
+    try {
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Save blocked: User does not have save permissions')
+        return
+      }
+    } catch (error) {
+      console.warn('Could not check user permissions, allowing save')
+    }
+
     localStorage.setItem(key, JSON.stringify(data))
   }
 
-  static updateData<T>(key: string, updates: Partial<T>): void {
+  static async updateData<T>(key: string, updates: Partial<T>): Promise<void> {
     const currentData = this.getData(key, {} as T)
     const newData = { ...currentData, ...updates }
-    this.saveData(key, newData)
+    await this.saveData(key, newData)
   }
 }

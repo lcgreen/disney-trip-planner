@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Clock } from 'lucide-react'
 import CountdownTimer from '@/components/CountdownTimer'
 import { PluginHeader, Modal, Badge } from '@/components/ui'
+import { useUser } from '@/hooks/useUser'
 import { getAllParks, getParkById, type DisneyPark, type CountdownPalette } from '@/config'
 
 interface SavedCountdown {
@@ -18,6 +19,7 @@ interface SavedCountdown {
 }
 
 export default function CountdownPage() {
+  const { hasFeatureAccess } = useUser()
   const [currentName, setCurrentName] = useState<string>('')
   const [canSave, setCanSave] = useState<boolean>(false)
   const [savedCountdowns, setSavedCountdowns] = useState<SavedCountdown[]>([])
@@ -45,8 +47,15 @@ export default function CountdownPage() {
     setShowSaveModal(true)
   }
 
-  const confirmSave = (data: Partial<SavedCountdown>) => {
+  const confirmSave = async (data: Partial<SavedCountdown>) => {
     if (!countdownToSave.trim()) return
+
+    // Check if user has save permissions
+    if (!hasFeatureAccess('saveData')) {
+      console.warn('Save blocked: User does not have save permissions')
+      return
+    }
+
     const newCountdown: SavedCountdown = {
       id: Date.now().toString(),
       name: countdownToSave.trim(),
@@ -110,12 +119,13 @@ export default function CountdownPage() {
           />
 
           {/* Save Modal */}
-          <Modal
-            isOpen={showSaveModal}
-            onClose={() => setShowSaveModal(false)}
-            title="Save Countdown"
-            size="md"
-          >
+          {hasFeatureAccess('saveData') && (
+            <Modal
+              isOpen={showSaveModal}
+              onClose={() => setShowSaveModal(false)}
+              title="Save Countdown"
+              size="md"
+            >
             <div className="space-y-4">
               <p className="text-gray-600">
                 Save your current countdown to access it later. Your countdown will be stored locally in your browser.
@@ -142,14 +152,16 @@ export default function CountdownPage() {
               </div>
             </div>
           </Modal>
+          )}
 
           {/* Load Modal */}
-          <Modal
-            isOpen={showLoadModal}
-            onClose={() => setShowLoadModal(false)}
-            title="Load Countdown"
-            size="lg"
-          >
+          {hasFeatureAccess('saveData') && (
+            <Modal
+              isOpen={showLoadModal}
+              onClose={() => setShowLoadModal(false)}
+              title="Load Countdown"
+              size="lg"
+            >
             <div className="space-y-4">
               {savedCountdowns.length === 0 ? (
                 <div className="text-center py-8">
@@ -191,6 +203,7 @@ export default function CountdownPage() {
               )}
             </div>
           </Modal>
+          )}
 
           {/* Content */}
           <div className="p-6">

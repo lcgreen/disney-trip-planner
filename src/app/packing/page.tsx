@@ -5,9 +5,11 @@ import { motion } from 'framer-motion'
 import { Package } from 'lucide-react'
 import PackingChecklist from '@/components/PackingChecklist'
 import { PluginHeader, Modal } from '@/components/ui'
+import { useUser } from '@/hooks/useUser'
 import { packingStorage, storageUtils, type StoredPackingList } from '@/lib/storage'
 
 export default function PackingPage() {
+  const { hasFeatureAccess } = useUser()
   const [currentName, setCurrentName] = useState<string>('')
   const [canSave, setCanSave] = useState<boolean>(false)
   const [showSaveModal, setShowSaveModal] = useState<boolean>(false)
@@ -121,12 +123,13 @@ export default function PackingPage() {
       </div>
 
       {/* Save Modal */}
-      <Modal
-        isOpen={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
-        title="Save Packing List"
-        size="md"
-      >
+      {hasFeatureAccess('saveData') && (
+        <Modal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          title="Save Packing List"
+          size="md"
+        >
         <div className="space-y-4">
           <p className="text-gray-600">
             Save your current packing list to access it later. Your list will be stored locally in your browser.
@@ -159,14 +162,16 @@ export default function PackingPage() {
           </button>
         </div>
       </Modal>
+      )}
 
       {/* Load Modal */}
-      <Modal
-        isOpen={showLoadModal}
-        onClose={() => setShowLoadModal(false)}
-        title="Load Packing List"
-        size="lg"
-      >
+      {hasFeatureAccess('saveData') && (
+        <Modal
+          isOpen={showLoadModal}
+          onClose={() => setShowLoadModal(false)}
+          title="Load Packing List"
+          size="lg"
+        >
         <div className="space-y-4">
           <p className="text-gray-600">
             Choose a saved packing list to load. This will replace your current list.
@@ -218,6 +223,7 @@ export default function PackingPage() {
           </button>
         </div>
       </Modal>
+      )}
     </div>
   )
 }

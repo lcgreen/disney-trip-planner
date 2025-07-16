@@ -28,6 +28,13 @@ export class AutoSaveService {
     createdAt: string
   }, widgetId?: string): Promise<void> {
     try {
+      // Check if user has save permissions
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Auto-save blocked: User does not have save permissions')
+        return
+      }
+
       // Update localStorage
       const saved = localStorage.getItem('disney-countdowns')
       let countdowns = []
@@ -92,6 +99,13 @@ export class AutoSaveService {
     createdAt: string
   }, widgetId?: string): Promise<void> {
     try {
+      // Check if user has save permissions
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Auto-save blocked: User does not have save permissions')
+        return
+      }
+
       // Update localStorage
       const saved = localStorage.getItem('disney-budget-data')
       if (saved) {
@@ -152,6 +166,13 @@ export class AutoSaveService {
     createdAt: string
   }, widgetId?: string): Promise<void> {
     try {
+      // Check if user has save permissions
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Auto-save blocked: User does not have save permissions')
+        return
+      }
+
       // Update localStorage
       const saved = localStorage.getItem('disney-packing-lists')
       if (saved) {
@@ -211,6 +232,13 @@ export class AutoSaveService {
     createdAt: string
   }, widgetId?: string): Promise<void> {
     try {
+      // Check if user has save permissions
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Auto-save blocked: User does not have save permissions')
+        return
+      }
+
       // Update localStorage
       const saved = localStorage.getItem('disney-trip-plans')
       if (saved) {

@@ -185,7 +185,15 @@ export default function CountdownTimer({
 
   // Save settings to localStorage
   useEffect(() => {
-    localStorage.setItem('disney-countdown-settings', JSON.stringify(settings))
+    // Check if user has save permissions before saving settings
+    try {
+      const { userManager } = require('@/lib/userManagement')
+      if (userManager.hasFeatureAccess('saveData')) {
+        localStorage.setItem('disney-countdown-settings', JSON.stringify(settings))
+      }
+    } catch (error) {
+      console.warn('Could not check user permissions for settings save')
+    }
   }, [settings])
 
   // Auto-save current state for widgets (only when editing or when we have a valid countdown)
@@ -195,7 +203,7 @@ export default function CountdownTimer({
       const date = new Date(targetDate)
       if (!isNaN(date.getTime())) {
         const isoString = date.toISOString()
-        WidgetConfigManager.saveCurrentCountdownState(isoString, 'My Disney Trip', selectedPark)
+        WidgetConfigManager.saveCurrentCountdownState(isoString, 'My Disney Trip', selectedPark).catch(console.error)
       }
     }
   }, [targetDate, selectedPark, isEditMode, createdItemId])
@@ -410,6 +418,17 @@ export default function CountdownTimer({
   }
 
   const clearSavedCountdowns = (): void => {
+    // Check if user has save permissions before clearing
+    try {
+      const { userManager } = require('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Clear blocked: User does not have save permissions')
+        return
+      }
+    } catch (error) {
+      console.warn('Could not check user permissions for clear operation')
+    }
+
     // Clean up widget configurations for all countdown items before clearing
     savedCountdowns?.forEach(countdown => {
       WidgetConfigManager.cleanupDeletedItemReferences(countdown.id, 'countdown')

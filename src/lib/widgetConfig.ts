@@ -195,8 +195,20 @@ export class WidgetConfigManager {
     return saved ? JSON.parse(saved) : {}
   }
 
-  static saveData(data: WidgetData): void {
+  static async saveData(data: WidgetData): Promise<void> {
     if (typeof window === 'undefined') return
+
+    // Check if user has save permissions
+    try {
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Widget config save blocked: User does not have save permissions')
+        return
+      }
+    } catch (error) {
+      console.warn('Could not check user permissions for widget config save')
+    }
+
     localStorage.setItem(WIDGET_DATA_KEY, JSON.stringify(data))
   }
 
@@ -245,8 +257,20 @@ export class WidgetConfigManager {
   }
 
   // Methods to save/get current app state (live defaults for widgets)
-  static saveCurrentCountdownState(tripDate: string, title?: string, park?: any) {
+  static async saveCurrentCountdownState(tripDate: string, title?: string, park?: any) {
     if (typeof window === 'undefined') return
+
+    // Check if user has save permissions
+    try {
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Current state save blocked: User does not have save permissions')
+        return
+      }
+    } catch (error) {
+      console.warn('Could not check user permissions for current state save')
+    }
+
     const currentState = {
       tripDate,
       title: title || 'My Disney Trip',
@@ -262,8 +286,20 @@ export class WidgetConfigManager {
     return saved ? JSON.parse(saved) : null
   }
 
-  static saveCurrentPackingState(items: any[], selectedWeather?: string[]) {
+  static async saveCurrentPackingState(items: any[], selectedWeather?: string[]) {
     if (typeof window === 'undefined') return
+
+    // Check if user has save permissions
+    try {
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Current state save blocked: User does not have save permissions')
+        return
+      }
+    } catch (error) {
+      console.warn('Could not check user permissions for current state save')
+    }
+
     const currentState = {
       items,
       selectedWeather: selectedWeather || ['sunny'],
@@ -278,8 +314,20 @@ export class WidgetConfigManager {
     return saved ? JSON.parse(saved) : null
   }
 
-  static saveCurrentTripPlanState(days: any[]) {
+  static async saveCurrentTripPlanState(days: any[]) {
     if (typeof window === 'undefined') return
+
+    // Check if user has save permissions
+    try {
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Current state save blocked: User does not have save permissions')
+        return
+      }
+    } catch (error) {
+      console.warn('Could not check user permissions for current state save')
+    }
+
     const currentState = {
       days,
       updatedAt: new Date().toISOString()
@@ -293,8 +341,20 @@ export class WidgetConfigManager {
     return saved ? JSON.parse(saved) : null
   }
 
-  static saveCurrentBudgetState(totalBudget: number, categories: any[], expenses: any[]) {
+  static async saveCurrentBudgetState(totalBudget: number, categories: any[], expenses: any[]) {
     if (typeof window === 'undefined') return
+
+    // Check if user has save permissions
+    try {
+      const { userManager } = await import('@/lib/userManagement')
+      if (!userManager.hasFeatureAccess('saveData')) {
+        console.warn('Current state save blocked: User does not have save permissions')
+        return
+      }
+    } catch (error) {
+      console.warn('Could not check user permissions for current state save')
+    }
+
     const currentState = {
       totalBudget,
       categories,

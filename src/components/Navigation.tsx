@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Calendar, Clock, DollarSign, Package, Home, Menu, X, Crown, Layout } from 'lucide-react'
+import { Calendar, Clock, DollarSign, Package, Home, Menu, X, Crown, Layout, User } from 'lucide-react'
 import { PremiumBadge } from '@/components/ui'
+import { useUser } from '@/hooks/useUser'
+import { hasFeatureAccess } from '@/lib/userManagement'
 
 interface NavigationItem {
   href: string
@@ -47,12 +49,18 @@ const navigationItems: NavigationItem[] = [
     label: 'Packing List',
     icon: Package,
   },
+  {
+    href: '/test-user-levels',
+    label: 'Test User Levels',
+    icon: User,
+  },
 ]
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const pathname = usePathname()
+  const { isPremium, isStandard, userLevel, hasFeatureAccess: checkFeatureAccess } = useUser()
 
   useEffect(() => {
     setIsMounted(true)
@@ -63,8 +71,7 @@ export default function Navigation() {
   }, [])
 
   const isPremiumUser = () => {
-    // This would check actual subscription status
-    return true
+    return isPremium
   }
 
   // Don't render until mounted to prevent hydration issues
@@ -123,7 +130,7 @@ export default function Navigation() {
           <ul className="space-y-2">
             {navigationItems.map((item) => {
               const isActive = pathname === item.href
-              const canAccess = !item.isPremium || isPremiumUser()
+              const canAccess = !item.isPremium || checkFeatureAccess(item.isPremium ? 'tripPlanner' : 'countdown')
 
               return (
                 <li key={item.href}>
@@ -163,9 +170,26 @@ export default function Navigation() {
             })}
           </ul>
 
+          {/* User Profile Section */}
+          <div className="mt-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className={`p-2 rounded-full ${userLevel === 'premium' ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : userLevel === 'standard' ? 'bg-gradient-to-r from-blue-400 to-purple-500' : 'bg-gray-300'} text-white`}>
+                <User className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-800">
+                  {userLevel === 'premium' ? 'Premium' : userLevel === 'standard' ? 'Standard' : 'Anonymous'}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {userLevel === 'premium' ? 'All features unlocked' : userLevel === 'standard' ? 'Basic features' : 'Limited access'}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Premium upgrade section */}
           {!isPremiumUser() && (
-            <div className="mt-6 p-3 bg-gradient-to-br from-disney-gold/10 to-disney-orange/10 rounded-lg border border-disney-gold/20">
+            <div className="mt-4 p-3 bg-gradient-to-br from-disney-gold/10 to-disney-orange/10 rounded-lg border border-disney-gold/20">
               <div className="text-center">
                 <Crown className="w-6 h-6 text-disney-gold mx-auto mb-2" />
                 <h3 className="font-semibold text-gray-800 mb-1 text-sm">Go Premium</h3>

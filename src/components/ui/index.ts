@@ -84,3 +84,6 @@ export { cn } from '@/lib/utils'
 
 // Auto-save Components
 export { default as AutoSaveIndicator } from './AutoSaveIndicator'
+
+// Feature Access Control
+export { default as FeatureGuard } from '../FeatureGuard'

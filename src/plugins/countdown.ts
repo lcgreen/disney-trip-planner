@@ -9,6 +9,9 @@ import {
 } from '@/lib/pluginSystem'
 import CountdownWidget from '@/components/widgets/CountdownWidget'
 
+// Debug import
+console.log('CountdownWidget import:', !!CountdownWidget)
+
 export interface CountdownData extends PluginData {
   tripDate: string
   park?: any
@@ -25,6 +28,7 @@ export class CountdownPlugin implements PluginInterface {
     color: 'from-disney-blue to-disney-purple',
     route: '/countdown',
     widgetType: 'countdown',
+    requiredLevel: 'anon',
     isPremium: false
   }
 
@@ -48,10 +52,11 @@ export class CountdownPlugin implements PluginInterface {
   }
 
   getWidgetComponent() {
+    console.log('CountdownPlugin.getWidgetComponent called, returning:', !!CountdownWidget)
     return CountdownWidget
   }
 
-  createItem(name?: string): string {
+  async createItem(name?: string): Promise<string> {
     const id = `countdown-${Date.now()}`
     const newItem: CountdownData = {
       id,
@@ -65,11 +70,18 @@ export class CountdownPlugin implements PluginInterface {
 
     const items = this.getItems()
     items.push(newItem)
-    PluginStorage.saveData(this.getStorageKeys().items, { countdowns: items })
+    await PluginStorage.saveData(this.getStorageKeys().items, { countdowns: items })
 
-    // Also save to the main localStorage key for compatibility
+    // Also save to the main localStorage key for compatibility (with permission check)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: items }))
+      try {
+        const { userManager } = await import('@/lib/userManagement')
+        if (userManager.hasFeatureAccess('saveData')) {
+          localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: items }))
+        }
+      } catch (error) {
+        console.warn('Could not check user permissions for localStorage save')
+      }
     }
 
     return id

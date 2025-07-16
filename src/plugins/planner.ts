@@ -9,6 +9,9 @@ import {
 } from '@/lib/pluginSystem'
 import TripPlannerWidget from '@/components/widgets/TripPlannerWidget'
 
+// Debug import
+console.log('TripPlannerWidget import:', !!TripPlannerWidget)
+
 export interface Activity {
   id: string
   time: string
@@ -38,6 +41,7 @@ export class PlannerPlugin implements PluginInterface {
     color: 'from-park-magic to-park-epcot',
     route: '/planner',
     widgetType: 'planner',
+    requiredLevel: 'premium',
     isPremium: true
   }
 
@@ -61,10 +65,11 @@ export class PlannerPlugin implements PluginInterface {
   }
 
   getWidgetComponent() {
+    console.log('PlannerPlugin.getWidgetComponent called, returning:', !!TripPlannerWidget)
     return TripPlannerWidget
   }
 
-  createItem(name?: string): string {
+  async createItem(name?: string): Promise<string> {
     const id = `planner-${Date.now()}`
     const newItem: PlannerData = {
       id,
@@ -76,7 +81,7 @@ export class PlannerPlugin implements PluginInterface {
 
     const items = this.getItems()
     items.push(newItem)
-    PluginStorage.saveData(this.getStorageKeys().items, { plans: items })
+    await PluginStorage.saveData(this.getStorageKeys().items, { plans: items })
 
     return id
   }

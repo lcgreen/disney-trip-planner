@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Save, FolderOpen, Plus, Crown } from 'lucide-react'
 import { Button, Badge, Modal } from '@/components/ui'
+import { useUser } from '@/hooks/useUser'
 
 interface PluginHeaderProps {
   title: string
@@ -40,6 +41,7 @@ export default function PluginHeader({
   saveModalTitle,
   saveModalDescription
 }: PluginHeaderProps) {
+  const { hasFeatureAccess } = useUser()
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [nameToSave, setNameToSave] = useState('')
 
@@ -97,15 +99,17 @@ export default function PluginHeader({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={onLoad}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <FolderOpen className="w-4 h-4" />
-              {loadButtonText}
-            </Button>
+            {hasFeatureAccess('saveData') && (
+              <Button
+                onClick={onLoad}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <FolderOpen className="w-4 h-4" />
+                {loadButtonText}
+              </Button>
+            )}
             <Button
               onClick={onNew}
               variant="outline"
@@ -119,7 +123,7 @@ export default function PluginHeader({
         </div>
 
         {/* Quick Save Input */}
-        {canSave && (
+        {canSave && hasFeatureAccess('saveData') && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -137,15 +141,16 @@ export default function PluginHeader({
       </div>
 
       {/* Save Modal */}
-      <Modal
-        isOpen={showSaveModal}
-        onClose={() => {
-          setShowSaveModal(false)
-          setNameToSave('')
-        }}
-        title={saveModalTitle}
-        size="md"
-      >
+      {hasFeatureAccess('saveData') && (
+        <Modal
+          isOpen={showSaveModal}
+          onClose={() => {
+            setShowSaveModal(false)
+            setNameToSave('')
+          }}
+          title={saveModalTitle}
+          size="md"
+        >
         <div className="space-y-4">
           <p className="text-gray-600">
             {saveModalDescription}
@@ -187,6 +192,7 @@ export default function PluginHeader({
           </div>
         </div>
       </Modal>
+      )}
     </>
   )
 }

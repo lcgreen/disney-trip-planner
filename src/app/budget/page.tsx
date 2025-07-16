@@ -6,6 +6,7 @@ import { DollarSign } from 'lucide-react'
 import BudgetTracker from '@/components/BudgetTracker'
 import { PluginHeader, Modal, Badge } from '@/components/ui'
 import { type BudgetCategory as ConfigBudgetCategory } from '@/config'
+import { useUser } from '@/hooks/useUser'
 
 interface Expense {
   id: string
@@ -35,6 +36,7 @@ interface StoredBudgetData {
 }
 
 export default function BudgetPage() {
+  const { hasFeatureAccess } = useUser()
   const [currentName, setCurrentName] = useState<string>('')
   const [canSave, setCanSave] = useState<boolean>(false)
   const [savedBudgets, setSavedBudgets] = useState<StoredBudgetData[]>([])
@@ -62,8 +64,15 @@ export default function BudgetPage() {
     setShowSaveModal(true)
   }
 
-  const confirmSave = (data: Partial<StoredBudgetData>) => {
+  const confirmSave = async (data: Partial<StoredBudgetData>) => {
     if (!budgetToSave.trim()) return
+
+    // Check if user has save permissions
+    if (!hasFeatureAccess('saveData')) {
+      console.warn('Save blocked: User does not have save permissions')
+      return
+    }
+
     const newBudget: StoredBudgetData = {
       id: Date.now().toString(),
       name: budgetToSave.trim(),

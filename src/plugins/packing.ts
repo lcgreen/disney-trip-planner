@@ -9,6 +9,9 @@ import {
 } from '@/lib/pluginSystem'
 import PackingWidget from '@/components/widgets/PackingWidget'
 
+// Debug import
+console.log('PackingWidget import:', !!PackingWidget)
+
 export interface PackingItem {
   id: string
   name: string
@@ -31,6 +34,7 @@ export class PackingPlugin implements PluginInterface {
     color: 'from-orange-500 to-amber-500',
     route: '/packing',
     widgetType: 'packing',
+    requiredLevel: 'anon',
     isPremium: false
   }
 
@@ -54,10 +58,11 @@ export class PackingPlugin implements PluginInterface {
   }
 
   getWidgetComponent() {
+    console.log('PackingPlugin.getWidgetComponent called, returning:', !!PackingWidget)
     return PackingWidget
   }
 
-  createItem(name?: string): string {
+  async createItem(name?: string): Promise<string> {
     const id = `packing-${Date.now()}`
     const newItem: PackingData = {
       id,
@@ -70,7 +75,7 @@ export class PackingPlugin implements PluginInterface {
 
     const items = this.getItems()
     items.push(newItem)
-    PluginStorage.saveData(this.getStorageKeys().items, { lists: items })
+    await PluginStorage.saveData(this.getStorageKeys().items, { lists: items })
 
     return id
   }
