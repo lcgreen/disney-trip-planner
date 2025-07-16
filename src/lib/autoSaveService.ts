@@ -1,9 +1,9 @@
-import { WidgetConfigManager } from './widgetConfig'
+import { UnifiedStorage } from './unifiedStorage'
 
-export interface AutoSaveData {
+interface AutoSaveMetadata {
   id: string
   name: string
-  type: 'countdown' | 'planner' | 'budget' | 'packing'
+  type: 'countdown' | 'budget' | 'packing' | 'planner'
   data: any
   updatedAt: string
 }
@@ -35,15 +35,8 @@ export class AutoSaveService {
         return
       }
 
-      // Update localStorage
-      const saved = localStorage.getItem('disney-countdowns')
-      let countdowns = []
-
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        countdowns = Array.isArray(parsed) ? parsed : (parsed.countdowns || [])
-      }
-
+      // Update using UnifiedStorage
+      const countdowns = UnifiedStorage.getPluginItems('countdown')
       let found = false;
       const updatedCountdowns = countdowns.map((c: any) => {
         if (c.id === data.id) {
@@ -55,13 +48,11 @@ export class AutoSaveService {
       if (!found) {
         updatedCountdowns.push({ ...data, updatedAt: new Date().toISOString() });
       }
-      localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: updatedCountdowns }))
-
-      // Update widget config manager
-      WidgetConfigManager.saveCurrentCountdownState(data.date, data.name, data.park)
+      await UnifiedStorage.savePluginItems('countdown', updatedCountdowns)
 
       // Ensure widget config links to this countdown
       if (widgetId) {
+        const { WidgetConfigManager } = await import('@/lib/widgetConfig')
         const config = WidgetConfigManager.getConfig(widgetId)
         if (!config?.selectedItemId || config.selectedItemId !== data.id) {
           WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
@@ -106,30 +97,24 @@ export class AutoSaveService {
         return
       }
 
-      // Update localStorage
-      const saved = localStorage.getItem('disney-budget-data')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        const budgets = parsed.budgets || []
-        let found = false;
-        const updatedBudgets = budgets.map((b: any) => {
-          if (b.id === data.id) {
-            found = true;
-            return { ...data, updatedAt: new Date().toISOString() };
-          }
-          return b;
-        });
-        if (!found) {
-          updatedBudgets.push({ ...data, updatedAt: new Date().toISOString() });
+      // Update using UnifiedStorage
+      const budgets = UnifiedStorage.getPluginItems('budget')
+      let found = false;
+      const updatedBudgets = budgets.map((b: any) => {
+        if (b.id === data.id) {
+          found = true;
+          return { ...data, updatedAt: new Date().toISOString() };
         }
-        localStorage.setItem('disney-budget-data', JSON.stringify({ budgets: updatedBudgets }))
+        return b;
+      });
+      if (!found) {
+        updatedBudgets.push({ ...data, updatedAt: new Date().toISOString() });
       }
-
-      // Update widget config manager
-      WidgetConfigManager.saveCurrentBudgetState(data.totalBudget, data.categories, data.expenses)
+      await UnifiedStorage.savePluginItems('budget', updatedBudgets)
 
       // Ensure widget config links to this budget
       if (widgetId) {
+        const { WidgetConfigManager } = await import('@/lib/widgetConfig')
         const config = WidgetConfigManager.getConfig(widgetId)
         if (!config?.selectedItemId || config.selectedItemId !== data.id) {
           WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
@@ -173,30 +158,24 @@ export class AutoSaveService {
         return
       }
 
-      // Update localStorage
-      const saved = localStorage.getItem('disney-packing-lists')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        const lists = parsed.lists || []
-        let found = false;
-        const updatedLists = lists.map((l: any) => {
-          if (l.id === data.id) {
-            found = true;
-            return { ...data, updatedAt: new Date().toISOString() };
-          }
-          return l;
-        });
-        if (!found) {
-          updatedLists.push({ ...data, updatedAt: new Date().toISOString() });
+      // Update using UnifiedStorage
+      const lists = UnifiedStorage.getPluginItems('packing')
+      let found = false;
+      const updatedLists = lists.map((l: any) => {
+        if (l.id === data.id) {
+          found = true;
+          return { ...data, updatedAt: new Date().toISOString() };
         }
-        localStorage.setItem('disney-packing-lists', JSON.stringify({ lists: updatedLists }))
+        return l;
+      });
+      if (!found) {
+        updatedLists.push({ ...data, updatedAt: new Date().toISOString() });
       }
-
-      // Update widget config manager
-      WidgetConfigManager.saveCurrentPackingState(data.items, data.selectedWeather)
+      await UnifiedStorage.savePluginItems('packing', updatedLists)
 
       // Ensure widget config links to this packing list
       if (widgetId) {
+        const { WidgetConfigManager } = await import('@/lib/widgetConfig')
         const config = WidgetConfigManager.getConfig(widgetId)
         if (!config?.selectedItemId || config.selectedItemId !== data.id) {
           WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
@@ -239,36 +218,30 @@ export class AutoSaveService {
         return
       }
 
-      // Update localStorage
-      const saved = localStorage.getItem('disney-trip-plans')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        const plans = parsed.plans || []
-        let found = false;
-        const updatedPlans = plans.map((p: any) => {
-          if (p.id === data.id) {
-            found = true;
-            return { ...data, updatedAt: new Date().toISOString() };
-          }
-          return p;
-        });
-        if (!found) {
-          updatedPlans.push({ ...data, updatedAt: new Date().toISOString() });
+      // Update using UnifiedStorage
+      const plans = UnifiedStorage.getPluginItems('planner')
+      let found = false;
+      const updatedPlans = plans.map((p: any) => {
+        if (p.id === data.id) {
+          found = true;
+          return { ...data, updatedAt: new Date().toISOString() };
         }
-        localStorage.setItem('disney-trip-plans', JSON.stringify({ plans: updatedPlans }))
+        return p;
+      });
+      if (!found) {
+        updatedPlans.push({ ...data, updatedAt: new Date().toISOString() });
       }
-
-      // Update widget config manager
-      WidgetConfigManager.saveCurrentTripPlanState(data.days)
+      await UnifiedStorage.savePluginItems('planner', updatedPlans)
 
       // Ensure widget config links to this trip plan
       if (widgetId) {
+        const { WidgetConfigManager } = await import('@/lib/widgetConfig')
         const config = WidgetConfigManager.getConfig(widgetId)
         if (!config?.selectedItemId || config.selectedItemId !== data.id) {
           WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
-          console.log('[AutoSave] Linked widget', widgetId, 'to trip plan', data.id)
+          console.log('[AutoSave] Linked widget', widgetId, 'to planner', data.id)
         } else {
-          console.log('[AutoSave] Widget', widgetId, 'already linked to trip plan', data.id)
+          console.log('[AutoSave] Widget', widgetId, 'already linked to planner', data.id)
         }
       }
 
@@ -288,88 +261,34 @@ export class AutoSaveService {
     }
   }
 
-  /**
-   * Store auto-save metadata for tracking
+    /**
+   * Store auto-save metadata for debugging and recovery
    */
-  private static storeAutoSaveMetadata(metadata: AutoSaveData): void {
+  private static storeAutoSaveMetadata(metadata: AutoSaveMetadata): void {
     try {
-      const saved = localStorage.getItem(this.AUTO_SAVE_KEY)
-      const autoSaveData = saved ? JSON.parse(saved) : {}
+      const existing: AutoSaveMetadata[] = UnifiedStorage.getData(this.AUTO_SAVE_KEY, [])
+      const updated = existing.filter((item: AutoSaveMetadata) => item.id !== metadata.id)
+      updated.push(metadata)
 
-      autoSaveData[metadata.id] = metadata
-
-            // Keep only last 50 auto-save records
-      const entries = Object.entries(autoSaveData)
-      if (entries.length > 50) {
-        const sorted = entries.sort((a, b) =>
-          new Date((b[1] as AutoSaveData).updatedAt).getTime() - new Date((a[1] as AutoSaveData).updatedAt).getTime()
-        )
-        const trimmed = Object.fromEntries(sorted.slice(0, 50))
-        localStorage.setItem(this.AUTO_SAVE_KEY, JSON.stringify(trimmed))
-      } else {
-        localStorage.setItem(this.AUTO_SAVE_KEY, JSON.stringify(autoSaveData))
-      }
+      // Keep only last 10 auto-saves per type
+      const limited = updated.slice(-40) // 10 items * 4 types max
+      UnifiedStorage.saveData(this.AUTO_SAVE_KEY, limited)
     } catch (error) {
       console.error('Failed to store auto-save metadata:', error)
     }
   }
 
   /**
-   * Get auto-save metadata for a specific item
+   * Get auto-save metadata for debugging
    */
-  static getAutoSaveMetadata(itemId: string): AutoSaveData | null {
-    try {
-      const saved = localStorage.getItem(this.AUTO_SAVE_KEY)
-      if (!saved) return null
-
-      const autoSaveData = JSON.parse(saved)
-      return autoSaveData[itemId] || null
-    } catch (error) {
-      console.error('Failed to get auto-save metadata:', error)
-      return null
-    }
+  static getAutoSaveMetadata(): AutoSaveMetadata[] {
+    return UnifiedStorage.getData(this.AUTO_SAVE_KEY, [])
   }
 
   /**
-   * Get all auto-save metadata
+   * Clear auto-save metadata
    */
-  static getAllAutoSaveMetadata(): AutoSaveData[] {
-    try {
-      const saved = localStorage.getItem(this.AUTO_SAVE_KEY)
-      if (!saved) return []
-
-      const autoSaveData = JSON.parse(saved)
-      return Object.values(autoSaveData)
-    } catch (error) {
-      console.error('Failed to get all auto-save metadata:', error)
-      return []
-    }
-  }
-
-  /**
-   * Clear auto-save metadata for a specific item
-   */
-  static clearAutoSaveMetadata(itemId: string): void {
-    try {
-      const saved = localStorage.getItem(this.AUTO_SAVE_KEY)
-      if (!saved) return
-
-      const autoSaveData = JSON.parse(saved)
-      delete autoSaveData[itemId]
-      localStorage.setItem(this.AUTO_SAVE_KEY, JSON.stringify(autoSaveData))
-    } catch (error) {
-      console.error('Failed to clear auto-save metadata:', error)
-    }
-  }
-
-  /**
-   * Clear all auto-save metadata
-   */
-  static clearAllAutoSaveMetadata(): void {
-    try {
-      localStorage.removeItem(this.AUTO_SAVE_KEY)
-    } catch (error) {
-      console.error('Failed to clear all auto-save metadata:', error)
-    }
+  static clearAutoSaveMetadata(): void {
+    UnifiedStorage.saveData(this.AUTO_SAVE_KEY, [])
   }
 }

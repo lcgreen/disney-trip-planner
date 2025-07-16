@@ -22,50 +22,40 @@ import {
   type PackingCategory,
   type PackingItem as ConfigPackingItem
 } from '@/config'
-import {
-  packingStorage,
-  storageUtils,
-  type StoredPackingList,
-  type PackingStorage
-} from '@/lib/storage'
+import { PackingData, PackingItem } from '@/types'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-
-interface PackingItem {
-  id: string
-  name: string
-  category: string
-  isChecked: boolean
-  isEssential: boolean
-  weatherDependent?: string[]
-  description?: string
-  isCustom?: boolean
-}
 
 interface PackingChecklistProps {
   createdItemId?: string | null
   widgetId?: string | null
   isEditMode?: boolean
-  currentName?: string
+  name?: string
   onNameChange?: (name: string) => void
-  onCanSaveChange?: (canSave: boolean) => void
-  savedLists?: StoredPackingList[]
-  onDeleteList?: (listId: string) => void
+  onSave?: (data: Partial<PackingData>) => void
+  onLoad?: (list: PackingData) => void
+  onNew?: () => void
+  savedLists?: PackingData[]
+  activeList?: PackingData | null
+  setCanSave?: (canSave: boolean) => void
 }
 
 export interface PackingChecklistRef {
   saveCurrentList: () => void
-  loadList: (list: StoredPackingList) => void
+  loadList: (list: PackingData) => void
 }
 
 const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(({
   createdItemId = null,
   widgetId = null,
   isEditMode = false,
-  currentName = '',
+  name = '',
   onNameChange,
-  onCanSaveChange,
+  onSave,
+  onLoad,
+  onNew,
   savedLists = [],
-  onDeleteList
+  activeList = null,
+  setCanSave
 }, ref) => {
   // Get configuration data
   const categories = getAllPackingCategories()
@@ -77,7 +67,7 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
   const defaultItems: PackingItem[] = configDefaultItems.map((item, index) => ({
     ...item,
     id: index.toString(),
-    isChecked: false
+    checked: false
   }))
 
   const [items, setItems] = useState<PackingItem[]>(defaultItems)
@@ -89,60 +79,48 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
   })
   const [selectedWeather, setSelectedWeather] = useState<string[]>(['sunny'])
   const [filterCategory, setFilterCategory] = useState<string>('all')
-  const [activeListId, setActiveListId] = useState<string | null>(null)
 
-  // Load saved lists on component mount
+  // Load initial data
   useEffect(() => {
-    const storage = storageUtils.initializePackingStorage()
-
-    // Only load active list if we're in edit mode
-    // This prevents new lists from inheriting existing data
-    if (isEditMode && storage.activeListId) {
-      const activeList = storage.lists.find(list => list.id === storage.activeListId)
-      if (activeList) {
-        loadList(activeList)
-      }
+    if (isEditMode && activeList) {
+      setItems(activeList.items)
+      setSelectedWeather(activeList.selectedWeather)
     }
-  }, [isEditMode])
-
-  // Auto-save current list when items or weather change (if we have an active list)
-  useEffect(() => {
-    if (activeListId && currentName && items.some(item => item.isCustom || item.isChecked !== false)) {
-      saveCurrentList(false) // Silent save without showing modal
-    }
-  }, [items, selectedWeather, activeListId, currentName])
-
-  // Auto-save current state for widgets (only when editing or when we have a valid list)
-  useEffect(() => {
-    if ((isEditMode || createdItemId) && items.length > 0) {
-      WidgetConfigManager.saveCurrentPackingState(items, selectedWeather)
-    }
-  }, [items, selectedWeather, isEditMode, createdItemId])
+  }, [isEditMode, activeList])
 
   // Load created item in edit mode
   useEffect(() => {
     if (isEditMode && createdItemId) {
-      const packingList = WidgetConfigManager.getSelectedItemData('packing', createdItemId) as StoredPackingList
+      const packingList = WidgetConfigManager.getSelectedItemData('packing', createdItemId) as PackingData
       if (packingList) {
         setItems(packingList.items)
         setSelectedWeather(packingList.selectedWeather)
-        setActiveListId(packingList.id)
+        onNameChange?.(packingList.name)
       }
     }
-  }, [isEditMode, createdItemId])
+  }, [isEditMode, createdItemId, onNameChange])
 
-  // Update can save state when items change
+  // Update parent when data changes
   useEffect(() => {
-    if (onCanSaveChange) {
-      const hasChanges = items.some(item => item.isCustom || item.isChecked !== false)
-      onCanSaveChange(hasChanges && currentName.trim().length > 0)
+    if (onSave) {
+      onSave({
+        items,
+        selectedWeather
+      })
     }
-  }, [items, currentName, onCanSaveChange])
+    const hasChanges = items.some(item => item.checked !== false)
+    setCanSave?.(hasChanges && name.trim().length > 0)
+  }, [items, selectedWeather, name, onSave, setCanSave])
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
-    saveCurrentList: () => saveCurrentList(false),
-    loadList: (list: StoredPackingList) => loadList(list)
+    saveCurrentList: () => {
+      // This is handled by PluginPageWrapper now
+    },
+    loadList: (list: PackingData) => {
+      setItems(list.items)
+      setSelectedWeather(list.selectedWeather)
+    }
   }))
 
   const addItem = () => {
@@ -151,9 +129,7 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
         id: Date.now().toString(),
         name: newItem.name.trim(),
         category: newItem.category,
-        isChecked: false,
-        isEssential: newItem.isEssential,
-        isCustom: true
+        checked: false
       }
       setItems([...items, item])
       setNewItem({ name: '', category: 'other', isEssential: false })
@@ -163,7 +139,7 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
 
   const toggleItem = (id: string) => {
     setItems(items.map(item =>
-      item.id === id ? { ...item, isChecked: !item.isChecked } : item
+      item.id === id ? { ...item, checked: !item.checked } : item
     ))
   }
 
@@ -179,105 +155,6 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
     )
   }
 
-  // Storage functions
-  const saveCurrentList = (showModal: boolean = true) => {
-    if (!currentName.trim()) return
-
-    const listData: StoredPackingList = {
-      id: activeListId || storageUtils.generateId(),
-      name: currentName.trim(),
-      items: items.map(item => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        isChecked: item.isChecked,
-        isEssential: item.isEssential,
-        weatherDependent: item.weatherDependent,
-        description: item.description,
-        isCustom: item.isCustom || false
-      })),
-      selectedWeather,
-      createdAt: activeListId ? savedLists.find(l => l.id === activeListId)?.createdAt || storageUtils.getCurrentTimestamp() : storageUtils.getCurrentTimestamp(),
-      updatedAt: storageUtils.getCurrentTimestamp()
-    }
-
-    packingStorage.update(storage => {
-      const lists = storage?.lists || []
-      const existingIndex = lists.findIndex(list => list.id === listData.id)
-
-      if (existingIndex >= 0) {
-        lists[existingIndex] = listData
-      } else {
-        lists.push(listData)
-      }
-
-      return {
-        lists,
-        activeListId: listData.id
-      }
-    })
-
-    // Update local state
-    setActiveListId(listData.id)
-
-    if (showModal) {
-      // Check for pending widget links and auto-link if needed
-      WidgetConfigManager.checkAndApplyPendingLinks(listData.id, 'packing')
-    }
-  }
-
-  const loadList = (list: StoredPackingList) => {
-    setItems(list.items.map(item => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      isChecked: item.isChecked,
-      isEssential: item.isEssential,
-      weatherDependent: item.weatherDependent,
-      description: item.description,
-      isCustom: item.isCustom
-    })))
-    setSelectedWeather(list.selectedWeather)
-    setActiveListId(list.id)
-
-    // Update active list in storage
-    packingStorage.update(storage => ({
-      ...storage,
-      lists: storage?.lists || [],
-      activeListId: list.id
-    }))
-  }
-
-  const deleteList = (listId: string) => {
-    packingStorage.update(storage => {
-      const lists = storage?.lists?.filter(list => list.id !== listId) || []
-      const activeListId = storage?.activeListId === listId ? undefined : storage?.activeListId
-
-      return { lists, activeListId }
-    })
-
-    if (activeListId === listId) {
-      setActiveListId(null)
-      setItems(defaultItems)
-      setSelectedWeather(['sunny'])
-    }
-
-    // Clean up widget configurations that reference this deleted item
-    WidgetConfigManager.cleanupDeletedItemReferences(listId, 'packing')
-  }
-
-  const startNewList = () => {
-    setItems(defaultItems)
-    setSelectedWeather(['sunny'])
-    setActiveListId(null)
-
-    packingStorage.update(storage => ({
-      ...storage,
-      lists: storage?.lists || [],
-      activeListId: undefined
-    }))
-  }
-
   const getFilteredItems = () => {
     let filtered = items
 
@@ -286,10 +163,11 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
       filtered = filtered.filter(item => item.category === filterCategory)
     }
 
-    // Filter by weather
+    // Filter by weather (if weather dependency exists in config)
     filtered = filtered.filter(item => {
-      if (!item.weatherDependent) return true
-      return item.weatherDependent.some(weather => selectedWeather.includes(weather))
+      const configItem = configDefaultItems.find(config => config.name === item.name)
+      if (!configItem?.weatherDependent) return true
+      return configItem.weatherDependent.some(weather => selectedWeather.includes(weather))
     })
 
     return filtered
@@ -301,9 +179,15 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
 
   const getCompletionStats = () => {
     const total = getFilteredItems().length
-    const completed = getFilteredItems().filter(item => item.isChecked).length
-    const essential = getFilteredItems().filter(item => item.isEssential).length
-    const completedEssential = getFilteredItems().filter(item => item.isEssential && item.isChecked).length
+    const completed = getFilteredItems().filter(item => item.checked).length
+    const essential = getFilteredItems().filter(item => {
+      const configItem = configDefaultItems.find(config => config.name === item.name)
+      return configItem?.isEssential
+    }).length
+    const completedEssential = getFilteredItems().filter(item => {
+      const configItem = configDefaultItems.find(config => config.name === item.name)
+      return configItem?.isEssential && item.checked
+    }).length
 
     return { total, completed, essential, completedEssential }
   }
@@ -337,8 +221,6 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
           >
             Make sure you&rsquo;re prepared for your magical Disney adventure with our comprehensive packing guide!
           </motion.p>
-
-
         </div>
 
         {/* Weather Selection */}
@@ -423,7 +305,7 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
                       <span className="text-2xl md:text-3xl">{category.icon}</span>
                       {category.name}
                       <CountBadge
-                        count={categoryItems.filter(item => item.isChecked).length}
+                        count={categoryItems.filter(item => item.checked).length}
                         max={categoryItems.length}
                       />
                     </h3>
@@ -431,50 +313,57 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
 
                   <div className="p-4 md:p-6">
                     <div className="space-y-3">
-                      {categoryItems.map((item, itemIndex) => (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.7 + index * 0.1 + itemIndex * 0.05 }}
-                          className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] ${
-                            item.isChecked
-                              ? 'bg-green-50 border-green-200 shadow-md'
-                              : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg'
-                          }`}
-                        >
-                          <Checkbox
-                            checked={item.isChecked}
-                            onCheckedChange={() => toggleItem(item.id)}
-                            className="scale-110"
-                          />
+                      {categoryItems.map((item, itemIndex) => {
+                        const configItem = configDefaultItems.find(config => config.name === item.name)
+                        const isEssential = configItem?.isEssential
+                        const weatherDependent = configItem?.weatherDependent
+                        const isCustom = !configItem
 
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`font-medium ${item.isChecked ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                                {item.name}
-                              </span>
-                              {item.isEssential && (
-                                <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        return (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.7 + index * 0.1 + itemIndex * 0.05 }}
+                            className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] ${
+                              item.checked
+                                ? 'bg-green-50 border-green-200 shadow-md'
+                                : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg'
+                            }`}
+                          >
+                            <Checkbox
+                              checked={item.checked}
+                              onCheckedChange={() => toggleItem(item.id)}
+                              className="scale-110"
+                            />
+
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`font-medium ${item.checked ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                                  {item.name}
+                                </span>
+                                {isEssential && (
+                                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                                )}
+                              </div>
+                              {weatherDependent && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Weather: {weatherDependent.join(', ')}
+                                </div>
                               )}
                             </div>
-                            {item.weatherDependent && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Weather: {item.weatherDependent.join(', ')}
-                              </div>
-                            )}
-                          </div>
 
-                          {!configDefaultItems.some(defaultItem => defaultItem.name === item.name) && (
-                            <button
-                              onClick={() => deleteItem(item.id)}
-                              className="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </motion.div>
-                      ))}
+                            {isCustom && (
+                              <button
+                                onClick={() => deleteItem(item.id)}
+                                className="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </motion.div>
+                        )
+                      })}
                     </div>
                   </div>
                 </motion.div>
@@ -596,8 +485,6 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
             </div>
           </div>
         </motion.div>
-
-
       </div>
     </div>
   )

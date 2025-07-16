@@ -10,25 +10,22 @@ import { useUser } from '@/hooks/useUser'
 import PremiumRestriction from '@/components/PremiumRestriction'
 
 function NewPlannerContent() {
+  // All hooks must be called first, before any conditional logic
   const { userLevel } = useUser()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const widgetId = searchParams.get('widgetId')
-  const editItemId = searchParams.get('editItemId')
   const [isCreating, setIsCreating] = useState(false)
   const [createdItemId, setCreatedItemId] = useState<string | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
 
-  // Show premium restriction for anonymous users
-  if (userLevel === 'anon') {
-    return (
-      <PremiumRestriction
-        feature="Trip Planner"
-        description="Create detailed day-by-day itineraries for your Disney adventure. Plan attractions, dining, shows, and more with our interactive timeline builder."
-        icon={<Calendar className="w-12 h-12" />}
-        gradient="from-purple-500 to-pink-500"
-      />
-    )
-  }
+  // Get search params
+  const widgetId = searchParams.get('widgetId')
+  const editItemId = searchParams.get('editItemId')
+
+  // Wait for hydration to complete
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // Handle edit mode - load existing item for editing
   useEffect(() => {
@@ -52,6 +49,30 @@ function NewPlannerContent() {
     }
   }, [widgetId, editItemId, createdItemId, isCreating])
 
+  // Show loading state until hydrated
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading trip planner creator...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+      <PremiumRestriction
+        feature="Trip Planner"
+        description="Create detailed day-by-day itineraries for your Disney adventure. Plan attractions, dining, shows, and more with our interactive timeline builder."
+        icon={<Calendar className="w-12 h-12" />}
+        gradient="from-purple-500 to-pink-500"
+      />
+    )
+  }
+
   // If widget ID is present and we're still creating, show loading
   if (widgetId && isCreating) {
     return (
@@ -59,19 +80,23 @@ function NewPlannerContent() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 max-w-md"
+          transition={{ duration: 0.3 }}
+          className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 text-center"
         >
-          <div className="bg-gradient-to-r from-park-magic to-park-epcot p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
-            <Calendar className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Calendar className="w-12 h-12 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Creating Your Trip Plan</h2>
-          <p className="text-gray-600 mb-6">
-            We&apos;re setting up a new trip planner for your dashboard widget.
-          </p>
-          <div className="flex items-center justify-center space-x-2">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
-            <span className="text-purple-600 font-medium">Planning your magical days...</span>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Creating Your Trip Plan</h2>
+          <p className="text-gray-600 mb-6">Setting up your personalized Disney itinerary builder...</p>
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <motion.div
+              className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 1.5 }}
+            />
           </div>
+          <p className="text-sm text-gray-500">This will only take a moment...</p>
         </motion.div>
       </div>
     )
@@ -99,18 +124,14 @@ function NewPlannerContent() {
                      widgetId && createdItemId ? 'Edit Your Trip Plan' :
                      'Create New Trip Plan'}
                   </h1>
-                  <p className="text-purple-100 mt-1">
-                    {editItemId
-                      ? 'Make changes to your trip plan configuration and they will be reflected in your dashboard widget.'
-                      : widgetId && createdItemId
-                      ? 'Your trip plan has been created and linked to your dashboard widget. Make any changes you\'d like!'
-                      : 'Plan your perfect Disney days with detailed itineraries!'
-                    }
+                  <p className="text-white/90 mt-1">
+                    {editItemId ? 'Modify your existing trip plan settings' :
+                     widgetId && createdItemId ? 'Update your Disney itinerary' :
+                     'Plan your perfect Disney adventure day by day'}
                   </p>
                 </div>
               </div>
 
-              {/* Back to Dashboard button */}
               {widgetId && (
                 <button
                   onClick={() => router.push('/dashboard')}

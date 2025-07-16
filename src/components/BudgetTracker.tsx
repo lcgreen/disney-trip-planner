@@ -21,12 +21,7 @@ import {
   getBudgetTips,
   type BudgetCategory as ConfigBudgetCategory
 } from '@/config'
-import {
-  budgetStorage,
-  storageUtils,
-  type StoredBudgetData,
-  type BudgetStorage
-} from '@/lib/storage'
+import { BudgetData, Expense, BudgetCategory } from '@/types'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { AutoSaveService } from '@/lib/autoSaveService'
@@ -45,34 +40,17 @@ const colorMap: Record<string, string> = {
   'bg-teal-500': '#14b8a6'
 }
 
-interface Expense {
-  id: string
-  category: string
-  description: string
-  amount: number
-  date: string
-  isEstimate: boolean
-}
-
-interface BudgetCategory {
-  id: string
-  name: string
-  budget: number
-  color: string
-  icon: string
-}
-
 interface BudgetTrackerProps {
   createdItemId?: string | null
   widgetId?: string | null
   isEditMode?: boolean
   name?: string
   onNameChange?: (name: string) => void
-  onSave?: (data: Partial<StoredBudgetData>) => void
-  onLoad?: (budget: StoredBudgetData) => void
+  onSave?: (data: Partial<BudgetData>) => void
+  onLoad?: (budget: BudgetData) => void
   onNew?: () => void
-  savedBudgets?: StoredBudgetData[]
-  activeBudget?: StoredBudgetData | null
+  savedBudgets?: BudgetData[]
+  activeBudget?: BudgetData | null
   setCanSave?: (canSave: boolean) => void
 }
 
@@ -115,32 +93,18 @@ export default function BudgetTracker({
     isEstimate: true
   })
 
-  // Local storage state
-  // Remove currentBudgetName and savedBudgets state
-  // Use props.name and props.savedBudgets instead
-  const [activeBudgetId, setActiveBudgetId] = useState<string | null>(null)
-  const [showSaveBudget, setShowSaveBudget] = useState(false)
-  const [showLoadBudget, setShowLoadBudget] = useState(false)
-  const [budgetToSave, setBudgetToSave] = useState<string>('')
-
-  // Load saved budgets on component mount
+  // Load initial data
   useEffect(() => {
-    const storage = storageUtils.initializeBudgetStorage()
-    // setSavedBudgets(storage.budgets) // This line is removed as per new_code
-
-    // Only load active budget if we're in edit mode
-    // This prevents new budgets from inheriting existing data
-    if (isEditMode && storage.activeBudgetId) {
-      const activeBudget = storage.budgets.find(budget => budget.id === storage.activeBudgetId)
-      if (activeBudget) {
-        loadBudget(activeBudget)
-      }
+    if (isEditMode && activeBudget) {
+      setTotalBudget(activeBudget.totalBudget)
+      setCategories(activeBudget.categories)
+      setExpenses(activeBudget.expenses)
     }
-  }, [isEditMode])
+  }, [isEditMode, activeBudget])
 
   // Auto-save functionality for widget editing
-  const autoSaveData = widgetId && isEditMode && activeBudgetId ? {
-    id: activeBudgetId,
+  const autoSaveData = widgetId && isEditMode && activeBudget?.id ? {
+    id: activeBudget.id,
     name: name || 'My Budget',
     totalBudget,
     categories: categories.map(cat => ({
@@ -158,7 +122,8 @@ export default function BudgetTracker({
       date: expense.date,
       isEstimate: expense.isEstimate
     })),
-    createdAt: activeBudget?.createdAt || new Date().toISOString()
+    createdAt: activeBudget?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   } : null
 
   const { forceSave, isSaving, lastSaved, error } = useAutoSave(
@@ -183,17 +148,27 @@ export default function BudgetTracker({
   // Load created item in edit mode
   useEffect(() => {
     if (isEditMode && createdItemId) {
-      const budget = WidgetConfigManager.getSelectedItemData('budget', createdItemId) as StoredBudgetData
+      const budget = WidgetConfigManager.getSelectedItemData('budget', createdItemId) as BudgetData
       if (budget) {
         setTotalBudget(budget.totalBudget)
         setCategories(budget.categories)
         setExpenses(budget.expenses)
-        onNameChange?.(budget.name) // Use onNameChange from props
-        setActiveBudgetId(budget.id)
-        setBudgetToSave(budget.name)
+        onNameChange?.(budget.name)
       }
     }
   }, [isEditMode, createdItemId, onNameChange])
+
+  // Update parent when data changes
+  useEffect(() => {
+    if (onSave) {
+      onSave({
+        totalBudget,
+        categories,
+        expenses
+      })
+    }
+    setCanSave?.(true)
+  }, [totalBudget, categories, expenses, onSave, setCanSave])
 
   const addExpense = () => {
     if (newExpense.description && newExpense.amount) {
@@ -258,142 +233,6 @@ export default function BudgetTracker({
 
   const categoryOptions = getBudgetCategoryOptions()
 
-  // Storage functions
-  const saveCurrentBudget = (showModal: boolean = true) => {
-    if (!budgetToSave.trim() && showModal) {
-      setShowSaveBudget(true)
-      return
-    }
-
-    const budgetName = showModal ? budgetToSave.trim() : name
-    if (!budgetName) return
-
-    const budgetData: StoredBudgetData = {
-      id: activeBudgetId || storageUtils.generateId(),
-      name: budgetName,
-      totalBudget,
-      categories: categories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        budget: cat.budget,
-        color: cat.color,
-        icon: cat.icon
-      })),
-      expenses: expenses.map(expense => ({
-        id: expense.id,
-        category: expense.category,
-        description: expense.description,
-        amount: expense.amount,
-        date: expense.date,
-        isEstimate: expense.isEstimate
-      })),
-      createdAt: activeBudgetId ? savedBudgets?.find(b => b.id === activeBudgetId)?.createdAt || storageUtils.getCurrentTimestamp() : storageUtils.getCurrentTimestamp(),
-      updatedAt: storageUtils.getCurrentTimestamp()
-    }
-
-    budgetStorage.update(storage => {
-      const budgets = storage?.budgets || []
-      const existingIndex = budgets.findIndex(budget => budget.id === budgetData.id)
-
-      if (existingIndex >= 0) {
-        budgets[existingIndex] = budgetData
-      } else {
-        budgets.push(budgetData)
-      }
-
-      return {
-        budgets,
-        activeBudgetId: budgetData.id
-      }
-    })
-
-    // Update local state
-    // const storage = budgetStorage.get()! // This line is removed as per new_code
-    // setSavedBudgets(storage.budgets) // This line is removed as per new_code
-    setActiveBudgetId(budgetData.id)
-    onNameChange?.(budgetData.name) // Use onNameChange from props
-
-    if (showModal) {
-      setBudgetToSave('')
-      setShowSaveBudget(false)
-
-      // Check for pending widget links and auto-link if needed
-      WidgetConfigManager.checkAndApplyPendingLinks(budgetData.id, 'budget')
-    }
-    setCanSave?.(true) // Update setCanSave from props
-  }
-
-  const loadBudget = (budget: StoredBudgetData) => {
-    setTotalBudget(budget.totalBudget)
-    setCategories(budget.categories.map(cat => ({
-      id: cat.id,
-      name: cat.name,
-      budget: cat.budget,
-      color: cat.color,
-      icon: cat.icon
-    })))
-    setExpenses(budget.expenses.map(expense => ({
-      id: expense.id,
-      category: expense.category,
-      description: expense.description,
-      amount: expense.amount,
-      date: expense.date,
-      isEstimate: expense.isEstimate
-    })))
-
-    setActiveBudgetId(budget.id)
-    onNameChange?.(budget.name) // Use onNameChange from props
-    setShowLoadBudget(false)
-
-    // Update active budget in storage
-    budgetStorage.update(storage => ({
-      ...storage,
-      budgets: storage?.budgets || [],
-      activeBudgetId: budget.id
-    }))
-    setCanSave?.(true) // Update setCanSave from props
-  }
-
-  const deleteBudget = (budgetId: string) => {
-    budgetStorage.update(storage => {
-      const budgets = storage?.budgets?.filter(budget => budget.id !== budgetId) || []
-      const activeBudgetId = storage?.activeBudgetId === budgetId ? undefined : storage?.activeBudgetId
-
-      return { budgets, activeBudgetId }
-    })
-
-    // const storage = budgetStorage.get()! // This line is removed as per new_code
-    // setSavedBudgets(storage.budgets) // This line is removed as per new_code
-
-    if (activeBudgetId === budgetId) {
-      setActiveBudgetId(null)
-      onNameChange?.('') // Use onNameChange from props
-      setTotalBudget(0)
-      setCategories(defaultCategories)
-      setExpenses([])
-    }
-
-    // Clean up widget configurations that reference this deleted item
-    WidgetConfigManager.cleanupDeletedItemReferences(budgetId, 'budget')
-    setCanSave?.(true) // Update setCanSave from props
-  }
-
-  const startNewBudget = () => {
-    setTotalBudget(0)
-    setCategories(defaultCategories)
-    setExpenses([])
-    setActiveBudgetId(null)
-    onNameChange?.('') // Use onNameChange from props
-
-    budgetStorage.update(storage => ({
-      ...storage,
-      budgets: storage?.budgets || [],
-      activeBudgetId: undefined
-    }))
-    onNew?.() // Call onNew from props
-    setCanSave?.(true) // Update setCanSave from props
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4 md:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -414,8 +253,6 @@ export default function BudgetTracker({
           >
             Keep track of your Disney vacation expenses and stay within budget for the most magical trip ever!
           </motion.p>
-
-
         </div>
 
         {/* Budget Overview Stats */}
@@ -789,8 +626,6 @@ export default function BudgetTracker({
             </div>
           </div>
         </motion.div>
-
-
       </div>
     </div>
   )

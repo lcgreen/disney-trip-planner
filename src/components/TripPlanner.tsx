@@ -22,14 +22,8 @@ import {
   getPriorityById,
   getParkById
 } from '@/config'
-import {
-  tripPlanStorage,
-  storageUtils,
-  type StoredTripPlan
-} from '@/lib/storage'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-
-// Remove local Activity and DayPlan types, use storage types only
+import { PlannerData, PlannerDay, PlannerPlan } from '@/types'
 
 interface TripPlannerProps {
   createdItemId?: string | null
@@ -37,11 +31,11 @@ interface TripPlannerProps {
   isEditMode?: boolean
   name?: string
   onNameChange?: (name: string) => void
-  onSave?: (data: Partial<StoredTripPlan>) => void
-  onLoad?: (plan: StoredTripPlan) => void
+  onSave?: (data: Partial<PlannerData>) => void
+  onLoad?: (plan: PlannerData) => void
   onNew?: () => void
-  savedPlans?: StoredTripPlan[]
-  activePlan?: StoredTripPlan | null
+  savedPlans?: PlannerData[]
+  activePlan?: PlannerData | null
   setCanSave?: (canSave: boolean) => void
 }
 
@@ -58,310 +52,139 @@ export default function TripPlanner({
   activePlan = null,
   setCanSave
 }: TripPlannerProps) {
-  // Config data for UI
-  const activityTypes = getAllActivityTypes();
-  const priorities = getAllPriorities();
-  const parkOptions = getParkOptions();
-
-  // Use storage types for all state that interacts with parent/page
-  const [days, setDays] = useState<StoredTripPlan['days']>([])
-  const [editingActivity, setEditingActivity] = useState<{dayId: string, activity: StoredTripPlan['days'][number]['activities'][number]} | null>(null)
-  const [editFormData, setEditFormData] = useState<StoredTripPlan['days'][number]['activities'][number] | null>(null)
+  const [days, setDays] = useState<PlannerDay[]>([])
   const [showAddDay, setShowAddDay] = useState(false)
-  const [newDayForm, setNewDayForm] = useState({ date: '', park: '' })
+  const [showAddPlan, setShowAddPlan] = useState(false)
+  const [editingPlan, setEditingPlan] = useState<PlannerPlan | null>(null)
+  const [newDay, setNewDay] = useState({
+    date: '',
+    park: 'magic-kingdom'
+  })
+  const [newPlan, setNewPlan] = useState({
+    time: '',
+    activity: '',
+    park: 'magic-kingdom'
+  })
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState({ date: '', park: '' })
 
-  // Local storage state
-  const [currentPlanName, setCurrentPlanName] = useState<string>('')
-  const [activePlanId, setActivePlanId] = useState<string | null>(null)
-  const [showSavePlan, setShowSavePlan] = useState(false)
-  const [showLoadPlan, setShowLoadPlan] = useState(false)
-  const [planToSave, setPlanToSave] = useState<string>('')
-
-  // Load saved plans on component mount
+  // Load initial data
   useEffect(() => {
-    const storage = storageUtils.initializeTripPlanStorage()
-
-    // Only load active plan if we're in edit mode
-    // This prevents new plans from inheriting existing data
-    if (isEditMode && storage.activePlanId) {
-      const activePlan = storage.plans.find(plan => plan.id === storage.activePlanId)
-      if (activePlan) {
-        loadPlan(activePlan)
-      }
+    if (isEditMode && activePlan) {
+      setDays(activePlan.days)
     }
-  }, [isEditMode])
-
-  // Auto-save current plan when days change (if we have an active plan)
-  useEffect(() => {
-    if (activePlanId && currentPlanName && days.length > 0) {
-      saveCurrentPlan(false) // Silent save without showing modal
-    }
-  }, [days, activePlanId, currentPlanName])
-
-  // Auto-save current state for widgets (only when editing or when we have a valid plan)
-  useEffect(() => {
-    if ((isEditMode || createdItemId) && days.length > 0) {
-      WidgetConfigManager.saveCurrentTripPlanState(days)
-    }
-  }, [days, isEditMode, createdItemId])
+  }, [isEditMode, activePlan])
 
   // Load created item in edit mode
   useEffect(() => {
     if (isEditMode && createdItemId) {
-      const tripPlan = WidgetConfigManager.getSelectedItemData('planner', createdItemId) as StoredTripPlan
+      const tripPlan = WidgetConfigManager.getSelectedItemData('planner', createdItemId) as PlannerData
       if (tripPlan) {
         setDays(tripPlan.days)
-        setCurrentPlanName(tripPlan.name)
-        setActivePlanId(tripPlan.id)
-        setPlanToSave(tripPlan.name)
+        onNameChange?.(tripPlan.name)
       }
     }
-  }, [isEditMode, createdItemId])
+  }, [isEditMode, createdItemId, onNameChange])
+
+  // Update parent when data changes
+  useEffect(() => {
+    if (onSave) {
+      onSave({
+        days
+      })
+    }
+    const hasPlans = days.some(day => day.plans.length > 0)
+    setCanSave?.(hasPlans && name.trim().length > 0)
+  }, [days, name, onSave, setCanSave])
 
   const addNewDay = () => {
     // Clear previous errors
     setFormErrors({ date: '', park: '' })
 
     // Validation
-    const errors = { date: '', park: '' }
-    if (!newDayForm.date) {
-      errors.date = 'Please select a date'
-    }
-    if (!newDayForm.park) {
-      errors.park = 'Please select a park'
-    }
-
-    // Check if date already exists
-    const dateExists = days.some(day => day.date === newDayForm.date)
-    if (dateExists) {
-      errors.date = 'You already have a plan for this date'
-    }
-
-    if (errors.date || errors.park) {
-      setFormErrors(errors)
+    if (!newDay.date) {
+      setFormErrors(prev => ({ ...prev, date: 'Date is required' }))
       return
     }
 
-    // Create new day
-    const newDay: StoredTripPlan['days'][number] = {
-      id: Date.now().toString(),
-      date: newDayForm.date,
-      park: newDayForm.park,
-      activities: []
+    // Check if date already exists
+    const existingDay = days.find(day => day.date === newDay.date)
+    if (existingDay) {
+      setFormErrors(prev => ({ ...prev, date: 'A plan for this date already exists' }))
+      return
     }
 
-    setDays([...days, newDay])
-    setNewDayForm({ date: '', park: '' })
-    setFormErrors({ date: '', park: '' })
+    const day: PlannerDay = {
+      id: Date.now().toString(),
+      date: newDay.date,
+      plans: []
+    }
+
+    setDays([...days, day].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
+    setNewDay({ date: '', park: 'magic-kingdom' })
     setShowAddDay(false)
-  }
-
-  const addActivity = (dayId: string) => {
-    const newActivity: StoredTripPlan['days'][number]['activities'][number] = {
-      id: Date.now().toString(),
-      time: '09:00',
-      title: 'New Activity',
-      location: '',
-      type: 'ride',
-      priority: 'medium',
-      notes: ''
-    }
-
-    setDays(days.map(day =>
-      day.id === dayId
-        ? { ...day, activities: [...day.activities, newActivity] }
-        : day
-    ))
-
-    setEditingActivity({ dayId, activity: newActivity })
-    setEditFormData({ ...newActivity })
-  }
-
-  const updateActivity = (dayId: string, activityId: string, updates: Partial<StoredTripPlan['days'][number]['activities'][number]>) => {
-    setDays(days.map(day =>
-      day.id === dayId
-        ? {
-            ...day,
-            activities: day.activities.map(activity =>
-              activity.id === activityId ? { ...activity, ...updates } : activity
-            )
-          }
-        : day
-    ))
-  }
-
-  const handleSaveActivityChanges = () => {
-    if (editingActivity && editFormData) {
-      updateActivity(editingActivity.dayId, editingActivity.activity.id, editFormData)
-      setEditingActivity(null)
-      setEditFormData(null)
-    }
-  }
-
-  const handleCancelActivityEdit = () => {
-    setEditingActivity(null)
-    setEditFormData(null)
-  }
-
-  const deleteActivity = (dayId: string, activityId: string) => {
-    setDays(days.map(day =>
-      day.id === dayId
-        ? { ...day, activities: day.activities.filter(a => a.id !== activityId) }
-        : day
-    ))
+    setFormErrors({ date: '', park: '' })
   }
 
   const deleteDay = (dayId: string) => {
     setDays(days.filter(day => day.id !== dayId))
   }
 
-  const getActivityTypeInfo = (type: string) => {
-    return getActivityTypeById(type) || activityTypes[0]
-  }
+  const addPlan = () => {
+    if (!newPlan.time || !newPlan.activity || !selectedDayId) return
 
-  const getPriorityInfo = (priority: StoredTripPlan['days'][number]['activities'][number]['priority']) => {
-    return getPriorityById(priority) || priorities[0]
-  }
-
-  const getPriorityVariant = (priority: StoredTripPlan['days'][number]['activities'][number]['priority']) => {
-    const priorityInfo = getPriorityInfo(priority)
-    return priorityInfo.badgeVariant as any
-  }
-
-  // Storage functions
-  const saveCurrentPlan = (showModal: boolean = true) => {
-    if (!planToSave.trim() && showModal) {
-      setShowSavePlan(true)
-      return
+    const plan: PlannerPlan = {
+      id: Date.now().toString(),
+      date: days.find(day => day.id === selectedDayId)?.date || '',
+      time: newPlan.time,
+      activity: newPlan.activity,
+      park: newPlan.park
     }
 
-    const planName = showModal ? planToSave.trim() : currentPlanName
-    if (!planName) return
+    setDays(days.map(day =>
+      day.id === selectedDayId
+        ? { ...day, plans: [...day.plans, plan].sort((a, b) => a.time.localeCompare(b.time)) }
+        : day
+    ))
 
-    const planData: StoredTripPlan = {
-      id: activePlanId || storageUtils.generateId(),
-      name: planName,
-      days: days.map(day => ({
-        id: day.id,
-        date: day.date,
-        park: day.park,
-        activities: day.activities.map(activity => ({
-          id: activity.id,
-          time: activity.time,
-          title: activity.title,
-          location: activity.location,
-          type: activity.type,
-          notes: activity.notes,
-          priority: activity.priority
-        }))
-      })),
-      createdAt: activePlanId ? savedPlans.find(p => p.id === activePlanId)?.createdAt || storageUtils.getCurrentTimestamp() : storageUtils.getCurrentTimestamp(),
-      updatedAt: storageUtils.getCurrentTimestamp()
-    }
-
-    tripPlanStorage.update(storage => {
-      const plans = storage?.plans || []
-      const existingIndex = plans.findIndex(plan => plan.id === planData.id)
-
-      if (existingIndex >= 0) {
-        plans[existingIndex] = planData
-      } else {
-        plans.push(planData)
-      }
-
-      return {
-        plans,
-        activePlanId: planData.id
-      }
-    })
-
-    // Update local state
-    setActivePlanId(planData.id)
-    setCurrentPlanName(planData.name)
-
-    if (showModal) {
-      setPlanToSave('')
-      setShowSavePlan(false)
-
-      // Check for pending widget links and auto-link if needed
-      WidgetConfigManager.checkAndApplyPendingLinks(planData.id, 'planner')
-    }
+    setNewPlan({ time: '', activity: '', park: 'magic-kingdom' })
+    setShowAddPlan(false)
+    setSelectedDayId(null)
   }
 
-  const loadPlan = (plan: StoredTripPlan) => {
-    setDays(plan.days.map(day => ({
-      id: day.id,
-      date: day.date,
-      park: day.park,
-      activities: day.activities.map(activity => ({
-        id: activity.id,
-        time: activity.time,
-        title: activity.title,
-        location: activity.location,
-        type: activity.type as StoredTripPlan['days'][number]['activities'][number]['type'],
-        notes: activity.notes,
-        priority: activity.priority as StoredTripPlan['days'][number]['activities'][number]['priority']
-      }))
+  const updatePlan = (planId: string, updates: Partial<PlannerPlan>) => {
+    setDays(days.map(day => ({
+      ...day,
+      plans: day.plans.map(plan =>
+        plan.id === planId ? { ...plan, ...updates } : plan
+      )
     })))
-
-    setActivePlanId(plan.id)
-    setCurrentPlanName(plan.name)
-    setShowLoadPlan(false)
-
-    // Update active plan in storage
-    tripPlanStorage.update(storage => ({
-      ...storage,
-      plans: storage?.plans || [],
-      activePlanId: plan.id
-    }))
   }
 
   const deletePlan = (planId: string) => {
-    tripPlanStorage.update(storage => {
-      const plans = storage?.plans?.filter(plan => plan.id !== planId) || []
-      const activePlanId = storage?.activePlanId === planId ? undefined : storage?.activePlanId
+    setDays(days.map(day => ({
+      ...day,
+      plans: day.plans.filter(plan => plan.id !== planId)
+    })))
+  }
 
-      return { plans, activePlanId }
+  const getTotalPlans = () => {
+    return days.reduce((total, day) => total + day.plans.length, 0)
+  }
+
+  const getPlansByPark = () => {
+    const plansByPark: Record<string, number> = {}
+    days.forEach(day => {
+      day.plans.forEach(plan => {
+        plansByPark[plan.park] = (plansByPark[plan.park] || 0) + 1
+      })
     })
-
-    if (activePlanId === planId) {
-      setActivePlanId(null)
-      setCurrentPlanName('')
-      setDays([])
-    }
-
-    // Clean up widget configurations that reference this deleted item
-    WidgetConfigManager.cleanupDeletedItemReferences(planId, 'planner')
+    return plansByPark
   }
 
-  const startNewPlan = () => {
-    setDays([])
-    setActivePlanId(null)
-    setCurrentPlanName('')
-
-    tripPlanStorage.update(storage => ({
-      ...storage,
-      plans: storage?.plans || [],
-      activePlanId: undefined
-    }))
-  }
-
-  const getActivityTypeVariant = (type: StoredTripPlan['days'][number]['activities'][number]['type']) => {
-    switch (type) {
-      case 'ride': return 'info'
-      case 'dining': return 'success'
-      case 'show': return 'disney'
-      case 'character': return 'premium'
-      case 'shopping': return 'warning'
-      case 'break': return 'default'
-      case 'other': return 'default'
-      default: return 'default'
-    }
-  }
-
+  const parkOptions = getParkOptions()
   const activityTypeOptions = getActivityTypeOptions()
-  const prioritySelectOptions = getPriorityOptions()
+  const priorityOptions = getPriorityOptions()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4 md:p-6 lg:p-8">
@@ -381,21 +204,196 @@ export default function TripPlanner({
             transition={{ delay: 0.1 }}
             className="text-lg md:text-xl text-gray-600 mb-8"
           >
-            Plan your perfect Disney days with detailed itineraries, dining reservations, and attraction priorities.
+            Plan your magical Disney adventure day by day with our comprehensive trip planner!
           </motion.p>
+        </div>
 
+        {/* Stats Overview */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        >
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Days</p>
+                <p className="text-2xl font-bold text-gray-800">{days.length}</p>
+              </div>
+              <Calendar className="w-8 h-8 text-blue-500" />
+            </div>
+          </div>
 
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Plans</p>
+                <p className="text-2xl font-bold text-gray-800">{getTotalPlans()}</p>
+              </div>
+              <Star className="w-8 h-8 text-yellow-500" />
+            </div>
+          </div>
 
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Parks</p>
+                <p className="text-2xl font-bold text-gray-800">{Object.keys(getPlansByPark()).length}</p>
+              </div>
+              <MapPin className="w-8 h-8 text-green-500" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Controls */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="flex flex-wrap gap-4 mb-8"
+        >
+          <button
             onClick={() => setShowAddDay(true)}
             className="btn-disney flex items-center gap-2 transform hover:scale-105 transition-all duration-200"
           >
             <Plus className="w-5 h-5" />
-            Add New Day
-          </motion.button>
+            Add Day
+          </button>
+        </motion.div>
+
+        {/* Trip Days */}
+        <div className="space-y-6">
+          <AnimatePresence>
+            {days.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-12"
+              >
+                <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-6" />
+                <h3 className="text-xl md:text-2xl font-semibold text-gray-600 mb-4">No days planned yet</h3>
+                <p className="text-lg text-gray-500 mb-8">Start planning your magical Disney adventure!</p>
+                <button
+                  onClick={() => setShowAddDay(true)}
+                  className="btn-disney transform hover:scale-105 transition-all duration-200"
+                >
+                  Add Your First Day
+                </button>
+              </motion.div>
+            ) : (
+              days.map((day, index) => (
+                <motion.div
+                  key={day.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white rounded-2xl overflow-hidden shadow-xl border border-gray-100"
+                >
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xl md:text-2xl font-semibold">
+                          {new Date(day.date).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </h3>
+                        <p className="text-blue-100 mt-2">
+                          {day.plans.length} plan{day.plans.length !== 1 ? 's' : ''} scheduled
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedDayId(day.id)
+                            setShowAddPlan(true)
+                          }}
+                          className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Plan
+                        </button>
+                        <button
+                          onClick={() => deleteDay(day.id)}
+                          className="bg-red-500/20 hover:bg-red-500/30 text-white p-2 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    {day.plans.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500 mb-4">No plans for this day yet</p>
+                        <button
+                          onClick={() => {
+                            setSelectedDayId(day.id)
+                            setShowAddPlan(true)
+                          }}
+                          className="btn-disney"
+                        >
+                          Add First Plan
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {day.plans
+                          .sort((a, b) => a.time.localeCompare(b.time))
+                          .map((plan, planIndex) => (
+                            <motion.div
+                              key={plan.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: planIndex * 0.05 }}
+                              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="flex-shrink-0">
+                                <div className="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center">
+                                  <span className="text-white font-semibold text-sm">
+                                    {plan.time}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-lg text-gray-800">{plan.activity}</h4>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Badge variant="secondary" size="sm">
+                                    {getParkById(plan.park)?.name || plan.park}
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => setEditingPlan(plan)}
+                                  className="text-gray-400 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-blue-50"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deletePlan(plan.id)}
+                                  className="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </motion.div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Add Day Modal */}
@@ -403,7 +401,7 @@ export default function TripPlanner({
           isOpen={showAddDay}
           onClose={() => {
             setShowAddDay(false)
-            setNewDayForm({ date: '', park: '' })
+            setNewDay({ date: '', park: 'magic-kingdom' })
             setFormErrors({ date: '', park: '' })
           }}
           title="Add New Day"
@@ -414,15 +412,9 @@ export default function TripPlanner({
               <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
               <input
                 type="date"
-                value={newDayForm.date}
-                onChange={(e) => {
-                  setNewDayForm({...newDayForm, date: e.target.value})
-                  if (formErrors.date) {
-                    setFormErrors({...formErrors, date: ''})
-                  }
-                }}
-                min={new Date().toISOString().split('T')[0]}
-                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue ${
+                value={newDay.date}
+                onChange={(e) => setNewDay({...newDay, date: e.target.value})}
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-disney-blue ${
                   formErrors.date ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -430,40 +422,16 @@ export default function TripPlanner({
                 <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>
               )}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
-              <Select
-                value={newDayForm.park}
-                onValueChange={(value) => {
-                  setNewDayForm({...newDayForm, park: value})
-                  if (formErrors.park) {
-                    setFormErrors({...formErrors, park: ''})
-                  }
-                }}
-                options={parkOptions}
-                placeholder="Select a park"
-                className="w-full"
-                error={formErrors.park}
-              />
-              {formErrors.park && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.park}</p>
-              )}
-            </div>
           </div>
 
           <div className="flex gap-3 mt-6">
-            <button
-              onClick={addNewDay}
-              className="btn-disney flex-1"
-              disabled={!newDayForm.date || !newDayForm.park}
-            >
+            <button onClick={addNewDay} className="btn-disney flex-1">
               Add Day
             </button>
             <button
               onClick={() => {
                 setShowAddDay(false)
-                setNewDayForm({ date: '', park: '' })
+                setNewDay({ date: '', park: 'magic-kingdom' })
                 setFormErrors({ date: '', park: '' })
               }}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
@@ -473,237 +441,58 @@ export default function TripPlanner({
           </div>
         </Modal>
 
-        {/* Days List */}
-        {days.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-center py-16 bg-white rounded-2xl shadow-xl border border-gray-100"
-          >
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-6" />
-            <h3 className="text-2xl md:text-3xl font-semibold text-gray-600 mb-4">No days planned yet</h3>
-            <p className="text-lg text-gray-500 mb-8">Start by adding your first Disney day!</p>
-            <button
-              onClick={() => setShowAddDay(true)}
-              className="btn-disney transform hover:scale-105 transition-all duration-200"
-            >
-              Add Your First Day
-            </button>
-          </motion.div>
-        ) : (
-          <div className="space-y-8">
-            <AnimatePresence>
-              {days.map((day, index) => (
-                <motion.div
-                  key={day.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                  className="bg-white rounded-2xl overflow-hidden shadow-xl border border-gray-100"
-                >
-                  {/* Day Header */}
-                  <div className="bg-gradient-to-r from-disney-blue to-disney-purple p-6 md:p-8 text-white">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3">
-                          Day {index + 1}: {new Date(day.date).toLocaleDateString('en-GB', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </h3>
-                        <p className="text-lg md:text-xl opacity-90 flex items-center gap-2">
-                          <MapPin className="w-5 h-5 md:w-6 md:h-6" />
-                          {getParkById(day.park)?.name || day.park}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => deleteDay(day.id)}
-                        className="text-white hover:text-red-200 transition-colors p-2 rounded-lg hover:bg-white/10"
-                      >
-                        <Trash2 className="w-5 h-5 md:w-6 md:h-6" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Activities */}
-                  <div className="p-6 md:p-8">
-                    {day.activities.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Clock className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-lg text-gray-500 mb-6">No activities planned for this day</p>
-                        <button
-                          onClick={() => addActivity(day.id)}
-                          className="btn-disney transform hover:scale-105 transition-all duration-200"
-                        >
-                          Add First Activity
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="space-y-4 mb-8">
-                          {day.activities
-                            .sort((a, b) => a.time.localeCompare(b.time))
-                            .map((activity, activityIndex) => (
-                            <motion.div
-                              key={activity.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.5 + index * 0.1 + activityIndex * 0.05 }}
-                              className={`p-4 md:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${getPriorityVariant(activity.priority)}`}
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex-1">
-                                  <div className="flex flex-wrap items-center gap-3 mb-3">
-                                    <span className="font-mono text-sm md:text-base font-semibold bg-white px-3 py-1 rounded-lg shadow-sm">
-                                      {activity.time}
-                                    </span>
-                                    <Badge
-                                      variant={getActivityTypeVariant(activity.type)}
-                                      size="sm"
-                                    >
-                                      {getActivityTypeInfo(activity.type).label}
-                                    </Badge>
-                                    <Badge
-                                      variant={getPriorityVariant(activity.priority)}
-                                      size="sm"
-                                    >
-                                      {activity.priority} priority
-                                    </Badge>
-                                  </div>
-                                  <h4 className="font-semibold text-lg md:text-xl mb-2">{activity.title}</h4>
-                                  {activity.location && (
-                                    <p className="text-gray-600 text-sm md:text-base flex items-center gap-2 mb-2">
-                                      <MapPin className="w-4 h-4" />
-                                      {activity.location}
-                                    </p>
-                                  )}
-                                  {activity.notes && (
-                                    <p className="text-gray-600 text-sm md:text-base mt-2">{activity.notes}</p>
-                                  )}
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingActivity({ dayId: day.id, activity })
-                                      setEditFormData({ ...activity })
-                                    }}
-                                    className="text-gray-500 hover:text-disney-blue transition-colors p-2 rounded-lg hover:bg-blue-50"
-                                  >
-                                    <Edit className="w-4 h-4 md:w-5 md:h-5" />
-                                  </button>
-                                  <button
-                                    onClick={() => deleteActivity(day.id, activity.id)}
-                                    className="text-gray-500 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
-                                  >
-                                    <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
-                                  </button>
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                        <button
-                          onClick={() => addActivity(day.id)}
-                          className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-disney-blue hover:text-disney-blue hover:bg-blue-50/50 transition-all duration-200 flex items-center justify-center gap-2"
-                        >
-                          <Plus className="w-5 h-5" />
-                          Add Activity
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* Edit Activity Modal */}
+        {/* Add Plan Modal */}
         <Modal
-          isOpen={!!editingActivity}
-          onClose={handleCancelActivityEdit}
-          title="Edit Activity"
+          isOpen={showAddPlan}
+          onClose={() => {
+            setShowAddPlan(false)
+            setNewPlan({ time: '', activity: '', park: 'magic-kingdom' })
+            setSelectedDayId(null)
+          }}
+          title="Add New Plan"
           size="md"
         >
-          {(() => {
-            return editFormData && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                  <input
-                    type="time"
-                    value={editFormData.time}
-                    onChange={(e) => setEditFormData({ ...editFormData, time: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                  />
-                </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+              <input
+                type="time"
+                value={newPlan.time}
+                onChange={(e) => setNewPlan({...newPlan, time: e.target.value})}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                  <input
-                    type="text"
-                    value={editFormData.title}
-                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                  />
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Activity</label>
+              <input
+                type="text"
+                value={newPlan.activity}
+                onChange={(e) => setNewPlan({...newPlan, activity: e.target.value})}
+                placeholder="e.g., Ride Space Mountain, Character Meet & Greet"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                  <input
-                    type="text"
-                    value={editFormData.location}
-                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                    placeholder="e.g., Fantasyland, Main Street USA"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                  <Select
-                    value={editFormData.type}
-                    onValueChange={(value) => setEditFormData({ ...editFormData, type: value as StoredTripPlan['days'][number]['activities'][number]['type'] })}
-                    options={activityTypeOptions}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                  <Select
-                    value={editFormData.priority}
-                    onValueChange={(value) => setEditFormData({ ...editFormData, priority: value as StoredTripPlan['days'][number]['activities'][number]['priority'] })}
-                    options={prioritySelectOptions}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                  <textarea
-                    value={editFormData.notes || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
-                    rows={3}
-                    placeholder="Additional notes, dining reservations, etc."
-                  />
-                </div>
-              </div>
-            )
-          })()}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
+              <ParkSelect
+                value={newPlan.park}
+                onValueChange={(value) => setNewPlan({...newPlan, park: value})}
+              />
+            </div>
+          </div>
 
           <div className="flex gap-3 mt-6">
-            <button
-              onClick={handleSaveActivityChanges}
-              className="btn-disney flex-1"
-            >
-              Save Changes
+            <button onClick={addPlan} className="btn-disney flex-1">
+              Add Plan
             </button>
             <button
-              onClick={handleCancelActivityEdit}
+              onClick={() => {
+                setShowAddPlan(false)
+                setNewPlan({ time: '', activity: '', park: 'magic-kingdom' })
+                setSelectedDayId(null)
+              }}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               Cancel
@@ -711,7 +500,66 @@ export default function TripPlanner({
           </div>
         </Modal>
 
+        {/* Edit Plan Modal */}
+        <Modal
+          isOpen={!!editingPlan}
+          onClose={() => setEditingPlan(null)}
+          title="Edit Plan"
+          size="md"
+        >
+          {editingPlan && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                <input
+                  type="time"
+                  value={editingPlan.time}
+                  onChange={(e) => setEditingPlan({...editingPlan, time: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                />
+              </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Activity</label>
+                <input
+                  type="text"
+                  value={editingPlan.activity}
+                  onChange={(e) => setEditingPlan({...editingPlan, activity: e.target.value})}
+                  placeholder="e.g., Ride Space Mountain, Character Meet & Greet"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Park</label>
+                <ParkSelect
+                  value={editingPlan.park}
+                  onValueChange={(value) => setEditingPlan({...editingPlan, park: value})}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => {
+                if (editingPlan) {
+                  updatePlan(editingPlan.id, editingPlan)
+                  setEditingPlan(null)
+                }
+              }}
+              className="btn-disney flex-1"
+            >
+              Save Changes
+            </button>
+            <button
+              onClick={() => setEditingPlan(null)}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </Modal>
       </div>
     </div>
   )

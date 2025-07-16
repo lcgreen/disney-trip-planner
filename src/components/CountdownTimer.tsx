@@ -36,35 +36,13 @@ import {
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { AutoSaveService } from '@/lib/autoSaveService'
+import { CountdownData, CountdownSettings } from '@/types'
 
-interface CountdownData {
+interface CountdownTimerData {
   days: number
   hours: number
   minutes: number
   seconds: number
-}
-
-interface CountdownSettings {
-  showMilliseconds: boolean
-  showTimezone: boolean
-  showTips: boolean
-  showAttractions: boolean
-  playSound: boolean
-  autoRefresh: boolean
-  digitStyle: 'modern' | 'classic' | 'neon' | 'minimal'
-  layout: 'horizontal' | 'vertical' | 'compact' | 'grid'
-  fontSize: 'small' | 'medium' | 'large' | 'xl'
-  backgroundEffect: 'none' | 'particles' | 'gradient' | 'animated'
-}
-
-interface SavedCountdown {
-  id: string
-  name: string
-  park: DisneyPark
-  date: string
-  settings: CountdownSettings
-  theme?: CountdownPalette
-  createdAt: string
 }
 
 // Get configuration data
@@ -81,11 +59,11 @@ interface CountdownTimerProps {
   isEditMode?: boolean
   name?: string
   onNameChange?: (name: string) => void
-  onSave?: (data: Partial<SavedCountdown>) => void
-  onLoad?: (countdown: SavedCountdown) => void
+  onSave?: (data: Partial<CountdownData>) => void
+  onLoad?: (countdown: CountdownData) => void
   onNew?: () => void
-  savedCountdowns?: SavedCountdown[]
-  activeCountdown?: SavedCountdown | null
+  savedCountdowns?: CountdownData[]
+  activeCountdown?: CountdownData | null
   setCanSave?: (canSave: boolean) => void
 }
 
@@ -134,7 +112,7 @@ export default function CountdownTimer({
   }
   const [targetDate, setTargetDate] = useState<string>('')
   const [selectedPark, setSelectedPark] = useState<DisneyPark>(disneyParks[0])
-  const [countdown, setCountdown] = useState<CountdownData>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+  const [countdown, setCountdown] = useState<CountdownTimerData>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
   const [milliseconds, setMilliseconds] = useState<number>(0)
   const [isActive, setIsActive] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -203,7 +181,7 @@ export default function CountdownTimer({
       const date = new Date(targetDate)
       if (!isNaN(date.getTime())) {
         const isoString = date.toISOString()
-        WidgetConfigManager.saveCurrentCountdownState(isoString, 'My Disney Trip', selectedPark).catch(console.error)
+                  // State is now managed by PluginPageWrapper
       }
     }
   }, [targetDate, selectedPark, isEditMode, createdItemId])
@@ -211,13 +189,24 @@ export default function CountdownTimer({
   // Load created item in edit mode
   useEffect(() => {
     if (isEditMode && createdItemId) {
-      const countdown = WidgetConfigManager.getSelectedItemData('countdown', createdItemId) as SavedCountdown
+      const countdown = WidgetConfigManager.getSelectedItemData('countdown', createdItemId) as CountdownData
       if (countdown) {
-        setTargetDate(countdown.date)
+        setTargetDate(countdown.tripDate)
         // Ensure we get the complete park object with all properties
-        const fullPark = getParkById(countdown.park.id) || countdown.park
+        const fullPark = getParkById(countdown.park?.id) || countdown.park
         setSelectedPark(fullPark)
-        setSettings(countdown.settings)
+        setSettings(countdown.settings || {
+          showMilliseconds: false,
+          showTimezone: true,
+          showTips: true,
+          showAttractions: true,
+          playSound: true,
+          autoRefresh: true,
+          digitStyle: 'modern',
+          layout: 'horizontal',
+          fontSize: 'medium',
+          backgroundEffect: 'gradient'
+        })
         setCustomTheme(countdown.theme || null)
         // setCountdownName(countdown.name) // This state is now managed by parent
       }
@@ -349,14 +338,15 @@ export default function CountdownTimer({
 
     // If we're editing an existing item, update it
     if (isEditMode && createdItemId) {
-      const updatedCountdown: SavedCountdown = {
+      const updatedCountdown: CountdownData = {
         id: createdItemId,
         name: name.trim(),
         park: selectedPark,
-        date: targetDate,
+        tripDate: targetDate,
         settings,
         theme: customTheme || undefined,
-        createdAt: savedCountdowns?.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString()
+        createdAt: savedCountdowns?.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
 
       onSave?.(updatedCountdown)
@@ -365,18 +355,19 @@ export default function CountdownTimer({
       const date = new Date(targetDate)
       if (!isNaN(date.getTime())) {
         const isoString = date.toISOString()
-        WidgetConfigManager.saveCurrentCountdownState(isoString, name.trim(), selectedPark)
+        // State is now managed by PluginPageWrapper
       }
     } else {
       // Creating a new countdown
-      const newCountdown: SavedCountdown = {
+      const newCountdown: CountdownData = {
         id: Date.now().toString(),
         name: name.trim(),
         park: selectedPark,
-        date: targetDate,
+        tripDate: targetDate,
         settings,
         theme: customTheme || undefined,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
 
       onNew?.()
@@ -386,24 +377,35 @@ export default function CountdownTimer({
 
       // Also update widget config manager data
       const date = new Date(targetDate)
-      if (!isNaN(date.getTime())) {
-        const isoString = date.toISOString()
-        WidgetConfigManager.saveCurrentCountdownState(isoString, name.trim(), selectedPark)
-      }
+          if (!isNaN(date.getTime())) {
+      const isoString = date.toISOString()
+      // State is now managed by PluginPageWrapper
+    }
     }
   }
 
-  const loadCountdown = (saved: SavedCountdown): void => {
+  const loadCountdown = (saved: CountdownData): void => {
     // Ensure we get the complete park object with all properties
-    const fullPark = getParkById(saved.park.id) || saved.park
+    const fullPark = getParkById(saved.park?.id) || saved.park
     setSelectedPark(fullPark)
 
     // Convert ISO date string to local datetime format for the input
-    const date = new Date(saved.date)
+    const date = new Date(saved.tripDate)
     const localDateTime = date.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:mm
     setTargetDate(localDateTime)
 
-    setSettings(saved.settings)
+    setSettings(saved.settings || {
+      showMilliseconds: false,
+      showTimezone: true,
+      showTips: true,
+      showAttractions: true,
+      playSound: true,
+      autoRefresh: true,
+      digitStyle: 'modern',
+      layout: 'horizontal',
+      fontSize: 'medium',
+      backgroundEffect: 'gradient'
+    })
     setCustomTheme(saved.theme || null)
     setShowSaved(false)
     onLoad?.(saved)
