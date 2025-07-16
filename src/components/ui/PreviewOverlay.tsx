@@ -39,34 +39,40 @@ export default function PreviewOverlay({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Upgrade Header */}
+      {/* Upgrade Panel - Secondary to header */}
       {!isDismissed && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-4 flex items-center justify-between shadow-lg relative z-20"
+          transition={{ delay: 0.3 }}
+          className="bg-yellow-50 border border-yellow-200 p-3 mx-6 mb-4 rounded-lg shadow-sm"
         >
-          <div className="flex items-center gap-3">
-            <Crown className="w-6 h-6" />
-            <div>
-              <h3 className="font-semibold text-lg">Upgrade to use this feature</h3>
-              <p className="text-white/90 text-sm">Get full access to save, organize, and use all premium tools</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Crown className="w-5 h-5 text-yellow-600" />
+              <div>
+                <p className="text-sm font-medium text-yellow-800">
+                  Upgrade to use this feature
+                </p>
+                <p className="text-xs text-yellow-700">
+                  Get full access to save, organize, and use all premium tools
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleUpgrade}
-              className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg font-medium transition-all backdrop-blur-sm border border-white/30"
-            >
-              Upgrade Now
-            </button>
-            <button
-              onClick={() => setIsDismissed(true)}
-              className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition-all backdrop-blur-sm border border-white/30"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleUpgrade}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+              >
+                Upgrade Now
+              </button>
+              <button
+                onClick={() => setIsDismissed(true)}
+                className="text-yellow-600 hover:text-yellow-700 p-1 rounded-md transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </motion.div>
       )}

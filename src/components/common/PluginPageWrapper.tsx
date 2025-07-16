@@ -237,7 +237,7 @@ export default function PluginPageWrapper<T extends PluginData>({
             icon={<Icon className="w-8 h-8" />}
             gradient={gradient}
             isPremium={isPremium}
-            showPreview={showPreview}
+            showPreview={false}
             currentName={currentName}
             onSave={handleSave}
             onLoad={handleLoad}
