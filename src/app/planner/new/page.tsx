@@ -8,6 +8,7 @@ import TripPlanner from '@/components/TripPlanner'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useUser } from '@/hooks/useUser'
 import PremiumRestriction from '@/components/PremiumRestriction'
+import plannerPlugin from '@/plugins/planner'
 
 function NewPlannerContent() {
   // All hooks must be called first, before any conditional logic
@@ -48,6 +49,16 @@ function NewPlannerContent() {
       }, 1500)
     }
   }, [widgetId, editItemId, createdItemId, isCreating])
+
+  // Auto-save handler for TripPlanner
+  const handleAutoSave = (data: Partial<any>) => {
+    if (createdItemId) {
+      plannerPlugin.updateItem(createdItemId, {
+        ...data,
+        updatedAt: new Date().toISOString()
+      })
+    }
+  }
 
   // Show loading state until hydrated
   if (!isHydrated) {
@@ -151,6 +162,7 @@ function NewPlannerContent() {
               widgetId={widgetId}
               isEditMode={!!createdItemId || !!editItemId}
               name={editItemId ? 'Edit Trip Plan' : 'New Trip Plan'}
+              onSave={handleAutoSave}
             />
           </div>
         </motion.div>

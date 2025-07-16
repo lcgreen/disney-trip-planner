@@ -6,19 +6,11 @@ import {
   PluginRegistry
 } from '@/lib/pluginSystem'
 import { UnifiedStorage } from '@/lib/unifiedStorage'
-import { PackingData } from '@/types'
+import { PackingData, PackingItem } from '@/types'
 import PackingWidget from '@/components/widgets/PackingWidget'
 
 // Debug import
 console.log('PackingWidget import:', !!PackingWidget)
-
-export interface PackingItem {
-  id: string
-  name: string
-  category: string
-  isPacked: boolean
-  isEssential: boolean
-}
 
 export class PackingPlugin implements PluginInterface {
   config: PluginConfig = {

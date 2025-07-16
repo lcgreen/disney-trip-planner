@@ -56,9 +56,9 @@
         "duration": 7,
         "season": "spring",
         "items": [
-          { "id": "item-1", "name": "Mickey Ears", "category": "accessories", "packed": false },
-          { "id": "item-2", "name": "Comfortable Shoes", "category": "clothing", "packed": false },
-          { "id": "item-3", "name": "Sunscreen", "category": "toiletries", "packed": false }
+          { "id": "item-1", "name": "Mickey Ears", "category": "accessories", "checked": false },
+          { "id": "item-2", "name": "Comfortable Shoes", "category": "clothing", "checked": false },
+          { "id": "item-3", "name": "Sunscreen", "category": "toiletries", "checked": false }
         ],
         "createdAt": "2025-01-15T00:00:00.000Z"
       }

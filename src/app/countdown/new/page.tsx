@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import CountdownTimer from '@/components/CountdownTimer'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import countdownPlugin from '@/plugins/countdown'
 
 function NewCountdownContent() {
   const searchParams = useSearchParams()
@@ -27,8 +28,8 @@ function NewCountdownContent() {
       setIsCreating(true)
 
       // Short delay for smooth UX
-      setTimeout(() => {
-        const itemId = WidgetConfigManager.createAndLinkItem(widgetId, 'countdown')
+      setTimeout(async () => {
+        const itemId = await WidgetConfigManager.createAndLinkItem(widgetId, 'countdown')
         if (itemId) {
           setCreatedItemId(itemId)
           setIsCreating(false)
@@ -42,6 +43,16 @@ function NewCountdownContent() {
       }, 1500)
     }
   }, [widgetId, editItemId, createdItemId, isCreating])
+
+  // Auto-save handler for CountdownTimer
+  const handleAutoSave = (data: Partial<any>) => {
+    if (createdItemId) {
+      countdownPlugin.updateItem(createdItemId, {
+        ...data,
+        updatedAt: new Date().toISOString()
+      })
+    }
+  }
 
   // If widget ID is present and we're still creating, show loading (but not for edit mode)
   if (widgetId && isCreating && !editItemId) {
@@ -120,6 +131,7 @@ function NewCountdownContent() {
               createdItemId={createdItemId}
               widgetId={widgetId}
               isEditMode={!!createdItemId || !!editItemId}
+              onSave={handleAutoSave}
             />
           </div>
         </motion.div>

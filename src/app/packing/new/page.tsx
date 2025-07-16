@@ -8,6 +8,7 @@ import PackingChecklist from '@/components/PackingChecklist'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useUser } from '@/hooks/useUser'
 import { FeatureGuard } from '@/components/ui'
+import packingPlugin from '@/plugins/packing'
 
 function NewPackingContent() {
   const { userLevel } = useUser()
@@ -17,6 +18,39 @@ function NewPackingContent() {
   const editItemId = searchParams.get('editItemId')
   const [isCreating, setIsCreating] = useState(false)
   const [createdItemId, setCreatedItemId] = useState<string | null>(null)
+
+  // Always call useEffect
+  useEffect(() => {
+    if (editItemId) {
+      setCreatedItemId(editItemId)
+      return
+    }
+
+    // Auto-create and link item if widgetId is provided (but not editing)
+    if (widgetId && !createdItemId && !isCreating) {
+      setIsCreating(true)
+
+      // Short delay for smooth UX
+      setTimeout(async () => {
+        const itemId = await WidgetConfigManager.createAndLinkItem(widgetId, 'packing')
+        if (itemId) {
+          setCreatedItemId(itemId)
+          setIsCreating(false)
+        }
+      }, 1500)
+    }
+  }, [widgetId, editItemId, createdItemId, isCreating])
+
+  // Auto-save handler for PackingChecklist
+  const handleAutoSave = (data: Partial<{ items: any[]; selectedWeather: string[] }>) => {
+    if (createdItemId && data.items) {
+      packingPlugin.updateItem(createdItemId, {
+        items: data.items,
+        selectedWeather: data.selectedWeather || [],
+        updatedAt: new Date().toISOString()
+      })
+    }
+  }
 
   // Show premium restriction for anonymous users
   if (userLevel === 'anon') {
@@ -32,28 +66,6 @@ function NewPackingContent() {
       </FeatureGuard>
     )
   }
-
-  // Handle edit mode - load existing item for editing
-  useEffect(() => {
-    if (editItemId) {
-      setCreatedItemId(editItemId)
-      return
-    }
-
-    // Auto-create and link item if widgetId is provided (but not editing)
-    if (widgetId && !createdItemId && !isCreating) {
-      setIsCreating(true)
-
-      // Short delay for smooth UX
-      setTimeout(() => {
-        const itemId = WidgetConfigManager.createAndLinkItem(widgetId, 'packing')
-        if (itemId) {
-          setCreatedItemId(itemId)
-          setIsCreating(false)
-        }
-      }, 1500)
-    }
-  }, [widgetId, editItemId, createdItemId, isCreating])
 
   // If widget ID is present and we're still creating, show loading (but not for edit mode)
   if (widgetId && isCreating && !editItemId) {
@@ -132,6 +144,7 @@ function NewPackingContent() {
               createdItemId={createdItemId}
               widgetId={widgetId}
               isEditMode={!!createdItemId || !!editItemId}
+              onSave={handleAutoSave}
             />
           </div>
         </motion.div>

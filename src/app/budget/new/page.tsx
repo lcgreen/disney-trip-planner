@@ -8,6 +8,7 @@ import BudgetTracker from '@/components/BudgetTracker'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useUser } from '@/hooks/useUser'
 import PremiumRestriction from '@/components/PremiumRestriction'
+import budgetPlugin from '@/plugins/budget'
 
 function NewBudgetContent() {
   const { userLevel } = useUser()
@@ -17,18 +18,6 @@ function NewBudgetContent() {
   const editItemId = searchParams.get('editItemId')
   const [isCreating, setIsCreating] = useState(false)
   const [createdItemId, setCreatedItemId] = useState<string | null>(null)
-
-  // Show premium restriction for anonymous users
-  if (userLevel === 'anon') {
-    return (
-      <PremiumRestriction
-        feature="Budget Tracker"
-        description="Track your Disney trip expenses and stay within your magical budget. Set spending limits by category and monitor your progress in real-time."
-        icon={<DollarSign className="w-12 h-12" />}
-        gradient="from-green-500 to-emerald-500"
-      />
-    )
-  }
 
   // Handle edit mode - load existing item for editing
   useEffect(() => {
@@ -42,8 +31,8 @@ function NewBudgetContent() {
       setIsCreating(true)
 
       // Short delay for smooth UX
-      setTimeout(() => {
-        const itemId = WidgetConfigManager.createAndLinkItem(widgetId, 'budget')
+      setTimeout(async () => {
+        const itemId = await WidgetConfigManager.createAndLinkItem(widgetId, 'budget')
         if (itemId) {
           setCreatedItemId(itemId)
           setIsCreating(false)
@@ -51,6 +40,28 @@ function NewBudgetContent() {
       }, 1500)
     }
   }, [widgetId, editItemId, createdItemId, isCreating])
+
+  // Auto-save handler for BudgetTracker
+  const handleAutoSave = (data: Partial<any>) => {
+    if (createdItemId) {
+      budgetPlugin.updateItem(createdItemId, {
+        ...data,
+        updatedAt: new Date().toISOString()
+      })
+    }
+  }
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+      <PremiumRestriction
+        feature="Budget Tracker"
+        description="Track your Disney trip expenses and stay within your magical budget. Set spending limits by category and monitor your progress in real-time."
+        icon={<DollarSign className="w-12 h-12" />}
+        gradient="from-green-500 to-emerald-500"
+      />
+    )
+  }
 
   // If widget ID is present and we're still creating, show loading (but not for edit mode)
   if (widgetId && isCreating && !editItemId) {
@@ -129,6 +140,7 @@ function NewBudgetContent() {
               createdItemId={createdItemId}
               widgetId={widgetId}
               isEditMode={!!createdItemId || !!editItemId}
+              onSave={handleAutoSave}
             />
           </div>
         </motion.div>

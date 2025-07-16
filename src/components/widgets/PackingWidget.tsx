@@ -9,6 +9,7 @@ import { useUser } from '@/hooks/useUser'
 import { PreviewOverlay } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
+import { PackingItem as PackingItemType } from '@/types'
 
 interface PackingWidgetProps {
   id: string
@@ -20,12 +21,25 @@ interface PackingWidgetProps {
   isDemoMode?: boolean
 }
 
+// Local interface for widget display - maps to the standard PackingItem type
 interface PackingItem {
   id: string
   name: string
   category: string
   isPacked: boolean
   isEssential: boolean
+}
+
+// Helper function to normalize packing items from different data sources
+const normalizePackingItems = (items: any[]): PackingItem[] => {
+  return items.map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    // Handle different property names for packed status
+    isPacked: item.isPacked ?? item.checked ?? item.packed ?? false,
+    isEssential: item.isEssential ?? false
+  }))
 }
 
 export default function PackingWidget({
@@ -42,7 +56,7 @@ export default function PackingWidget({
   const [packedItems, setPackedItems] = useState<PackingItem[]>([])
   const [unpackedItems, setUnpackedItems] = useState<PackingItem[]>([])
 
-    useEffect(() => {
+  useEffect(() => {
     console.log('PackingWidget useEffect - widget id:', id, 'isDemoMode:', isDemoMode)
 
     if (isDemoMode) {
@@ -54,14 +68,10 @@ export default function PackingWidget({
         )
         if (demoPackingList) {
           setSelectedPackingList(demoPackingList)
-          // Update packed/unpacked items using the demo data structure
-          const mappedItems = demoPackingList.items.map((item: any) => ({
-            ...item,
-            isPacked: item.packed,
-            isEssential: false // Demo items don't have essential flag
-          }))
-          const packed = mappedItems.filter((item: any) => item.isPacked)
-          const unpacked = mappedItems.filter((item: any) => !item.isPacked)
+          // Normalize demo items to standard format
+          const normalizedItems = normalizePackingItems(demoPackingList.items || [])
+          const packed = normalizedItems.filter(item => item.isPacked)
+          const unpacked = normalizedItems.filter(item => !item.isPacked)
           setPackedItems(packed)
           setUnpackedItems(unpacked)
           console.log('Set demo packed/unpacked items:', { packed: packed.length, unpacked: unpacked.length })
@@ -90,10 +100,11 @@ export default function PackingWidget({
 
         setSelectedPackingList(packingList)
 
-        // Update packed/unpacked items
+        // Update packed/unpacked items with normalized data
         if (packingList?.items) {
-          const packed = packingList.items.filter((item: any) => item.isPacked)
-          const unpacked = packingList.items.filter((item: any) => !item.isPacked)
+          const normalizedItems = normalizePackingItems(packingList.items)
+          const packed = normalizedItems.filter(item => item.isPacked)
+          const unpacked = normalizedItems.filter(item => !item.isPacked)
           setPackedItems(packed)
           setUnpackedItems(unpacked)
           console.log('Set packed/unpacked items:', { packed: packed.length, unpacked: unpacked.length })
@@ -128,8 +139,9 @@ export default function PackingWidget({
         setSelectedPackingList(packingList)
 
         if (packingList?.items) {
-          const packed = packingList.items.filter((item: any) => item.isPacked)
-          const unpacked = packingList.items.filter((item: any) => !item.isPacked)
+          const normalizedItems = normalizePackingItems(packingList.items)
+          const packed = normalizedItems.filter(item => item.isPacked)
+          const unpacked = normalizedItems.filter(item => !item.isPacked)
           setPackedItems(packed)
           setUnpackedItems(unpacked)
         } else {
@@ -162,9 +174,23 @@ export default function PackingWidget({
   const toggleItemPacked = (itemId: string) => {
     if (!selectedPackingList || isDemoMode) return // Don't allow changes in demo mode
 
-    const updatedItems = selectedPackingList.items.map((item: any) =>
-      item.id === itemId ? { ...item, isPacked: !item.isPacked } : item
-    )
+    // Update the items with the correct property name based on the data structure
+    const updatedItems = selectedPackingList.items.map((item: any) => {
+      if (item.id === itemId) {
+        // Determine which property to update based on what exists in the data
+        if ('checked' in item) {
+          return { ...item, checked: !item.checked }
+        } else if ('isPacked' in item) {
+          return { ...item, isPacked: !item.isPacked }
+        } else if ('packed' in item) {
+          return { ...item, packed: !item.packed }
+        } else {
+          // Default to 'checked' if no property exists
+          return { ...item, checked: !item.isPacked }
+        }
+      }
+      return item
+    })
 
     const updatedList = { ...selectedPackingList, items: updatedItems }
     setSelectedPackingList(updatedList)
@@ -175,9 +201,10 @@ export default function PackingWidget({
       packingPlugin.updateWidgetData(id, updatedList)
     }
 
-    // Update local state
-    const packed = updatedItems.filter((item: any) => item.isPacked)
-    const unpacked = updatedItems.filter((item: any) => !item.isPacked)
+    // Update local state with normalized data
+    const normalizedItems = normalizePackingItems(updatedItems)
+    const packed = normalizedItems.filter(item => item.isPacked)
+    const unpacked = normalizedItems.filter(item => !item.isPacked)
     setPackedItems(packed)
     setUnpackedItems(unpacked)
   }
