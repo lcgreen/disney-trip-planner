@@ -111,7 +111,7 @@ export default function CountdownTimer({
     }
   }
   const [targetDate, setTargetDate] = useState<string>('')
-  const [selectedPark, setSelectedPark] = useState<DisneyPark>(disneyParks[0])
+  const [selectedPark, setSelectedPark] = useState<DisneyPark | null>(disneyParks[0] || null)
   const [countdown, setCountdown] = useState<CountdownTimerData>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
   const [milliseconds, setMilliseconds] = useState<number>(0)
   const [isActive, setIsActive] = useState(false)
@@ -186,6 +186,13 @@ export default function CountdownTimer({
     }
   }, [targetDate, selectedPark, isEditMode, createdItemId])
 
+  // Ensure selectedPark is always initialized with a valid park
+  useEffect(() => {
+    if (!selectedPark && disneyParks.length > 0) {
+      setSelectedPark(disneyParks[0])
+    }
+  }, [selectedPark])
+
   // Load created item in edit mode
   useEffect(() => {
     if (isEditMode && createdItemId) {
@@ -193,8 +200,13 @@ export default function CountdownTimer({
       if (countdown) {
         // Convert ISO date string to local datetime format for the input
         const date = new Date(countdown.tripDate)
-        const localDateTime = date.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:mm
-        setTargetDate(localDateTime)
+        if (!isNaN(date.getTime())) {
+          const localDateTime = date.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:mm
+          setTargetDate(localDateTime)
+        } else {
+          console.warn('Invalid trip date found in countdown data:', countdown.tripDate)
+          setTargetDate('')
+        }
         // Ensure we get the complete park object with all properties
         const fullPark = getParkById(countdown.park?.id) || countdown.park
         setSelectedPark(fullPark)
@@ -268,7 +280,7 @@ export default function CountdownTimer({
   const autoSaveData = widgetId && isEditMode && targetDate ? {
     id: createdItemId || activeCountdown?.id || Date.now().toString(),
     name: editedName || name || 'New Countdown',
-    date: targetDate,
+    tripDate: targetDate, // <-- use tripDate everywhere
     park: selectedPark,
     settings,
     theme: customTheme || undefined,
@@ -332,7 +344,7 @@ export default function CountdownTimer({
   }
 
   const getEmbedCode = (): string => {
-    const embedUrl = `${window.location.origin}/embed/countdown?park=${selectedPark.id}&date=${encodeURIComponent(targetDate)}&theme=${customTheme?.id || 'classic'}&settings=${encodeURIComponent(JSON.stringify(settings))}`
+    const embedUrl = `${window.location.origin}/embed/countdown?park=${selectedPark?.id || 'disney-world'}&date=${encodeURIComponent(targetDate)}&theme=${customTheme?.id || 'classic'}&settings=${encodeURIComponent(JSON.stringify(settings))}`
     return `<iframe src="${embedUrl}" width="800" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"></iframe>`
   }
 
@@ -345,7 +357,7 @@ export default function CountdownTimer({
         id: createdItemId,
         name: name.trim(),
         park: selectedPark,
-        tripDate: targetDate,
+        tripDate: targetDate, // <-- use tripDate
         settings,
         theme: customTheme || undefined,
         createdAt: savedCountdowns?.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString(),
@@ -366,7 +378,7 @@ export default function CountdownTimer({
         id: Date.now().toString(),
         name: name.trim(),
         park: selectedPark,
-        tripDate: targetDate,
+        tripDate: targetDate, // <-- use tripDate
         settings,
         theme: customTheme || undefined,
         createdAt: new Date().toISOString(),
@@ -394,8 +406,13 @@ export default function CountdownTimer({
 
     // Convert ISO date string to local datetime format for the input
     const date = new Date(saved.tripDate)
-    const localDateTime = date.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:mm
-    setTargetDate(localDateTime)
+    if (!isNaN(date.getTime())) {
+      const localDateTime = date.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:mm
+      setTargetDate(localDateTime)
+    } else {
+      console.warn('Invalid trip date found in saved countdown data:', saved.tripDate)
+      setTargetDate('')
+    }
 
     setSettings(saved.settings || {
       showMilliseconds: false,
@@ -626,7 +643,7 @@ export default function CountdownTimer({
                         </div>
                         <p className="text-sm text-gray-500 mb-4">
                           {(() => {
-                            const date = new Date(saved.date)
+                            const date = new Date(saved.tripDate)
                             return isNaN(date.getTime()) ? 'Invalid Date' : format(date, 'do MMM yyyy \'at\' HH:mm')
                           })()}
                         </p>
@@ -847,11 +864,11 @@ export default function CountdownTimer({
                 >
                   <div className="text-left">
                     <div className="font-bold text-lg mb-1">{park.name}</div>
-                    <div className={`text-sm mb-2 ${selectedPark.id === park.id ? 'text-white/90' : 'text-gray-600'}`}>
+                    <div className={`text-sm mb-2 ${selectedPark?.id === park.id ? 'text-white/90' : 'text-gray-600'}`}>
                       {park.location}
                     </div>
                     {settings.showTimezone && (
-                      <div className={`text-xs ${selectedPark.id === park.id ? 'text-white/75' : 'text-gray-500'}`}>
+                      <div className={`text-xs ${selectedPark?.id === park.id ? 'text-white/75' : 'text-gray-500'}`}>
                         Opens: {park.openingTime} ({park.timezone.split('/')[1]})
                       </div>
                     )}
@@ -887,10 +904,14 @@ export default function CountdownTimer({
                     className="cursor-pointer hover:scale-105 transition-transform"
                     onClick={() => {
                       const date = option.days()
-                      date.setHours(9, 0, 0, 0)
-                      setTargetDate(date.toISOString().slice(0, 16))
-                      // Automatically start countdown when quick date is selected
-                      setIsActive(true)
+                      if (date && !isNaN(date.getTime())) {
+                        date.setHours(9, 0, 0, 0)
+                        setTargetDate(date.toISOString().slice(0, 16))
+                        // Automatically start countdown when quick date is selected
+                        setIsActive(true)
+                      } else {
+                        console.warn('Invalid date returned from quick date option:', option.label)
+                      }
                     }}
                   >
                     {option.label}
@@ -917,7 +938,10 @@ export default function CountdownTimer({
                        }
                      }
                    }}
-                   min={new Date().toISOString().slice(0, 16)}
+                   min={(() => {
+                     const now = new Date()
+                     return !isNaN(now.getTime()) ? now.toISOString().slice(0, 16) : ''
+                   })()}
                    className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-disney-blue focus:border-disney-blue transition-all duration-300 text-lg"
                    aria-label="Select your Disney trip date and time"
                  />
@@ -937,7 +961,7 @@ export default function CountdownTimer({
               className={`text-center p-8 md:p-12 rounded-2xl bg-gradient-to-r ${currentTheme.gradient} ${currentTheme.textColor} relative overflow-hidden shadow-2xl`}
              role="timer"
              aria-live="polite"
-             aria-label={`Disney countdown timer showing ${countdown.days} days, ${countdown.hours} hours, ${countdown.minutes} minutes, and ${countdown.seconds} seconds until your trip to ${selectedPark.name}`}
+             aria-label={`Disney countdown timer showing ${countdown.days} days, ${countdown.hours} hours, ${countdown.minutes} minutes, and ${countdown.seconds} seconds until your trip to ${selectedPark?.name || 'Disney'}`}
             >
               {/* Enhanced Background decorations */}
               <div className="absolute inset-0 opacity-10">
@@ -968,7 +992,7 @@ export default function CountdownTimer({
                   transition={{ delay: 0.5 }}
                 >
                   <h2 className="text-xl md:text-2xl font-semibold mb-2 opacity-90">Your Trip to</h2>
-                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{selectedPark.name}</h1>
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{selectedPark?.name || 'Disney'}</h1>
                   <p className="text-lg md:text-xl opacity-90 mb-8">{formatTargetDate()}</p>
                 </motion.div>
 
@@ -1040,12 +1064,12 @@ export default function CountdownTimer({
                 className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 md:p-8"
               >
                 <h3 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">
-                  🎢 Must-Do Attractions at {selectedPark.name}
+                  🎢 Must-Do Attractions at {selectedPark?.name || 'Disney'}
                 </h3>
-                {selectedPark.subParks ? (
+                                  {selectedPark?.subParks ? (
                   // Show grouped attractions for resort complexes
                   <div className="space-y-6">
-                    {selectedPark.subParks.map((subPark, parkIndex) => (
+                                          {selectedPark?.subParks?.map((subPark, parkIndex) => (
                       <motion.div
                         key={subPark.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -1092,13 +1116,13 @@ export default function CountdownTimer({
                 ) : (
                   // Show regular attractions for individual parks
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(selectedPark.popularAttractions || []).map((attraction, index) => (
+                    {(selectedPark?.popularAttractions || []).map((attraction, index) => (
                       <motion.div
                         key={attraction}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.6 + index * 0.1 }}
-                        className={`p-5 rounded-xl bg-gradient-to-r ${selectedPark.gradient} text-white shadow-lg hover:shadow-xl transition-all duration-300`}
+                        className={`p-5 rounded-xl bg-gradient-to-r ${selectedPark?.gradient || 'from-disney-blue to-disney-purple'} text-white shadow-lg hover:shadow-xl transition-all duration-300`}
                       >
                         <div className="flex items-center gap-4">
                           <CountBadge

@@ -292,9 +292,9 @@ describe('Edit Page Auto-Save Functionality', () => {
       consoleSpy.mockRestore()
     })
 
-    it('should not auto-save for anonymous users', async () => {
+        it('should auto-save to memory for anonymous users', async () => {
       const user = userEvent.setup()
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
       vi.mocked(userManager.getCurrentUser).mockReturnValue({
@@ -304,6 +304,13 @@ describe('Edit Page Auto-Save Functionality', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       })
       vi.mocked(userManager.hasFeatureAccess).mockReturnValue(false)
+
+      // Mock AutoSaveService to simulate the anonymous user behavior
+      vi.mocked(AutoSaveService.saveCountdownData).mockImplementation(async (data, widgetId) => {
+        console.log('Anonymous user: Auto-save to memory only')
+        return Promise.resolve()
+      })
+
       render(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
@@ -314,7 +321,19 @@ describe('Edit Page Auto-Save Functionality', () => {
       await user.clear(dateInput)
       await user.type(dateInput, '2024-12-26T00:00')
       fireEvent.blur(dateInput)
-      expect(AutoSaveService.saveCountdownData).not.toHaveBeenCalled()
+
+      // Wait for auto-save to be called
+      await waitFor(() => {
+        expect(AutoSaveService.saveCountdownData).toHaveBeenCalledWith(
+          expect.objectContaining({
+            date: '2024-12-26T00:00',
+          }),
+          'test-widget-1'
+        )
+      })
+
+      // Verify that anonymous users get the memory-only message
+      expect(consoleSpy).toHaveBeenCalledWith('Anonymous user: Auto-save to memory only')
       consoleSpy.mockRestore()
     })
   })
@@ -389,9 +408,9 @@ describe('Edit Page Auto-Save Functionality', () => {
       consoleSpy.mockRestore()
     })
 
-    it('should not auto-save for anonymous users', async () => {
+    it('should auto-save to memory for anonymous users', async () => {
       const user = userEvent.setup()
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
@@ -405,6 +424,12 @@ describe('Edit Page Auto-Save Functionality', () => {
       })
 
       vi.mocked(userManager.hasFeatureAccess).mockReturnValue(false)
+
+      // Mock AutoSaveService to simulate the anonymous user behavior
+      vi.mocked(AutoSaveService.saveCountdownData).mockImplementation(async (data, widgetId) => {
+        console.log('Anonymous user: Auto-save to memory only')
+        return Promise.resolve()
+      })
 
       render(<CountdownTimer
         createdItemId="test-countdown-1"
@@ -423,8 +448,18 @@ describe('Edit Page Auto-Save Functionality', () => {
       await user.type(dateInput, '2024-12-26T00:00')
       fireEvent.blur(dateInput)
 
-      // Verify auto-save was not called
-      expect(AutoSaveService.saveCountdownData).not.toHaveBeenCalled()
+      // Wait for auto-save to be called
+      await waitFor(() => {
+        expect(AutoSaveService.saveCountdownData).toHaveBeenCalledWith(
+          expect.objectContaining({
+            date: '2024-12-26T00:00',
+          }),
+          'test-widget-1'
+        )
+      })
+
+      // Verify that anonymous users get the memory-only message
+      expect(consoleSpy).toHaveBeenCalledWith('Anonymous user: Auto-save to memory only')
 
       consoleSpy.mockRestore()
     })

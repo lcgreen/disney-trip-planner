@@ -24,11 +24,17 @@ export class UnifiedStorage {
 
     const instance = UnifiedStorage.getInstance()
 
-    // Check cache first
+    // Check cache first (works for both anonymous and authenticated users)
     if (instance.storageCache.has(key)) {
       return instance.storageCache.get(key)
     }
 
+    // For anonymous users, only return from cache
+    if (!userManager.hasFeatureAccess('saveData')) {
+      return defaultValue
+    }
+
+    // For authenticated users, try localStorage
     const saved = localStorage.getItem(key)
     const data = saved ? JSON.parse(saved) : defaultValue
 
@@ -40,18 +46,18 @@ export class UnifiedStorage {
   static async saveData<T>(key: string, data: T): Promise<void> {
     if (typeof window === 'undefined') return
 
-    // Check if user has save permissions (skip in test environment)
+    const instance = UnifiedStorage.getInstance()
+
+    // Update cache (always works for memory storage)
+    instance.storageCache.set(key, data)
+
+    // Check if user has save permissions for persistent storage
     if (process.env.NODE_ENV !== 'test' && !userManager.hasFeatureAccess('saveData')) {
-      console.warn('Save blocked: User does not have save permissions')
+      console.log('Anonymous user: Data saved to memory only (not persistent)')
       return
     }
 
-    const instance = UnifiedStorage.getInstance()
-
-    // Update cache
-    instance.storageCache.set(key, data)
-
-    // Save to localStorage
+    // Save to localStorage for authenticated users
     localStorage.setItem(key, JSON.stringify(data))
   }
 

@@ -22,7 +22,7 @@ export class AutoSaveService {
     id: string
     name: string
     park: any
-    date: string
+    tripDate: string
     settings: any
     theme?: any
     createdAt: string
@@ -30,8 +30,20 @@ export class AutoSaveService {
     try {
       // Check if user has save permissions
       const { userManager } = await import('@/lib/userManagement')
+      const currentUser = userManager.getCurrentUser()
+
+      // Allow anonymous users to save to memory only
       if (!userManager.hasFeatureAccess('saveData')) {
-        console.warn('Auto-save blocked: User does not have save permissions')
+        console.log('Anonymous user: Auto-save to memory only')
+        // Still update widget config for anonymous users
+        if (widgetId) {
+          const { WidgetConfigManager } = await import('@/lib/widgetConfig')
+          const config = WidgetConfigManager.getConfig(widgetId)
+          if (!config?.selectedItemId || config.selectedItemId !== data.id) {
+            WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
+            console.log('[AutoSave] Linked widget', widgetId, 'to countdown', data.id)
+          }
+        }
         return
       }
 
@@ -41,7 +53,7 @@ export class AutoSaveService {
       const updatedCountdowns = countdowns.map((c: any) => {
         if (c.id === data.id) {
           found = true;
-          return { ...data, updatedAt: new Date().toISOString() };
+          return { ...c, ...data, updatedAt: new Date().toISOString() };
         }
         return c;
       });
@@ -92,8 +104,19 @@ export class AutoSaveService {
     try {
       // Check if user has save permissions
       const { userManager } = await import('@/lib/userManagement')
+
+      // Allow anonymous users to save to memory only
       if (!userManager.hasFeatureAccess('saveData')) {
-        console.warn('Auto-save blocked: User does not have save permissions')
+        console.log('Anonymous user: Auto-save to memory only')
+        // Still update widget config for anonymous users
+        if (widgetId) {
+          const { WidgetConfigManager } = await import('@/lib/widgetConfig')
+          const config = WidgetConfigManager.getConfig(widgetId)
+          if (!config?.selectedItemId || config.selectedItemId !== data.id) {
+            WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
+            console.log('[AutoSave] Linked widget', widgetId, 'to budget', data.id)
+          }
+        }
         return
       }
 
@@ -153,8 +176,19 @@ export class AutoSaveService {
     try {
       // Check if user has save permissions
       const { userManager } = await import('@/lib/userManagement')
+
+      // Allow anonymous users to save to memory only
       if (!userManager.hasFeatureAccess('saveData')) {
-        console.warn('Auto-save blocked: User does not have save permissions')
+        console.log('Anonymous user: Auto-save to memory only')
+        // Still update widget config for anonymous users
+        if (widgetId) {
+          const { WidgetConfigManager } = await import('@/lib/widgetConfig')
+          const config = WidgetConfigManager.getConfig(widgetId)
+          if (!config?.selectedItemId || config.selectedItemId !== data.id) {
+            WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
+            console.log('[AutoSave] Linked widget', widgetId, 'to packing', data.id)
+          }
+        }
         return
       }
 
@@ -218,8 +252,18 @@ export class AutoSaveService {
       console.log('[AutoSaveService] Has saveData access:', userManager.hasFeatureAccess('saveData'))
       console.log('[AutoSaveService] Has planner access:', userManager.hasFeatureAccess('planner'))
 
+      // Allow anonymous users to save to memory only
       if (!userManager.hasFeatureAccess('saveData')) {
-        console.warn('Auto-save blocked: User does not have save permissions')
+        console.log('Anonymous user: Auto-save to memory only')
+        // Still update widget config for anonymous users
+        if (widgetId) {
+          const { WidgetConfigManager } = await import('@/lib/widgetConfig')
+          const config = WidgetConfigManager.getConfig(widgetId)
+          if (!config?.selectedItemId || config.selectedItemId !== data.id) {
+            WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
+            console.log('[AutoSave] Linked widget', widgetId, 'to planner', data.id)
+          }
+        }
         return
       }
 

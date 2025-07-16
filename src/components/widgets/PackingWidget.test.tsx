@@ -33,7 +33,7 @@ vi.mock('@/config/demo-dashboard.json', () => ({
   default: {
     widgets: [
       {
-        id: 'demo-packing-1',
+        id: 'test-packing-widget',
         type: 'packing',
         selectedItemId: 'demo-packing-item-1'
       }
@@ -42,7 +42,7 @@ vi.mock('@/config/demo-dashboard.json', () => ({
       packingLists: [
         {
           id: 'demo-packing-item-1',
-          name: 'Demo Packing List',
+          name: 'Family Disney Trip Packing',
           items: [
             { id: 'item-1', name: 'Mickey Ears', category: 'accessories', checked: false },
             { id: 'item-2', name: 'Comfortable Shoes', category: 'clothing', checked: true },
@@ -72,7 +72,7 @@ describe('PackingWidget Data Structure', () => {
 
     // Should display the demo packing list name
     await waitFor(() => {
-      expect(screen.getByText('Demo Packing List')).toBeInTheDocument()
+      expect(screen.getByText('Family Disney Trip Packing')).toBeInTheDocument()
     })
 
     // Should show correct progress (1 out of 3 items packed = 33%)
@@ -123,11 +123,13 @@ describe('PackingWidget Data Structure', () => {
       expect(screen.getByText('67%')).toBeInTheDocument()
     })
 
-    // Should show packed count as 2
-    expect(screen.getByText('2')).toBeInTheDocument()
+    // Should show packed count as 2 (look for the specific element in the packed stats section)
+    const packedCountElement = screen.getByText('2', { selector: '.text-lg.font-bold.text-orange-800' })
+    expect(packedCountElement).toBeInTheDocument()
 
-    // Should show remaining count as 1
-    expect(screen.getByText('1')).toBeInTheDocument()
+    // Should show remaining count as 1 (look for the specific element in the remaining stats section)
+    const remainingCountElement = screen.getByText('1', { selector: '.text-lg.font-bold.text-gray-800' })
+    expect(remainingCountElement).toBeInTheDocument()
   })
 
   it('should toggle items correctly regardless of property name', async () => {
