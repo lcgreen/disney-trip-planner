@@ -5,12 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Calendar, Clock, DollarSign, Package, Home, Menu, X, Crown, Layout, User } from 'lucide-react'
-import { PremiumBadge } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { hasFeatureAccess } from '@/lib/userManagement'
-
-// Debug log to check if PremiumBadge is properly imported
-console.log('PremiumBadge imported:', PremiumBadge)
 
 interface NavigationItem {
   href: string
@@ -157,7 +153,7 @@ export default function Navigation() {
                     )}
                     {item.requiredLevel === 'premium' && userLevel !== 'anon' && canAccess && (
                       <div className="ml-auto">
-                        {PremiumBadge ? <PremiumBadge /> : <Crown className="w-4 h-4 text-disney-gold" />}
+                        <Crown className="w-4 h-4 text-disney-gold" />
                       </div>
                     )}
                   </Link>

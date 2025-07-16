@@ -81,10 +81,10 @@ describe('PackingWidget Data Structure', () => {
     })
 
     // Should show packed count as 1
-    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('1', { selector: '.text-lg.font-bold.text-orange-800' })).toBeInTheDocument()
 
     // Should show remaining count as 2
-    expect(screen.getByText('2')).toBeInTheDocument()
+    expect(screen.getByText('2', { selector: '.text-lg.font-bold.text-gray-800' })).toBeInTheDocument()
   })
 
   it('should handle plugin data with different property names', async () => {

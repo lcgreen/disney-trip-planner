@@ -227,27 +227,52 @@ export class WidgetConfigManager {
   static cleanupDeletedItemReferences(deletedItemId: string, widgetType: WidgetConfig['type']): void {
     try {
       const configs = this.getConfigs()
-      let updated = false
-
-      const cleanedConfigs = configs.map(config => {
+      const updated = configs.map(config => {
         if (config.type === widgetType && config.selectedItemId === deletedItemId) {
-          updated = true
           return { ...config, selectedItemId: undefined }
         }
         return config
       })
 
-      if (updated) {
-        if (process.env.NODE_ENV === 'test') {
-          localStorage.setItem(WIDGET_CONFIG_KEY, JSON.stringify(cleanedConfigs))
-          // Update the cache to ensure consistency
-          UnifiedStorage.getInstance().storageCache.set(WIDGET_CONFIG_KEY, cleanedConfigs)
-        } else {
-          this.saveConfigs(cleanedConfigs)
-        }
+      // Use synchronous storage for tests
+      if (process.env.NODE_ENV === 'test') {
+        localStorage.setItem(WIDGET_CONFIG_KEY, JSON.stringify(updated))
+        // Update the cache to ensure consistency
+        UnifiedStorage.getInstance().storageCache.set(WIDGET_CONFIG_KEY, updated)
+      } else {
+        // In production, use async version
+        this.saveConfigs(updated).catch(console.error)
       }
     } catch (error) {
       console.error('Failed to cleanup deleted item references:', error)
+      // In test environment, don't throw to avoid breaking tests
+      if (process.env.NODE_ENV !== 'test') {
+        throw error
+      }
+    }
+  }
+
+  static cleanupAllItemReferences(widgetType: WidgetConfig['type']): void {
+    try {
+      const configs = this.getConfigs()
+      const updated = configs.map(config => {
+        if (config.type === widgetType) {
+          return { ...config, selectedItemId: undefined }
+        }
+        return config
+      })
+
+      // Use synchronous storage for tests
+      if (process.env.NODE_ENV === 'test') {
+        localStorage.setItem(WIDGET_CONFIG_KEY, JSON.stringify(updated))
+        // Update the cache to ensure consistency
+        UnifiedStorage.getInstance().storageCache.set(WIDGET_CONFIG_KEY, updated)
+      } else {
+        // In production, use async version
+        this.saveConfigs(updated).catch(console.error)
+      }
+    } catch (error) {
+      console.error('Failed to cleanup all item references:', error)
       // In test environment, don't throw to avoid breaking tests
       if (process.env.NODE_ENV !== 'test') {
         throw error

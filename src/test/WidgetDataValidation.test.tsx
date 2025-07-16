@@ -47,13 +47,13 @@ vi.mock('@/lib/userManagement', () => ({
 describe('Widget Data Validation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     // Setup default mocks
     vi.mocked(userManager.getCurrentUser).mockReturnValue({
       id: 'user-1',
       level: 'standard',
     })
-    
+
     vi.mocked(userManager.hasFeatureAccess).mockReturnValue(true)
   })
 
@@ -124,7 +124,7 @@ describe('Widget Data Validation', () => {
         if (!date) return false
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/
         if (!dateRegex.test(date)) return false
-        
+
         const parsedDate = new Date(date)
         return !isNaN(parsedDate.getTime())
       }
@@ -312,11 +312,11 @@ describe('Widget Data Validation', () => {
         }
         if (expense.amount < 0) return false
         if (expense.description.trim() === '') return false
-        
+
         // Validate date format
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/
         if (!dateRegex.test(expense.date)) return false
-        
+
         const parsedDate = new Date(expense.date)
         return !isNaN(parsedDate.getTime())
       }
@@ -478,14 +478,14 @@ describe('Widget Data Validation', () => {
 
       const validateDay = (day: any) => {
         if (!day.id || !day.date) return false
-        
+
         // Validate date format
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/
         if (!dateRegex.test(day.date)) return false
-        
+
         // Validate plans
         if (!Array.isArray(day.plans)) return false
-        return day.plans.every((plan: any) => 
+        return day.plans.every((plan: any) =>
           plan.id && plan.time && plan.activity && plan.park
         )
       }
@@ -517,9 +517,9 @@ describe('Widget Data Validation', () => {
 
       const validateTime = (time: string) => {
         if (!time) return false
-        const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+        const timeRegex = /^([01][0-9]|2[0-3]):[0-5][0-9]$/
         if (!timeRegex.test(time)) return false
-        
+
         // Additional validation for hours and minutes
         const [hours, minutes] = time.split(':').map(Number)
         return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59
@@ -766,12 +766,12 @@ describe('Widget Data Validation', () => {
 
       const recoverData = (data: any) => {
         const recovered = { ...data }
-        
+
         // Provide defaults for corrupted fields
         if (!recovered.tripDate) {
           recovered.tripDate = new Date().toISOString().split('T')[0]
         }
-        
+
         return recovered
       }
 

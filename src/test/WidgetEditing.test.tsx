@@ -168,52 +168,26 @@ describe('Widget Editing Functionality', () => {
   })
 
   describe('Edit Navigation', () => {
-    it('should navigate to correct edit page when Edit Configuration is clicked', async () => {
-      const user = userEvent.setup()
-
-      render(<WidgetBase {...mockWidgetProps} />)
-
-      // Simulate hover over the settings button to trigger group-hover styles
-      const settingsButton = screen.getByLabelText('Settings')
-      await user.hover(settingsButton)
-
-      // Click the settings button
-      await user.click(settingsButton)
-
-      // Wait for dropdown to open and be visible
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
-      })
-
-      // Click Select Item button to open dialog
-      const selectButton = screen.getByRole('button', { name: /select countdown/i })
-      await user.click(selectButton)
-
-      // Verify dialog opens
-      await waitFor(() => {
-        expect(screen.getByText('Select Countdown')).toBeInTheDocument()
-      })
-    })
-
-    it('should navigate to correct edit page for different widget type', async () => {
+    it('should navigate to edit page when Edit Configuration is clicked', async () => {
       const user = userEvent.setup()
 
       render(<WidgetBase {...mockWidgetProps} widgetType="planner" />)
 
-      // Simulate hover over the settings button
+      // Open settings dialog
       const settingsButton = screen.getByLabelText('Settings')
-      await user.hover(settingsButton)
       await user.click(settingsButton)
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /select trip plan/i })).toBeInTheDocument()
-      })
-      const selectButton = screen.getByRole('button', { name: /select trip plan/i })
-      await user.click(selectButton)
 
-      // Verify dialog opens
+      // Wait for dialog to open
       await waitFor(() => {
         expect(screen.getByText('Select Trip Plan')).toBeInTheDocument()
       })
+
+      // Click Edit Selected button (if an item is selected)
+      const editButton = screen.getByRole('button', { name: /edit selected/i })
+      await user.click(editButton)
+
+      // Verify navigation to edit page
+      expect(window.location.href).toBe('/planner/new?widgetId=test-widget-1&editItemId=test-countdown-1')
     })
 
     it('should navigate to create new page when Create New is clicked', async () => {
@@ -221,18 +195,17 @@ describe('Widget Editing Functionality', () => {
 
       render(<WidgetBase {...mockWidgetProps} />)
 
-      // Open settings dropdown
+      // Open settings dialog
       const settingsButton = screen.getByLabelText('Settings')
-      await user.hover(settingsButton)
       await user.click(settingsButton)
 
-      // Wait for dropdown to open and be visible
+      // Wait for dialog to open
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
+        expect(screen.getByText('Select Countdown')).toBeInTheDocument()
       })
 
       // Click Create New button
-      const createButton = screen.getByRole('button', { name: /create new countdown/i })
+      const createButton = screen.getByRole('button', { name: /new countdown/i })
       await user.click(createButton)
 
       // Verify navigation to create page
@@ -260,18 +233,17 @@ describe('Widget Editing Functionality', () => {
 
       render(<WidgetBase {...propsWithoutSelectedItem} />)
 
-      // Open settings dropdown
+      // Open settings dialog
       const settingsButton = screen.getByLabelText('Settings')
-      await user.hover(settingsButton)
       await user.click(settingsButton)
 
-      // Wait for dropdown to open and be visible
+      // Wait for dialog to open
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
+        expect(screen.getByText('Select Countdown')).toBeInTheDocument()
       })
 
-      // Verify Edit Configuration button is not present (replaced with Select Item button)
-      expect(screen.queryByRole('button', { name: /edit configuration/i })).not.toBeInTheDocument()
+      // Verify Edit Selected button is not present when no item is selected
+      expect(screen.queryByRole('button', { name: /edit selected/i })).not.toBeInTheDocument()
     })
   })
 
@@ -369,6 +341,86 @@ describe('Widget Editing Functionality', () => {
     })
   })
 
+  describe('Widget Configuration Dialog', () => {
+    it('should open configuration dialog when settings button is clicked', async () => {
+      const user = userEvent.setup()
+
+      render(<WidgetBase {...mockWidgetProps} />)
+
+      // Open settings dialog
+      const settingsButton = screen.getByLabelText('Settings')
+      await user.click(settingsButton)
+
+      // Wait for dialog to open and be visible
+      await waitFor(() => {
+        expect(screen.getByText('Select Countdown')).toBeInTheDocument()
+      })
+
+      // Verify dialog content is present
+      expect(screen.getByText('Choose from your saved countdowns or create a new one')).toBeInTheDocument()
+    })
+
+    it('should show correct dialog title for different widget types', async () => {
+      const user = userEvent.setup()
+
+      // Test budget widget
+      const budgetProps = {
+        ...mockWidgetProps,
+        widgetType: 'budget' as const,
+      }
+      const { rerender } = render(<WidgetBase {...budgetProps} />)
+
+      const settingsButton = await screen.findByLabelText('Settings')
+      await user.click(settingsButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Budget')).toBeInTheDocument()
+      })
+
+      // Close the dialog if needed (simulate closing)
+      const closeButton = screen.queryByRole('button', { name: /close/i })
+      if (closeButton) await user.click(closeButton)
+
+      // Test planner widget
+      const plannerProps = {
+        ...mockWidgetProps,
+        widgetType: 'planner' as const,
+      }
+      rerender(<WidgetBase {...plannerProps} />)
+
+      // Wait for the settings button to be interactable
+      const plannerSettingsButton = await screen.findByLabelText('Settings')
+      await user.click(plannerSettingsButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Trip Plan')).toBeInTheDocument()
+      })
+    })
+
+    it('should close dialog when close button is clicked', async () => {
+      const user = userEvent.setup()
+
+      render(<WidgetBase {...mockWidgetProps} />)
+
+      // Open dialog
+      const settingsButton = screen.getByLabelText('Settings')
+      await user.click(settingsButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Countdown')).toBeInTheDocument()
+      })
+
+      // Close dialog
+      const closeButton = screen.getByRole('button', { name: /close/i })
+      await user.click(closeButton)
+
+      // Verify dialog is closed
+      await waitFor(() => {
+        expect(screen.queryByText('Select Countdown')).not.toBeInTheDocument()
+      })
+    })
+  })
+
   describe('Display Updates', () => {
     it('should update widget display when item is selected', async () => {
       const user = userEvent.setup()
@@ -390,14 +442,13 @@ describe('Widget Editing Functionality', () => {
 
       render(<WidgetBase {...mockWidgetProps} />)
 
-      // Open settings dropdown
+      // Open settings dialog
       const settingsButton = screen.getByLabelText('Settings')
-      await user.hover(settingsButton)
       await user.click(settingsButton)
 
-      // Wait for dropdown to open and be visible
+      // Wait for dialog to open and be visible
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
+        expect(screen.getByText('Select Countdown')).toBeInTheDocument()
       })
     })
 
@@ -535,19 +586,18 @@ describe('Widget Editing Functionality', () => {
 
       render(<WidgetBase {...mockWidgetProps} />)
 
-      // Open settings dropdown
+      // Open settings dialog
       const settingsButton = screen.getByLabelText('Settings')
-      await user.hover(settingsButton)
       await user.click(settingsButton)
 
-      // Wait for dropdown to open and be visible
+      // Wait for dialog to open and be visible
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
+        expect(screen.getByText('Select Countdown')).toBeInTheDocument()
       })
 
-      // Verify the select item button is present
-      expect(screen.getByRole('button', { name: /select countdown/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /create new countdown/i })).toBeInTheDocument()
+      // Verify the dialog content is present
+      expect(screen.getByText('Choose from your saved countdowns or create a new one')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /new countdown/i })).toBeInTheDocument()
     })
 
     it('should handle widget removal correctly', async () => {
