@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Crown } from 'lucide-react'
-import WidgetBase, { type WidgetSize } from './WidgetBase'
+import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useUser } from '@/hooks/useUser'
+import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
 
 interface BudgetWidgetProps {
@@ -40,46 +41,63 @@ export default function BudgetWidget({
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([])
 
   useEffect(() => {
-    // Load selected budget data from plugin
-    const budgetPlugin = PluginRegistry.getPlugin('budget')
-    if (budgetPlugin) {
-      // Get the widget configuration to see if a specific item is selected
-      const widgetConfig = WidgetConfigManager.getConfig(id)
-      const selectedItemId = widgetConfig?.selectedItemId
-
-      let budget
-      if (selectedItemId) {
-        // Load the specific selected budget
-        budget = budgetPlugin.getItem(selectedItemId)
-      } else {
-        // Load live/default data
-        budget = budgetPlugin.getWidgetData(id)
+    if (isDemoMode) {
+      // Load demo data for anonymous users
+      const demoWidget = demoDashboard.widgets.find((w: any) => w.id === id)
+      if (demoWidget && demoWidget.selectedItemId) {
+        const demoBudget = demoDashboard.data.budgets.find(
+          (b: any) => b.id === demoWidget.selectedItemId
+        )
+        if (demoBudget) {
+          setSelectedBudget(demoBudget)
+          // Demo budgets don't have expenses, so set empty array
+          setRecentExpenses([])
+        }
       }
+    } else {
+      // Load selected budget data from plugin for authenticated users
+      const budgetPlugin = PluginRegistry.getPlugin('budget')
+      if (budgetPlugin) {
+        // Get the widget configuration to see if a specific item is selected
+        const widgetConfig = WidgetConfigManager.getConfig(id)
+        const selectedItemId = widgetConfig?.selectedItemId
 
-      setSelectedBudget(budget)
+        let budget
+        if (selectedItemId) {
+          // Load the specific selected budget
+          budget = budgetPlugin.getItem(selectedItemId)
+        } else {
+          // Load live/default data
+          budget = budgetPlugin.getWidgetData(id)
+        }
 
-      if (budget?.expenses) {
-        // Get recent expenses (last 5)
-        const sortedExpenses = budget.expenses
-          .sort((a: any, b: any) => {
-            const dateA = new Date(a.date)
-            const dateB = new Date(b.date)
-            // Handle invalid dates by putting them at the end
-            if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0
-            if (isNaN(dateA.getTime())) return 1
-            if (isNaN(dateB.getTime())) return -1
-            return dateB.getTime() - dateA.getTime()
-          })
-          .slice(0, 5)
-        setRecentExpenses(sortedExpenses)
-      } else {
-        setRecentExpenses([])
+        setSelectedBudget(budget)
+
+        if (budget?.expenses) {
+          // Get recent expenses (last 5)
+          const sortedExpenses = budget.expenses
+            .sort((a: any, b: any) => {
+              const dateA = new Date(a.date)
+              const dateB = new Date(b.date)
+              // Handle invalid dates by putting them at the end
+              if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0
+              if (isNaN(dateA.getTime())) return 1
+              if (isNaN(dateB.getTime())) return -1
+              return dateB.getTime() - dateA.getTime()
+            })
+            .slice(0, 5)
+          setRecentExpenses(sortedExpenses)
+        } else {
+          setRecentExpenses([])
+        }
       }
     }
-  }, [id])
+  }, [id, isDemoMode])
 
-  // Watch for changes in widget configuration
+  // Watch for changes in widget configuration (skip in demo mode)
   useEffect(() => {
+    if (isDemoMode) return // Don't watch for updates in demo mode
+
     const checkForUpdates = () => {
       const budgetPlugin = PluginRegistry.getPlugin('budget')
       if (budgetPlugin) {
@@ -120,11 +138,13 @@ export default function BudgetWidget({
     // Set up an interval to check for updates
     const interval = setInterval(checkForUpdates, 1000)
     return () => clearInterval(interval)
-  }, [id])
+  }, [id, isDemoMode])
 
   const handleItemSelect = (itemId: string | null) => {
-    // Update the widget configuration
-    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    // Only update configuration for authenticated users (not in demo mode)
+    if (!isDemoMode) {
+      WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    }
 
     // Call the parent callback if provided
     if (onItemSelect) {

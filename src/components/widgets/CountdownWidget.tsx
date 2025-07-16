@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Clock } from 'lucide-react'
-import WidgetBase, { type WidgetSize } from './WidgetBase'
+import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
 
 interface CountdownWidgetProps {
@@ -35,28 +36,43 @@ export default function CountdownWidget({
   })
 
     useEffect(() => {
-    // Load selected countdown data from plugin
-    const countdownPlugin = PluginRegistry.getPlugin('countdown')
-    if (countdownPlugin) {
-      // Get the widget configuration to see if a specific item is selected
-      const widgetConfig = WidgetConfigManager.getConfig(id)
-      const selectedItemId = widgetConfig?.selectedItemId
-      console.log('[Widget] Widget config for', id, widgetConfig)
-      if (selectedItemId) {
-        // Load the specific selected countdown
-        const countdown = countdownPlugin.getItem(selectedItemId)
-        console.log('[Widget] Loading countdown for selectedItemId', selectedItemId, countdown)
-        setSelectedCountdown(countdown)
-      } else {
-        // Load live/default data
-        const countdown = countdownPlugin.getWidgetData(id)
-        setSelectedCountdown(countdown)
+    if (isDemoMode) {
+      // Load demo data for anonymous users
+      const demoWidget = demoDashboard.widgets.find((w: any) => w.id === id)
+      if (demoWidget && demoWidget.selectedItemId) {
+        const demoCountdown = demoDashboard.data.countdowns.find(
+          (c: any) => c.id === demoWidget.selectedItemId
+        )
+        if (demoCountdown) {
+          setSelectedCountdown(demoCountdown)
+        }
+      }
+    } else {
+      // Load selected countdown data from plugin for authenticated users
+      const countdownPlugin = PluginRegistry.getPlugin('countdown')
+      if (countdownPlugin) {
+        // Get the widget configuration to see if a specific item is selected
+        const widgetConfig = WidgetConfigManager.getConfig(id)
+        const selectedItemId = widgetConfig?.selectedItemId
+        console.log('[Widget] Widget config for', id, widgetConfig)
+        if (selectedItemId) {
+          // Load the specific selected countdown
+          const countdown = countdownPlugin.getItem(selectedItemId)
+          console.log('[Widget] Loading countdown for selectedItemId', selectedItemId, countdown)
+          setSelectedCountdown(countdown)
+        } else {
+          // Load live/default data
+          const countdown = countdownPlugin.getWidgetData(id)
+          setSelectedCountdown(countdown)
+        }
       }
     }
-  }, [id])
+  }, [id, isDemoMode])
 
-  // Watch for changes in widget configuration
+  // Watch for changes in widget configuration (skip in demo mode)
   useEffect(() => {
+    if (isDemoMode) return // Don't watch for updates in demo mode
+
     const checkForUpdates = () => {
       const countdownPlugin = PluginRegistry.getPlugin('countdown')
       if (countdownPlugin) {
@@ -79,7 +95,7 @@ export default function CountdownWidget({
     // Set up an interval to check for updates
     const interval = setInterval(checkForUpdates, 1000)
     return () => clearInterval(interval)
-  }, [id])
+  }, [id, isDemoMode])
 
   useEffect(() => {
     if (!selectedCountdown?.tripDate) return
@@ -113,8 +129,10 @@ export default function CountdownWidget({
   }, [selectedCountdown?.tripDate])
 
   const handleItemSelect = (itemId: string | null) => {
-    // Update the widget configuration
-    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    // Only update configuration for authenticated users (not in demo mode)
+    if (!isDemoMode) {
+      WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    }
 
     // Call the parent callback if provided
     if (onItemSelect) {

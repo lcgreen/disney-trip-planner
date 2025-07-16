@@ -5,9 +5,11 @@ import { motion } from 'framer-motion'
 import { useUser } from '@/hooks/useUser'
 import { PluginRegistry } from '@/lib/pluginSystem'
 import { hasLevelAccess } from '@/lib/userManagement'
-import { WidgetConfigManager, type WidgetConfig } from '@/lib/widgetConfig'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { type WidgetConfig } from '@/types'
 import { CountdownWidget, TripPlannerWidget, BudgetWidget, PackingWidget } from '@/components/widgets'
 import { Button, Badge } from '@/components/ui'
+import demoDashboard from '@/config/demo-dashboard.json'
 
 interface WidgetOption {
   type: string
@@ -25,11 +27,20 @@ export default function DashboardPage() {
 
   // Load widgets on mount
   useEffect(() => {
-    const configs = WidgetConfigManager.getConfigs()
-    setWidgets(configs)
-  }, [])
+    if (userLevel === 'anon') {
+      // Load demo dashboard for anonymous users
+      setWidgets(demoDashboard.widgets as WidgetConfig[])
+    } else {
+      // Load saved configurations for authenticated users
+      const configs = WidgetConfigManager.getConfigs()
+      setWidgets(configs)
+    }
+  }, [userLevel])
 
   const addWidget = (type: string) => {
+    // Only allow authenticated users to add widgets
+    if (userLevel === 'anon') return
+
     const newWidget: WidgetConfig = {
       id: `${type}-${Date.now()}`,
       type: type as 'countdown' | 'planner' | 'budget' | 'packing',
@@ -47,12 +58,18 @@ export default function DashboardPage() {
   }
 
   const removeWidget = (widgetId: string) => {
+    // Only allow authenticated users to remove widgets
+    if (userLevel === 'anon') return
+
     WidgetConfigManager.removeConfigSync(widgetId)
     const updatedWidgets = WidgetConfigManager.getConfigs()
     setWidgets(updatedWidgets)
   }
 
   const reorderWidgets = (fromIndex: number, toIndex: number) => {
+    // Only allow authenticated users to reorder widgets
+    if (userLevel === 'anon') return
+
     const newOrder = [...widgets.map(w => w.id)]
     const [movedItem] = newOrder.splice(fromIndex, 1)
     newOrder.splice(toIndex, 0, movedItem)
@@ -124,18 +141,26 @@ export default function DashboardPage() {
               ✨ Disney Countdown Dashboard
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Welcome to your magical Disney planning hub! Add widgets to track your countdown, plan your trip, manage your budget, and pack your essentials.
+              {userLevel === 'anon'
+                ? 'Welcome to your magical Disney planning hub! This is a demo dashboard showing what you can do. Sign up to save your own data and customize your experience.'
+                : 'Welcome to your magical Disney planning hub! Add widgets to track your countdown, plan your trip, manage your budget, and pack your essentials.'
+              }
             </p>
           </div>
 
           {/* User Level Badge */}
-          <div className="flex justify-center">
+          <div className="flex justify-center space-x-2">
             <Badge
               variant={userLevel === 'premium' ? 'success' : userLevel === 'standard' ? 'info' : 'warning'}
               size="lg"
             >
               {userLevel === 'premium' ? 'Premium User' : userLevel === 'standard' ? 'Standard User' : 'Anonymous User'}
             </Badge>
+            {userLevel === 'anon' && (
+              <Badge variant="warning" size="lg">
+                Demo Mode
+              </Badge>
+            )}
           </div>
 
           {/* Widgets Grid */}
@@ -167,24 +192,26 @@ export default function DashboardPage() {
               )
             })}
 
-            {/* Add Widget Button */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: widgets.length * 0.1 }}
-              className="relative"
-            >
-              <button
-                onClick={() => setShowAddWidget(true)}
-                className="w-full h-64 border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex flex-col items-center justify-center text-gray-500 hover:text-gray-700"
+            {/* Add Widget Button - Only show for authenticated users */}
+            {userLevel !== 'anon' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: widgets.length * 0.1 }}
+                className="relative"
               >
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-2xl">+</span>
-                </div>
-                <span className="font-medium">Add Widget</span>
-                <span className="text-sm mt-1">Customize your dashboard</span>
-              </button>
-            </motion.div>
+                <button
+                  onClick={() => setShowAddWidget(true)}
+                  className="w-full h-64 border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex flex-col items-center justify-center text-gray-500 hover:text-gray-700"
+                >
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-2xl">+</span>
+                  </div>
+                  <span className="font-medium">Add Widget</span>
+                  <span className="text-sm mt-1">Customize your dashboard</span>
+                </button>
+              </motion.div>
+            )}
           </div>
 
           {/* Add Widget Modal */}

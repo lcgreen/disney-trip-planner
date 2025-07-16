@@ -1,5 +1,6 @@
 import { WidgetSize, WidgetConfig, CountdownData, PackingData, PlannerData, BudgetData } from '@/types'
 import { UnifiedStorage } from './unifiedStorage'
+import { userManager } from './userManagement'
 
 export interface WidgetData {
   countdown?: {
@@ -40,11 +41,19 @@ const WIDGET_CONFIG_KEY = 'disney-widget-configs'
 const WIDGET_DATA_KEY = 'disney-widget-data'
 
 export class WidgetConfigManager {
+  // Helper method to check if user is anonymous (should not save)
+  private static isAnonymousUser(): boolean {
+    const user = userManager.getCurrentUser()
+    return user?.level === 'anon'
+  }
+
   static getConfigs(): WidgetConfig[] {
     return UnifiedStorage.getData(WIDGET_CONFIG_KEY, [])
   }
 
   static async saveConfigs(configs: WidgetConfig[]): Promise<void> {
+    // Don't save for anonymous users
+    if (this.isAnonymousUser()) return
     await UnifiedStorage.saveData(WIDGET_CONFIG_KEY, configs)
   }
 
@@ -53,6 +62,9 @@ export class WidgetConfigManager {
   }
 
   static async updateConfig(id: string, updates: Partial<WidgetConfig>): Promise<void> {
+    // Don't save for anonymous users
+    if (this.isAnonymousUser()) return
+
     const configs = this.getConfigs()
     const index = configs.findIndex(c => c.id === id)
     if (index >= 0) {
@@ -63,6 +75,9 @@ export class WidgetConfigManager {
 
   // Synchronous version for backward compatibility with tests
   static updateConfigSync(id: string, updates: Partial<WidgetConfig>): void {
+    // Don't save for anonymous users
+    if (this.isAnonymousUser()) return
+
     const configs = this.getConfigs()
     const index = configs.findIndex(c => c.id === id)
     if (index >= 0) {
@@ -80,6 +95,9 @@ export class WidgetConfigManager {
   }
 
   static async addConfig(config: WidgetConfig): Promise<void> {
+    // Don't save for anonymous users
+    if (this.isAnonymousUser()) return
+
     const configs = this.getConfigs()
     // Set order to be at the end
     const newConfig = { ...config, order: configs.length }
@@ -90,6 +108,9 @@ export class WidgetConfigManager {
   // Synchronous version for backward compatibility with tests
   static addConfigSync(config: WidgetConfig): void {
     try {
+      // Don't save for anonymous users
+      if (this.isAnonymousUser()) return
+
       const configs = this.getConfigs()
       // Set order to be at the end
       const newConfig = { ...config, order: configs.length }
@@ -113,6 +134,9 @@ export class WidgetConfigManager {
   }
 
   static async removeConfig(id: string): Promise<void> {
+    // Don't save for anonymous users
+    if (this.isAnonymousUser()) return
+
     const configs = this.getConfigs()
     const filtered = configs.filter(c => c.id !== id)
 
@@ -128,6 +152,9 @@ export class WidgetConfigManager {
   // Synchronous version for backward compatibility with tests
   static removeConfigSync(id: string): void {
     try {
+      // Don't save for anonymous users
+      if (this.isAnonymousUser()) return
+
       const configs = this.getConfigs()
       const filtered = configs.filter(c => c.id !== id)
 
@@ -156,6 +183,9 @@ export class WidgetConfigManager {
   }
 
   static async reorderWidgets(newOrder: string[]): Promise<void> {
+    // Don't save for anonymous users
+    if (this.isAnonymousUser()) return
+
     const configs = this.getConfigs()
     const reordered = newOrder.map((id, index) => {
       const config = configs.find(c => c.id === id)
@@ -167,6 +197,9 @@ export class WidgetConfigManager {
   // Synchronous version for backward compatibility with tests
   static reorderWidgetsSync(newOrder: string[]): void {
     try {
+      // Don't save for anonymous users
+      if (this.isAnonymousUser()) return
+
       const configs = this.getConfigs()
       const reordered = newOrder.map((id, index) => {
         const config = configs.find(c => c.id === id)

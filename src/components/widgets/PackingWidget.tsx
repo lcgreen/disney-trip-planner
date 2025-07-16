@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Luggage, CheckCircle, Circle, Package } from 'lucide-react'
-import WidgetBase, { type WidgetSize } from './WidgetBase'
+import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
 
 interface PackingWidgetProps {
@@ -40,47 +41,74 @@ export default function PackingWidget({
 
     useEffect(() => {
     console.log('PackingWidget useEffect - widget id:', id, 'isDemoMode:', isDemoMode)
-    // Load selected packing list data from plugin
-    const packingPlugin = PluginRegistry.getPlugin('packing')
-    if (packingPlugin) {
-      // Get the widget configuration to see if a specific item is selected
-      const widgetConfig = WidgetConfigManager.getConfig(id)
-      console.log('Widget config for', id, ':', widgetConfig)
-      const selectedItemId = widgetConfig?.selectedItemId
-      console.log('Selected item ID:', selectedItemId)
 
-      let packingList
-      if (selectedItemId) {
-        // Load the specific selected packing list
-        packingList = packingPlugin.getItem(selectedItemId)
-        console.log('Loaded packing list by ID:', packingList)
-      } else {
-        // Load live/default data
-        packingList = packingPlugin.getWidgetData(id)
-        console.log('Loaded packing list by widget ID:', packingList)
-      }
-
-      setSelectedPackingList(packingList)
-
-      // Update packed/unpacked items
-      if (packingList?.items) {
-        const packed = packingList.items.filter((item: any) => item.isPacked)
-        const unpacked = packingList.items.filter((item: any) => !item.isPacked)
-        setPackedItems(packed)
-        setUnpackedItems(unpacked)
-        console.log('Set packed/unpacked items:', { packed: packed.length, unpacked: unpacked.length })
-      } else {
-        setPackedItems([])
-        setUnpackedItems([])
-        console.log('No packing list items found')
+    if (isDemoMode) {
+      // Load demo data for anonymous users
+      const demoWidget = demoDashboard.widgets.find((w: any) => w.id === id)
+      if (demoWidget && demoWidget.selectedItemId) {
+        const demoPackingList = demoDashboard.data.packingLists.find(
+          (p: any) => p.id === demoWidget.selectedItemId
+        )
+        if (demoPackingList) {
+          setSelectedPackingList(demoPackingList)
+          // Update packed/unpacked items using the demo data structure
+          const mappedItems = demoPackingList.items.map((item: any) => ({
+            ...item,
+            isPacked: item.packed,
+            isEssential: false // Demo items don't have essential flag
+          }))
+          const packed = mappedItems.filter((item: any) => item.isPacked)
+          const unpacked = mappedItems.filter((item: any) => !item.isPacked)
+          setPackedItems(packed)
+          setUnpackedItems(unpacked)
+          console.log('Set demo packed/unpacked items:', { packed: packed.length, unpacked: unpacked.length })
+        }
       }
     } else {
-      console.log('Packing plugin not found!')
+      // Load selected packing list data from plugin for authenticated users
+      const packingPlugin = PluginRegistry.getPlugin('packing')
+      if (packingPlugin) {
+        // Get the widget configuration to see if a specific item is selected
+        const widgetConfig = WidgetConfigManager.getConfig(id)
+        console.log('Widget config for', id, ':', widgetConfig)
+        const selectedItemId = widgetConfig?.selectedItemId
+        console.log('Selected item ID:', selectedItemId)
+
+        let packingList
+        if (selectedItemId) {
+          // Load the specific selected packing list
+          packingList = packingPlugin.getItem(selectedItemId)
+          console.log('Loaded packing list by ID:', packingList)
+        } else {
+          // Load live/default data
+          packingList = packingPlugin.getWidgetData(id)
+          console.log('Loaded packing list by widget ID:', packingList)
+        }
+
+        setSelectedPackingList(packingList)
+
+        // Update packed/unpacked items
+        if (packingList?.items) {
+          const packed = packingList.items.filter((item: any) => item.isPacked)
+          const unpacked = packingList.items.filter((item: any) => !item.isPacked)
+          setPackedItems(packed)
+          setUnpackedItems(unpacked)
+          console.log('Set packed/unpacked items:', { packed: packed.length, unpacked: unpacked.length })
+        } else {
+          setPackedItems([])
+          setUnpackedItems([])
+          console.log('No packing list items found')
+        }
+      } else {
+        console.log('Packing plugin not found!')
+      }
     }
   }, [id, isDemoMode])
 
-  // Watch for changes in widget configuration
+  // Watch for changes in widget configuration (skip in demo mode)
   useEffect(() => {
+    if (isDemoMode) return // Don't watch for updates in demo mode
+
     const checkForUpdates = () => {
       const packingPlugin = PluginRegistry.getPlugin('packing')
       if (packingPlugin) {
@@ -114,11 +142,13 @@ export default function PackingWidget({
     // Set up an interval to check for updates
     const interval = setInterval(checkForUpdates, 1000)
     return () => clearInterval(interval)
-  }, [id])
+  }, [id, isDemoMode])
 
   const handleItemSelect = (itemId: string | null) => {
-    // Update the widget configuration
-    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    // Only update configuration for authenticated users (not in demo mode)
+    if (!isDemoMode) {
+      WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    }
 
     // Call the parent callback if provided
     if (onItemSelect) {
@@ -127,7 +157,7 @@ export default function PackingWidget({
   }
 
   const toggleItemPacked = (itemId: string) => {
-    if (!selectedPackingList) return
+    if (!selectedPackingList || isDemoMode) return // Don't allow changes in demo mode
 
     const updatedItems = selectedPackingList.items.map((item: any) =>
       item.id === itemId ? { ...item, isPacked: !item.isPacked } : item

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { Calendar, MapPin, Clock, Crown } from 'lucide-react'
-import WidgetBase, { type WidgetSize } from './WidgetBase'
+import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useUser } from '@/hooks/useUser'
+import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
 
 interface TripPlannerWidgetProps {
@@ -48,50 +49,87 @@ export default function TripPlannerWidget({
   const [todaysActivities, setTodaysActivities] = useState<Activity[]>([])
 
   useEffect(() => {
-    // Load selected trip plan data from plugin
-    const plannerPlugin = PluginRegistry.getPlugin('planner')
-    if (plannerPlugin) {
-      // Get the widget configuration to see if a specific item is selected
-      const widgetConfig = WidgetConfigManager.getConfig(id)
-      const selectedItemId = widgetConfig?.selectedItemId
-
-      let tripPlan
-      if (selectedItemId) {
-        // Load the specific selected trip plan
-        tripPlan = plannerPlugin.getItem(selectedItemId)
-      } else {
-        // Load live/default data
-        tripPlan = plannerPlugin.getWidgetData(id)
-      }
-
-      setSelectedTripPlan(tripPlan)
-
-      if (tripPlan?.days) {
-        // Find today's activities
-        const today = new Date().toISOString().split('T')[0]
-        const todaysDay = tripPlan.days.find((day: any) =>
-          new Date(day.date).toISOString().split('T')[0] === today
+    if (isDemoMode) {
+      // Load demo data for anonymous users
+      const demoWidget = demoDashboard.widgets.find((w: any) => w.id === id)
+      if (demoWidget && demoWidget.selectedItemId) {
+        const demoTripPlan = demoDashboard.data.tripPlans.find(
+          (t: any) => t.id === demoWidget.selectedItemId
         )
+        if (demoTripPlan) {
+          setSelectedTripPlan(demoTripPlan)
 
-        if (todaysDay) {
-          setTodaysActivities(todaysDay.activities)
-        } else {
-          // If no activities for today, show first day's activities
-          const firstDay = tripPlan.days[0]
-          if (firstDay) {
-            setTodaysActivities(firstDay.activities)
+          if (demoTripPlan.days) {
+            // Find today's activities
+            const today = new Date().toISOString().split('T')[0]
+            const todaysDay = demoTripPlan.days.find((day: any) =>
+              new Date(day.date).toISOString().split('T')[0] === today
+            )
+
+            if (todaysDay) {
+              setTodaysActivities(todaysDay.activities)
+            } else {
+              // If no activities for today, show first day's activities
+              const firstDay = demoTripPlan.days[0]
+              if (firstDay) {
+                setTodaysActivities(firstDay.activities)
+              } else {
+                setTodaysActivities([])
+              }
+            }
           } else {
             setTodaysActivities([])
           }
         }
-      } else {
-        setTodaysActivities([])
+      }
+    } else {
+      // Load selected trip plan data from plugin for authenticated users
+      const plannerPlugin = PluginRegistry.getPlugin('planner')
+      if (plannerPlugin) {
+        // Get the widget configuration to see if a specific item is selected
+        const widgetConfig = WidgetConfigManager.getConfig(id)
+        const selectedItemId = widgetConfig?.selectedItemId
+
+        let tripPlan
+        if (selectedItemId) {
+          // Load the specific selected trip plan
+          tripPlan = plannerPlugin.getItem(selectedItemId)
+        } else {
+          // Load live/default data
+          tripPlan = plannerPlugin.getWidgetData(id)
+        }
+
+        setSelectedTripPlan(tripPlan)
+
+        if (tripPlan?.days) {
+          // Find today's activities
+          const today = new Date().toISOString().split('T')[0]
+          const todaysDay = tripPlan.days.find((day: any) =>
+            new Date(day.date).toISOString().split('T')[0] === today
+          )
+
+          if (todaysDay) {
+            setTodaysActivities(todaysDay.activities)
+          } else {
+            // If no activities for today, show first day's activities
+            const firstDay = tripPlan.days[0]
+            if (firstDay) {
+              setTodaysActivities(firstDay.activities)
+            } else {
+              setTodaysActivities([])
+            }
+          }
+        } else {
+          setTodaysActivities([])
+        }
       }
     }
-  }, [id])
+  }, [id, isDemoMode])
 
-  // Watch for changes in widget configuration
+  // Watch for changes in widget configuration (skip in demo mode)
   useEffect(() => {
+    if (isDemoMode) return // Don't watch for updates in demo mode
+
     const checkForUpdates = () => {
       const plannerPlugin = PluginRegistry.getPlugin('planner')
       if (plannerPlugin) {
@@ -137,11 +175,13 @@ export default function TripPlannerWidget({
     // Set up an interval to check for updates
     const interval = setInterval(checkForUpdates, 1000)
     return () => clearInterval(interval)
-  }, [id])
+  }, [id, isDemoMode])
 
   const handleItemSelect = (itemId: string | null) => {
-    // Update the widget configuration
-    WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    // Only update configuration for authenticated users (not in demo mode)
+    if (!isDemoMode) {
+      WidgetConfigManager.updateConfig(id, { selectedItemId: itemId || undefined })
+    }
 
     // Call the parent callback if provided
     if (onItemSelect) {
