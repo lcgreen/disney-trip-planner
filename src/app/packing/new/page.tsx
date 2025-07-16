@@ -7,7 +7,7 @@ import { Suspense, useEffect, useState } from 'react'
 import PackingChecklist from '@/components/PackingChecklist'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useUser } from '@/hooks/useUser'
-import PremiumRestriction from '@/components/PremiumRestriction'
+import { FeatureGuard } from '@/components/ui'
 
 function NewPackingContent() {
   const { userLevel } = useUser()
@@ -21,12 +21,15 @@ function NewPackingContent() {
   // Show premium restriction for anonymous users
   if (userLevel === 'anon') {
     return (
-      <PremiumRestriction
-        feature="Packing Checklist"
-        description="Create and manage comprehensive packing lists for your Disney trip. Never forget the essentials with our Disney-optimized categories and smart suggestions."
-        icon={<Package className="w-12 h-12" />}
-        gradient="from-orange-500 to-amber-500"
-      />
+      <FeatureGuard feature="packing" requiredLevel="premium">
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <Package className="w-12 h-12 mb-4 text-orange-500" />
+          <h2 className="text-2xl font-bold mb-2">Create Packing List</h2>
+          <p className="text-gray-600 max-w-md text-center mb-4">
+            Create and manage comprehensive packing lists for your Disney trip. Never forget the essentials with our Disney-optimized categories and smart suggestions.
+          </p>
+        </div>
+      </FeatureGuard>
     )
   }
 

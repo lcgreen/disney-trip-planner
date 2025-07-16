@@ -9,7 +9,6 @@ export interface PluginConfig {
   route: string
   widgetType: string
   requiredLevel?: 'anon' | 'standard' | 'premium'
-  isPremium?: boolean // Legacy support
 }
 
 export interface PluginData {

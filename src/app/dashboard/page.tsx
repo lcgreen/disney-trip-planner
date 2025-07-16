@@ -63,7 +63,7 @@ const getWidgetOptions = (hasFeatureAccess: (feature: string) => boolean, userLe
 
       // Check if user has access to this plugin based on required level
       if (plugin.config.requiredLevel === 'premium') {
-        return hasFeatureAccess('tripPlanner') // Use tripPlanner as proxy for premium access
+        return hasFeatureAccess(plugin.config.id) // Check specific feature access
       }
       if (plugin.config.requiredLevel === 'standard') {
         return hasFeatureAccess('saveData') // Use saveData as proxy for standard access
@@ -76,7 +76,7 @@ const getWidgetOptions = (hasFeatureAccess: (feature: string) => boolean, userLe
       description: plugin.config.description,
       icon: plugin.config.icon,
       color: plugin.config.color,
-      isPremium: plugin.config.requiredLevel === 'premium' && userLevel !== 'anon', // Not premium for anon on dashboard
+
       requiredLevel: plugin.config.requiredLevel
     }))
 }
@@ -365,14 +365,14 @@ function SortableWidget({
   const widgetComponents = getWidgetComponents()
   const WidgetComponent = widgetComponents[widget.type]
 
-  // Widgets are not premium on dashboard for anonymous users - they can see all widgets with demo data
-  const isPremium = false
+  // Show premium badges for logged-in users, but not for anonymous users on dashboard
+
 
   // Debug logging
   console.log('Widget type:', widget.type)
   console.log('Available widget components:', Object.keys(widgetComponents))
   console.log('WidgetComponent found:', !!WidgetComponent)
-  console.log('Is premium for user level:', userLevel, 'isPremium:', isPremium)
+
 
   // Handle missing widget component
   if (!WidgetComponent) {
@@ -427,7 +427,7 @@ function SortableWidget({
         onWidthChange={(width: string) => onWidthChange(widget.id, width)}
         onItemSelect={(itemId: string | null) => onItemSelect(widget.id, itemId)}
         isDemoMode={isDemoMode}
-        isPremium={isPremium}
+
       />
     </motion.div>
   )
@@ -853,7 +853,6 @@ export default function DashboardPage() {
                         onWidthChange={() => {}}
                         onItemSelect={() => {}}
                         isDemoMode={isDemoMode}
-                        isPremium={false}
                       />
                     )
                   })()}
@@ -978,7 +977,7 @@ export default function DashboardPage() {
                       className={`relative group p-6 text-left border-2 border-gray-200 rounded-xl hover:border-disney-blue hover:shadow-lg transition-all duration-200 bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50`}
                     >
                       {/* Premium Badge */}
-                      {option.isPremium && (
+                      {option.requiredLevel === 'premium' && (
                         <div className="absolute top-3 right-3 flex items-center space-x-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
                           <Crown className="w-3 h-3" />
                           <span>Premium</span>
@@ -996,7 +995,7 @@ export default function DashboardPage() {
                           <h4 className="text-lg font-bold text-gray-800">
                             {option.name}
                           </h4>
-                          {option.isPremium && (
+                          {option.requiredLevel === 'premium' && (
                             <Star className="w-4 h-4 text-yellow-500" />
                           )}
                         </div>

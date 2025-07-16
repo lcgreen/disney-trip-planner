@@ -41,8 +41,7 @@ export class PlannerPlugin implements PluginInterface {
     color: 'from-park-magic to-park-epcot',
     route: '/planner',
     widgetType: 'planner',
-    requiredLevel: 'premium',
-    isPremium: true
+    requiredLevel: 'premium'
   }
 
   getStorageKeys() {

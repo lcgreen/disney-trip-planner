@@ -8,6 +8,7 @@ import TripPlanner from '@/components/TripPlanner'
 import type { StoredTripPlan } from '@/lib/storage'
 import { useUser } from '@/hooks/useUser'
 import PremiumRestriction from '@/components/PremiumRestriction'
+import FeatureGuard from '@/components/FeatureGuard'
 
 export default function PlannerPage() {
   const { userLevel } = useUser()
@@ -18,18 +19,6 @@ export default function PlannerPage() {
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [planToSave, setPlanToSave] = useState<string>('')
   const [activePlan, setActivePlan] = useState<StoredTripPlan | null>(null)
-
-  // Show premium restriction for anonymous users
-  if (userLevel === 'anon') {
-    return (
-      <PremiumRestriction
-        feature="Trip Planner"
-        description="Create detailed day-by-day itineraries for your Disney adventure. Plan attractions, dining, shows, and more with our interactive timeline builder."
-        icon={<Calendar className="w-12 h-12" />}
-        gradient="from-purple-500 to-pink-500"
-      />
-    )
-  }
 
   // Load saved plans from localStorage on mount
   useEffect(() => {
@@ -83,6 +72,57 @@ export default function PlannerPage() {
     setActivePlan(null)
     setPlanToSave('')
     setCanSave(false)
+  }
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+              <FeatureGuard feature="planner" requiredLevel="premium">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
+            >
+              <PluginHeader
+                title="Disney Trip Planner"
+                description="Plan your perfect Disney days with our interactive itinerary builder"
+                icon={<Calendar className="w-8 h-8" />}
+                gradient="bg-gradient-to-r from-park-magic to-park-epcot"
+                isPremium={true}
+                currentName={currentName}
+                onSave={handleSave}
+                onLoad={handleLoad}
+                onNew={handleNew}
+                canSave={canSave}
+                placeholder="Name this trip plan..."
+                saveButtonText="Save Plan"
+                loadButtonText="Load Plan"
+                newButtonText="New Plan"
+                saveModalTitle="Save Trip Plan"
+                saveModalDescription="Save your current trip plan to access it later. Your plan will be stored locally in your browser."
+              />
+
+              {/* Content */}
+              <div className="p-6">
+                <TripPlanner
+                  name={currentName}
+                  onNameChange={setCurrentName}
+                  onSave={confirmSave}
+                  onLoad={handleSelectLoad}
+                  onNew={handleNew}
+                  savedPlans={savedPlans}
+                  activePlan={activePlan}
+                  setCanSave={setCanSave}
+                />
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </FeatureGuard>
+    )
   }
 
   return (

@@ -8,6 +8,7 @@ import { PluginHeader, Modal, Badge } from '@/components/ui'
 import { type BudgetCategory as ConfigBudgetCategory } from '@/config'
 import { useUser } from '@/hooks/useUser'
 import PremiumRestriction from '@/components/PremiumRestriction'
+import FeatureGuard from '@/components/FeatureGuard'
 
 interface Expense {
   id: string
@@ -45,18 +46,6 @@ export default function BudgetPage() {
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [budgetToSave, setBudgetToSave] = useState<string>('')
   const [activeBudget, setActiveBudget] = useState<StoredBudgetData | null>(null)
-
-  // Show premium restriction for anonymous users
-  if (userLevel === 'anon') {
-    return (
-      <PremiumRestriction
-        feature="Budget Tracker"
-        description="Track your Disney trip expenses and stay within your magical budget. Set spending limits by category and monitor your progress in real-time."
-        icon={<DollarSign className="w-12 h-12" />}
-        gradient="from-green-500 to-emerald-500"
-      />
-    )
-  }
 
   // Load saved budgets from localStorage on mount
   useEffect(() => {
@@ -119,6 +108,57 @@ export default function BudgetPage() {
     setActiveBudget(null)
     setBudgetToSave('')
     setCanSave(false)
+  }
+
+  // Show premium restriction for anonymous users
+  if (userLevel === 'anon') {
+    return (
+              <FeatureGuard feature="budget" requiredLevel="premium">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden"
+            >
+              <PluginHeader
+                title="Disney Budget Tracker"
+                description="Keep track of your Disney spending and stay within your magical budget"
+                icon={<DollarSign className="w-8 h-8" />}
+                gradient="bg-gradient-to-r from-disney-gold to-disney-orange"
+                isPremium={true}
+                currentName={currentName}
+                onSave={handleSave}
+                onLoad={handleLoad}
+                onNew={handleNew}
+                canSave={canSave}
+                placeholder="Name this budget..."
+                saveButtonText="Save Budget"
+                loadButtonText="Load Budget"
+                newButtonText="New Budget"
+                saveModalTitle="Save Budget"
+                saveModalDescription="Save your current budget to access it later. Your budget data will be stored locally in your browser."
+              />
+
+              {/* Content */}
+              <div className="p-6">
+                <BudgetTracker
+                  name={currentName}
+                  onNameChange={setCurrentName}
+                  onSave={confirmSave}
+                  onLoad={handleSelectLoad}
+                  onNew={handleNew}
+                  savedBudgets={savedBudgets}
+                  activeBudget={activeBudget}
+                  setCanSave={setCanSave}
+                />
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </FeatureGuard>
+    )
   }
 
   return (

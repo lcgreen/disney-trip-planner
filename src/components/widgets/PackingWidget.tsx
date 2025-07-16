@@ -15,7 +15,6 @@ interface PackingWidgetProps {
   onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
   isDemoMode?: boolean
-  isPremium?: boolean
 }
 
 interface PackingItem {
@@ -33,8 +32,7 @@ export default function PackingWidget({
   onSettings,
   onWidthChange,
   onItemSelect,
-  isDemoMode = false,
-  isPremium = false
+  isDemoMode = false
 }: PackingWidgetProps) {
   const [selectedPackingList, setSelectedPackingList] = useState<any>(null)
   const [packedItems, setPackedItems] = useState<PackingItem[]>([])
@@ -281,7 +279,6 @@ export default function PackingWidget({
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
       isDemoMode={isDemoMode}
-      isPremium={isPremium}
     >
       {renderPackingList()}
     </WidgetBase>

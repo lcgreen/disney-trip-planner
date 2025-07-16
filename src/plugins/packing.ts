@@ -34,8 +34,7 @@ export class PackingPlugin implements PluginInterface {
     color: 'from-orange-500 to-amber-500',
     route: '/packing',
     widgetType: 'packing',
-    requiredLevel: 'anon',
-    isPremium: false
+    requiredLevel: 'premium'
   }
 
   getStorageKeys() {

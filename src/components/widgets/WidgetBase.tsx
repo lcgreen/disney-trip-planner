@@ -17,7 +17,6 @@ interface WidgetBaseProps {
   size?: WidgetSize
   width?: string // Custom width (1-4 columns)
   selectedItemId?: string
-  isPremium?: boolean
   isDemoMode?: boolean
   onRemove?: () => void
   onWidthChange?: (width: string) => void
@@ -61,7 +60,6 @@ export default function WidgetBase({
   size = 'medium',
   width,
   selectedItemId,
-  isPremium = false,
   isDemoMode = false,
   onRemove,
   onWidthChange,
@@ -93,7 +91,6 @@ export default function WidgetBase({
             </div>
             <div className="flex items-center space-x-2 min-w-0">
               <h3 className="font-semibold text-gray-800 text-sm truncate">{title}</h3>
-              {isPremium && <PremiumBadge />}
             </div>
           </div>
 

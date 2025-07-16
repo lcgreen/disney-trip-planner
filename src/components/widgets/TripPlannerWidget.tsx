@@ -16,7 +16,6 @@ interface TripPlannerWidgetProps {
   onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
   isDemoMode?: boolean
-  isPremium?: boolean
 }
 
 interface Activity {
@@ -42,8 +41,7 @@ export default function TripPlannerWidget({
   onSettings,
   onWidthChange,
   onItemSelect,
-  isDemoMode = false,
-  isPremium = false
+  isDemoMode = false
 }: TripPlannerWidgetProps) {
   const { isPremium: userIsPremium } = useUser()
   const [selectedTripPlan, setSelectedTripPlan] = useState<any>(null)
@@ -280,7 +278,6 @@ export default function TripPlannerWidget({
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
       isDemoMode={isDemoMode}
-      isPremium={isPremium}
     >
       {renderTripPlanner()}
     </WidgetBase>

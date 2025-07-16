@@ -6,7 +6,7 @@ The Disney Countdown application now includes a comprehensive user level system 
 
 ### Anonymous (Default)
 - **Access**: Basic features only
-- **Features**: Countdown timer, Packing checklist
+- **Features**: Countdown timer
 - **Limitations**: 
   - Can only create 1 item per feature
   - Data is not persisted between sessions
@@ -22,7 +22,7 @@ The Disney Countdown application now includes a comprehensive user level system 
 
 ### Premium
 - **Access**: All features
-- **Features**: All Standard features + Trip Planner, Budget Tracker, Advanced Analytics, Priority Support, Unlimited Storage
+- **Features**: All Standard features + Trip Planner, Budget Tracker, Packing Checklist, Advanced Analytics, Priority Support, Unlimited Storage
 - **Benefits**:
   - Unlimited items and storage
   - Advanced planning tools

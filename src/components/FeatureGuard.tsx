@@ -2,10 +2,10 @@
 
 import { ReactNode, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Lock, Crown, ArrowUp } from 'lucide-react'
+import { Lock, Crown, ArrowUp, Check, Star, DollarSign, Calendar, Clock } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { hasFeatureAccess } from '@/lib/userManagement'
-import { Button, Modal } from '@/components/ui'
+import { Button, Modal, Badge } from '@/components/ui'
 
 interface FeatureGuardProps {
   feature: string
@@ -53,7 +53,7 @@ export default function FeatureGuard({
     return <>{fallback}</>
   }
 
-  // Default locked state
+    // Default locked state
   return (
     <>
       <motion.div
@@ -61,23 +61,24 @@ export default function FeatureGuard({
         animate={{ opacity: 1 }}
         className="relative group"
       >
-        {/* Blurred content */}
-        <div className="filter blur-sm pointer-events-none">
+        {/* Show the original interface with minimal opacity reduction */}
+        <div className="opacity-80 pointer-events-none">
           {children}
         </div>
 
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-          <div className="text-center p-6">
+        {/* Very transparent overlay with floating upgrade prompt */}
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px] rounded-lg border-2 border-dashed border-gray-300">
+          {/* Floating upgrade prompt in top-right corner */}
+          <div className="absolute top-4 right-4 text-center p-4 max-w-sm bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200">
             <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full mb-4">
               <Lock className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">
               {requiredLevel === 'premium' ? 'Premium Feature' : 'Upgrade Required'}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 text-sm">
               {requiredLevel === 'premium'
-                ? 'This feature is available for premium users only.'
+                ? 'Upgrade to access all functionality.'
                 : 'Create a free account to access this feature.'
               }
             </p>
@@ -91,7 +92,7 @@ export default function FeatureGuard({
                     setShowUpgradeModal(true)
                   }
                 }}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 px-6 py-2 text-sm"
               >
                 <ArrowUp className="w-4 h-4 mr-2" />
                 {userLevel === 'anon' ? 'Sign Up Free' : 'Upgrade Now'}

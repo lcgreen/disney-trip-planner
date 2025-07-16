@@ -44,7 +44,7 @@ export const FEATURES: Record<string, FeatureAccess> = {
   },
   packing: {
     feature: 'packing',
-    level: UserLevel.ANON,
+    level: UserLevel.PREMIUM,
     description: 'Packing checklist',
     isEnabled: true
   },
@@ -70,14 +70,14 @@ export const FEATURES: Record<string, FeatureAccess> = {
   },
 
   // Premium features - available only to premium users
-  tripPlanner: {
-    feature: 'tripPlanner',
+  planner: {
+    feature: 'planner',
     level: UserLevel.PREMIUM,
     description: 'Advanced trip planning',
     isEnabled: true
   },
-  budgetTracker: {
-    feature: 'budgetTracker',
+  budget: {
+    feature: 'budget',
     level: UserLevel.PREMIUM,
     description: 'Budget tracking and analysis',
     isEnabled: true

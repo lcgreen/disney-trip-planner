@@ -12,7 +12,7 @@ interface Tool {
   description: string
   icon: any
   color: string
-  isPremium: boolean
+  requiredLevel?: 'anon' | 'standard' | 'premium'
 }
 
 const tools: Tool[] = [
@@ -23,34 +23,34 @@ const tools: Tool[] = [
     description: 'Count down the magical days until your Disney adventure begins!',
     icon: Clock,
     color: 'from-disney-blue to-disney-purple',
-    isPremium: false,
+    requiredLevel: 'anon',
   },
   {
     id: 'planner',
     href: '/planner',
     title: 'Trip Planner',
-    description: 'Plan your perfect Disney days with our interactive itinerary builder',
+    description: 'Plan your daily Disney itinerary and optimize your park experience',
     icon: Calendar,
     color: 'from-park-magic to-park-epcot',
-    isPremium: true,
+    requiredLevel: 'premium',
   },
   {
     id: 'budget',
     href: '/budget',
     title: 'Budget Tracker',
-    description: 'Keep track of your Disney spending and stay within your magical budget',
+    description: 'Track your Disney trip expenses and stay within your magical budget',
     icon: DollarSign,
-    color: 'from-disney-gold to-disney-orange',
-    isPremium: true,
+    color: 'from-green-500 to-emerald-500',
+    requiredLevel: 'premium',
   },
   {
     id: 'packing',
     href: '/packing',
     title: 'Packing Checklist',
-    description: 'Never forget the essentials with our Disney-optimized packing lists',
+    description: 'Create and manage comprehensive packing lists for your Disney trip',
     icon: Package,
-    color: 'from-disney-green to-disney-teal',
-    isPremium: false,
+    color: 'from-orange-500 to-amber-500',
+    requiredLevel: 'premium',
   },
 ]
 
@@ -118,14 +118,14 @@ export default function HomePage() {
         {/* Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 mb-12">
           {tools.map((tool, index) => {
-            const canAccess = !tool.isPremium || isPremiumUser()
+            const canAccess = !tool.requiredLevel || isPremiumUser()
 
             return (
               <div
                 key={tool.id}
-                className={`${tool.isPremium ? 'tool-card-premium' : 'tool-card'} p-6 md:p-8 relative interactive-card`}
+                className={`${tool.requiredLevel === 'premium' ? 'tool-card-premium' : 'tool-card'} p-6 md:p-8 relative interactive-card`}
               >
-                {tool.isPremium && (
+                {tool.requiredLevel === 'premium' && (
                   <div className="absolute top-4 right-4">
                     <PremiumBadge />
                   </div>
@@ -142,7 +142,7 @@ export default function HomePage() {
                   {canAccess ? (
                     <Link
                       href={tool.href}
-                      className={`btn-${tool.isPremium ? 'premium' : 'disney'} inline-block px-6 py-2 text-sm text-center w-full`}
+                      className={`btn-${tool.requiredLevel === 'premium' ? 'premium' : 'disney'} inline-block px-6 py-2 text-sm text-center w-full`}
                     >
                       Open Tool
                     </Link>
@@ -151,9 +151,9 @@ export default function HomePage() {
                       Upgrade to Use
                     </button>
                   )}
-                                  </div>
                 </div>
-              )
+              </div>
+            )
           })}
         </div>
 

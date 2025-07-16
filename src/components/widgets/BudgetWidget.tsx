@@ -16,7 +16,6 @@ interface BudgetWidgetProps {
   onWidthChange?: (width: string) => void
   onItemSelect?: (itemId: string | null) => void
   isDemoMode?: boolean
-  isPremium?: boolean
 }
 
 interface Expense {
@@ -34,8 +33,7 @@ export default function BudgetWidget({
   onSettings,
   onWidthChange,
   onItemSelect,
-  isDemoMode = false,
-  isPremium = false
+  isDemoMode = false
 }: BudgetWidgetProps) {
   const { isPremium: userIsPremium } = useUser()
   const [selectedBudget, setSelectedBudget] = useState<any>(null)
@@ -285,7 +283,6 @@ export default function BudgetWidget({
       onWidthChange={onWidthChange}
       onItemSelect={handleItemSelect}
       isDemoMode={isDemoMode}
-      isPremium={isPremium}
     >
       {renderBudget()}
     </WidgetBase>

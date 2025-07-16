@@ -28,8 +28,7 @@ export class CountdownPlugin implements PluginInterface {
     color: 'from-disney-blue to-disney-purple',
     route: '/countdown',
     widgetType: 'countdown',
-    requiredLevel: 'anon',
-    isPremium: false
+    requiredLevel: 'anon'
   }
 
   getStorageKeys() {

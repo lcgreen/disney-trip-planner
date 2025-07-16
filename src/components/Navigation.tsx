@@ -13,7 +13,7 @@ interface NavigationItem {
   href: string
   label: string
   icon: any
-  isPremium?: boolean
+  requiredLevel?: 'anon' | 'standard' | 'premium'
 }
 
 const navigationItems: NavigationItem[] = [
@@ -36,19 +36,19 @@ const navigationItems: NavigationItem[] = [
     href: '/planner',
     label: 'Trip Planner',
     icon: Calendar,
-    isPremium: true,
+    requiredLevel: 'premium',
   },
   {
     href: '/budget',
     label: 'Budget Tracker',
     icon: DollarSign,
-    isPremium: true,
+    requiredLevel: 'premium',
   },
   {
     href: '/packing',
     label: 'Packing List',
     icon: Package,
-    isPremium: true,
+    requiredLevel: 'premium',
   },
   {
     href: '/test-user-levels',
@@ -132,7 +132,7 @@ export default function Navigation() {
             {navigationItems.map((item) => {
               const isActive = pathname === item.href
               // Allow all navigation for anonymous users, but show premium badges
-              const canAccess = userLevel === 'anon' || !item.isPremium || checkFeatureAccess(item.isPremium ? 'tripPlanner' : 'countdown')
+              const canAccess = userLevel === 'anon' || !item.requiredLevel || checkFeatureAccess(item.requiredLevel === 'premium' ? 'tripPlanner' : 'countdown')
 
               return (
                 <li key={item.href}>
@@ -149,10 +149,10 @@ export default function Navigation() {
                   >
                     <item.icon className="w-4 h-4" />
                     <span className="font-medium">{item.label}</span>
-                    {item.isPremium && userLevel === 'anon' && (
+                    {item.requiredLevel === 'premium' && userLevel === 'anon' && (
                       <Crown className="w-4 h-4 text-disney-gold ml-auto" />
                     )}
-                    {item.isPremium && userLevel !== 'anon' && canAccess && (
+                    {item.requiredLevel === 'premium' && userLevel !== 'anon' && canAccess && (
                       <div className="ml-auto">
                         <PremiumBadge />
                       </div>
