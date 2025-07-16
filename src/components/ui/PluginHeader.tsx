@@ -10,6 +10,7 @@ interface PluginHeaderProps {
   icon: React.ReactNode
   gradient: string
   isPremium?: boolean
+  showPreview?: boolean
   currentName: string
   onSave: (name: string) => void
   onLoad: () => void
@@ -29,6 +30,7 @@ export default function PluginHeader({
   icon,
   gradient,
   isPremium = false,
+  showPreview = false,
   currentName,
   onSave,
   onLoad,
@@ -83,62 +85,64 @@ export default function PluginHeader({
         </div>
       </div>
 
-      {/* Naming and Saving Section */}
-      <div className="bg-white p-4 md:p-6 border-b border-gray-100">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {currentName ? (
-              <div className="flex items-center gap-2">
-                {icon}
-                <span className="font-medium text-gray-700">Current: {currentName}</span>
-                <Badge variant="success" size="sm">Saved</Badge>
-              </div>
-            ) : (
-              <span className="text-gray-500">No item loaded</span>
-            )}
-          </div>
+      {/* Naming and Saving Section - Hidden in preview mode */}
+      {!showPreview && (
+        <div className="bg-white p-4 md:p-6 border-b border-gray-100">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {currentName ? (
+                <div className="flex items-center gap-2">
+                  {icon}
+                  <span className="font-medium text-gray-700">Current: {currentName}</span>
+                  <Badge variant="success" size="sm">Saved</Badge>
+                </div>
+              ) : (
+                <span className="text-gray-500">No item loaded</span>
+              )}
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {hasFeatureAccess('saveData') && (
+            <div className="flex flex-wrap items-center gap-2">
+              {hasFeatureAccess('saveData') && (
+                <Button
+                  onClick={onLoad}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  {loadButtonText}
+                </Button>
+              )}
               <Button
-                onClick={onLoad}
+                onClick={onNew}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
               >
-                <FolderOpen className="w-4 h-4" />
-                {loadButtonText}
+                <Plus className="w-4 h-4" />
+                {newButtonText}
               </Button>
-            )}
-            <Button
-              onClick={onNew}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              {newButtonText}
-            </Button>
+            </div>
           </div>
-        </div>
 
-        {/* Quick Save Input */}
-        {canSave && hasFeatureAccess('saveData') && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mt-4 flex gap-3"
-          >
-            <input
-              type="text"
-              placeholder={placeholder}
-              value={nameToSave}
-              onChange={handleNameInput}
-              className="flex-1 p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
-            />
-          </motion.div>
-        )}
-      </div>
+          {/* Quick Save Input */}
+          {canSave && hasFeatureAccess('saveData') && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-4 flex gap-3"
+            >
+              <input
+                type="text"
+                placeholder={placeholder}
+                value={nameToSave}
+                onChange={handleNameInput}
+                className="flex-1 p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
+              />
+            </motion.div>
+          )}
+        </div>
+      )}
 
       {/* Save Modal */}
       {hasFeatureAccess('saveData') && (

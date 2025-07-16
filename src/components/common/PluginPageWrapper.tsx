@@ -3,7 +3,8 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { LucideIcon } from 'lucide-react'
-import { PluginHeader, Modal, Badge, PreviewOverlay } from '@/components/ui'
+import { PluginHeader, Modal, Badge } from '@/components/ui'
+import PreviewOverlay from '@/components/ui/PreviewOverlay'
 import { useUser } from '@/hooks/useUser'
 import { UnifiedStorage } from '@/lib/unifiedStorage'
 import { PluginData } from '@/types'
@@ -234,6 +235,7 @@ export default function PluginPageWrapper<T extends PluginData>({
             icon={<Icon className="w-8 h-8" />}
             gradient={gradient}
             isPremium={isPremium}
+            showPreview={showPreview}
             currentName={currentName}
             onSave={handleSave}
             onLoad={handleLoad}
