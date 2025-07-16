@@ -174,7 +174,11 @@ export default function PluginHeader({
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => {
+                onSave(nameToSave.trim())
+                setShowSaveModal(false)
+                setNameToSave('')
+              }}
               disabled={!nameToSave.trim()}
               className="px-4 py-2 bg-disney-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
             >

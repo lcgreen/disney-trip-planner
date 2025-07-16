@@ -26,9 +26,14 @@ export default function ItemSelector({
     if (plugin) {
       const pluginItems = plugin.getItems()
       setItems(pluginItems)
+
+      // If no item is selected and items are available, default to the first item
+      if (!selectedItemId && pluginItems.length > 0) {
+        onItemSelect(pluginItems[0].id)
+      }
     }
     setLoading(false)
-  }, [widgetType])
+  }, [widgetType, selectedItemId, onItemSelect])
 
   if (loading) {
     return <div className="text-sm text-gray-500">Loading...</div>
@@ -48,30 +53,13 @@ export default function ItemSelector({
   return (
     <div className="space-y-2">
       <div className="text-xs text-gray-500 mb-2">
-        Select a {widgetType === 'countdown' ? 'countdown' :
-                  widgetType === 'planner' ? 'trip plan' :
-                  widgetType === 'budget' ? 'budget' :
-                  'packing list'} to display:
+        {widgetType === 'countdown' ? 'Countdown' :
+         widgetType === 'planner' ? 'Trip plan' :
+         widgetType === 'budget' ? 'Budget' :
+         'Packing list'} to display:
       </div>
 
       <div className="space-y-1 max-h-32 overflow-y-auto">
-        <button
-          onClick={() => onItemSelect(null)}
-          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-            !selectedItemId
-              ? 'bg-disney-blue text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <div className="font-medium">Live Data</div>
-          <div className="text-xs opacity-75">
-            Use current {widgetType === 'countdown' ? 'countdown' :
-                       widgetType === 'planner' ? 'trip plan' :
-                       widgetType === 'budget' ? 'budget' :
-                       'packing list'} data
-          </div>
-        </button>
-
         {items.map((item) => (
           <button
             key={item.id}

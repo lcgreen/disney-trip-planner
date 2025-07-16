@@ -24,7 +24,7 @@ export class BudgetPlugin implements PluginInterface {
     color: 'from-green-500 to-emerald-500',
     route: '/budget',
     widgetType: 'budget',
-    isPremium: false
+    isPremium: true
   }
 
   getStorageKeys() {

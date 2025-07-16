@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Layout, Settings, Sparkles, GripVertical, Trash2 } from 'lucide-react'
+import { Plus, Layout, Settings, Sparkles, GripVertical, Trash2, Clock, Calendar, DollarSign, Luggage, Crown, Star } from 'lucide-react'
 import { clearInvalidCountdownData, validateAndCleanCountdownData, inspectLocalStorageData } from '@/lib/clearInvalidData'
 import {
   DndContext,
@@ -40,8 +40,22 @@ const getWidgetOptions = () => {
   return PluginRegistry.getAllPlugins().map(plugin => ({
     type: plugin.config.widgetType,
     name: plugin.config.name,
-    description: plugin.config.description
+    description: plugin.config.description,
+    icon: plugin.config.icon,
+    color: plugin.config.color,
+    isPremium: plugin.config.isPremium || false
   }))
+}
+
+// Helper function to get icon component
+const getIconComponent = (iconName: string) => {
+  const icons: Record<string, React.ComponentType<any>> = {
+    Clock,
+    Calendar,
+    DollarSign,
+    Luggage
+  }
+  return icons[iconName] || Clock
 }
 
 // Sortable Widget Wrapper Component
@@ -355,33 +369,94 @@ export default function DashboardPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 max-w-md w-full shadow-xl"
+              className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 max-w-2xl w-full shadow-xl"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Add Widget</h3>
+                <div className="flex items-center space-x-3">
+                  <div className="bg-gradient-to-r from-disney-blue to-disney-purple p-2 rounded-lg">
+                    <Plus className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-800">Add Widget</h3>
+                    <p className="text-sm text-gray-600">Choose a widget to add to your dashboard</p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setIsAddingWidget(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                  className="text-gray-400 hover:text-gray-600 text-2xl hover:bg-gray-100 p-1 rounded-lg transition-colors"
                 >
                   ×
                 </button>
               </div>
 
-              <div className="space-y-3">
-                {widgetOptions.map((option) => (
-                  <button
-                    key={option.type}
-                    onClick={() => addWidget(option.type)}
-                    className="w-full p-4 text-left border border-gray-200 rounded-lg hover:border-disney-blue hover:bg-disney-blue/5 transition-all duration-200"
-                  >
-                    <h4 className="font-semibold text-gray-800 mb-1">
-                      {option.name}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {option.description}
-                    </p>
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {widgetOptions.map((option) => {
+                  const IconComponent = getIconComponent(option.icon)
+                  return (
+                    <motion.button
+                      key={option.type}
+                      onClick={() => addWidget(option.type)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`relative group p-6 text-left border-2 border-gray-200 rounded-xl hover:border-disney-blue hover:shadow-lg transition-all duration-200 bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50`}
+                    >
+                      {/* Premium Badge */}
+                      {option.isPremium && (
+                        <div className="absolute top-3 right-3 flex items-center space-x-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                          <Crown className="w-3 h-3" />
+                          <span>Premium</span>
+                        </div>
+                      )}
+
+                      {/* Icon */}
+                      <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg mb-4 ${option.color} bg-gradient-to-r`}>
+                        <IconComponent className="w-6 h-6 text-white" />
+                      </div>
+
+                      {/* Content */}
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-lg font-bold text-gray-800">
+                            {option.name}
+                          </h4>
+                          {option.isPremium && (
+                            <Star className="w-4 h-4 text-yellow-500" />
+                          )}
+                        </div>
+
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {option.description}
+                        </p>
+
+                        {/* Enhanced descriptions */}
+                        <div className="text-xs text-gray-500 space-y-1">
+                          {option.type === 'countdown' && (
+                            <p>• Track days until your magical Disney adventure</p>
+                          )}
+                          {option.type === 'planner' && (
+                            <p>• Plan your daily itinerary with park schedules</p>
+                          )}
+                          {option.type === 'budget' && (
+                            <p>• Monitor expenses and stay within your budget</p>
+                          )}
+                          {option.type === 'packing' && (
+                            <p>• Create comprehensive packing checklists</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Hover effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-disney-blue/5 to-disney-purple/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                    </motion.button>
+                  )
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500 text-center">
+                  Widgets can be resized, reordered, and customized to fit your planning needs
+                </p>
               </div>
             </motion.div>
           </div>
