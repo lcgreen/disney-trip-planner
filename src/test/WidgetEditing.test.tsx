@@ -100,8 +100,8 @@ describe('Widget Editing Functionality', () => {
     
     // Mock plugin data
     const mockPlugin = {
-      getItem: vi.fn(),
-      getWidgetData: vi.fn(),
+      getItem: vi.fn().mockReturnValue(null),
+      getWidgetData: vi.fn().mockReturnValue(null),
     }
     vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockPlugin)
   })

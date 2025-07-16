@@ -58,9 +58,18 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 // Mock Framer Motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => ({ type: 'div', props: { ...props, children } }),
-    button: ({ children, ...props }: any) => ({ type: 'button', props: { ...props, children } }),
-    span: ({ children, ...props }: any) => ({ type: 'span', props: { ...props, children } }),
+    div: ({ children, ...props }: any) => {
+      const React = require('react')
+      return React.createElement('div', props, children)
+    },
+    button: ({ children, ...props }: any) => {
+      const React = require('react')
+      return React.createElement('button', props, children)
+    },
+    span: ({ children, ...props }: any) => {
+      const React = require('react')
+      return React.createElement('span', props, children)
+    },
   },
   AnimatePresence: ({ children }: any) => children,
 }))
