@@ -720,7 +720,7 @@ describe('Widget Editing Functionality', () => {
 
       const mockCountdownPlugin = {
         getItem: vi.fn().mockReturnValue(mockCountdownData),
-        getWidgetData: vi.fn().mockReturnValue(mockCountdownData),
+        getWidgetData: vi.fn().mockReturnValue(null), // Return null when no selected item
       }
       vi.mocked(PluginRegistry.getPlugin).mockReturnValue(mockCountdownPlugin)
 
@@ -728,7 +728,7 @@ describe('Widget Editing Functionality', () => {
       WidgetConfigManager.removeConfigSync('test-widget')
       
       // Step 1: Render widget with no selected item
-      render(<CountdownWidget {...mockProps} />)
+      const { rerender } = render(<CountdownWidget {...mockProps} />)
 
       // Should show "No Countdown Selected"
       await waitFor(() => {
@@ -742,7 +742,10 @@ describe('Widget Editing Functionality', () => {
         selectedItemId: 'countdown-1' 
       })
 
-      // Step 3: Verify the widget now displays the selected item
+      // Step 3: Rerender to trigger the update
+      rerender(<CountdownWidget {...mockProps} />)
+
+      // Step 4: Verify the widget now displays the selected item
       await waitFor(() => {
         expect(screen.getByText('Disney World Adventure')).toBeInTheDocument()
       })
