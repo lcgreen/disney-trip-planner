@@ -15,10 +15,9 @@ import { CountdownData } from '@/types'
 import { useReduxCountdown } from '@/hooks/useReduxCountdown'
 import { useReduxUser } from '@/hooks/useReduxUser'
 import { useReduxWidgets } from '@/hooks/useReduxWidgets'
-import { useEditableName } from '@/hooks/useEditableName'
+
 import { useCountdownTimer } from '@/hooks/useCountdownTimer'
 import {
-  CountdownHeader,
   CountdownDisplay,
   ParkSelection,
   DateSelection,
@@ -96,16 +95,6 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
 
   // Use Redux currentCountdown name if no name prop is provided
   const displayName = name || currentCountdown?.name || ''
-
-  // Custom hooks
-  const {
-    isEditingName,
-    editedName,
-    handleNameEdit,
-    handleNameChange,
-    handleNameBlur,
-    handleNameKeyDown
-  } = useEditableName({ name: displayName, onNameChange })
 
   // Load initial data
   useEffect(() => {
@@ -256,23 +245,6 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
       </audio>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <CountdownHeader
-          name={displayName}
-          isEditingName={isEditingName}
-          editedName={editedName}
-          onNameEdit={handleNameEdit}
-          onNameChange={handleNameChange}
-          onNameBlur={handleNameBlur}
-          onNameKeyDown={handleNameKeyDown}
-          widgetId={widgetId}
-          isEditMode={isEditMode}
-          isSaving={isSaving}
-          lastSaved={lastSaved}
-          error={error}
-          forceSave={saveCountdown}
-        />
-
         {/* Control Panel */}
         <ControlPanel
           showSettings={showSettings}
