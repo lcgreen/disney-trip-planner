@@ -41,24 +41,43 @@
     "countdowns": [
       {
         "id": "demo-countdown-item-1",
-        "name": "Disney World Family Trip",
-        "park": { "name": "Walt Disney World Resort" },
-        "date": "2025-03-15T00:00:00.000Z",
-        "settings": {},
+        "name": "Disney World Family Adventure",
+        "park": {
+          "name": "Walt Disney World Resort",
+          "gradient": "from-disney-blue to-disney-purple"
+        },
+        "tripDate": "2025-06-15T00:00:00.000Z",
+        "settings": {
+          "showMilliseconds": false,
+          "showTimezone": true,
+          "showTips": true,
+          "showAttractions": true,
+          "playSound": true,
+          "autoRefresh": true,
+          "digitStyle": "modern",
+          "layout": "horizontal",
+          "fontSize": "medium",
+          "backgroundEffect": "gradient"
+        },
         "createdAt": "2025-01-15T00:00:00.000Z"
       }
     ],
     "packingLists": [
       {
         "id": "demo-packing-item-1",
-        "name": "Family Disney Trip Packing",
+        "name": "Family Disney Trip Essentials",
         "tripType": "family",
         "duration": 7,
-        "season": "spring",
+        "season": "summer",
         "items": [
-          { "id": "item-1", "name": "Mickey Ears", "category": "accessories", "checked": false },
-          { "id": "item-2", "name": "Comfortable Shoes", "category": "clothing", "checked": false },
-          { "id": "item-3", "name": "Sunscreen", "category": "toiletries", "checked": false }
+          { "id": "item-1", "name": "Mickey Ears", "category": "accessories", "checked": true, "isEssential": true },
+          { "id": "item-2", "name": "Comfortable Walking Shoes", "category": "clothing", "checked": true, "isEssential": true },
+          { "id": "item-3", "name": "Sunscreen SPF 50", "category": "toiletries", "checked": false, "isEssential": true },
+          { "id": "item-4", "name": "Portable Phone Charger", "category": "electronics", "checked": true, "isEssential": false },
+          { "id": "item-5", "name": "Lightweight Backpack", "category": "accessories", "checked": false, "isEssential": false },
+          { "id": "item-6", "name": "Autograph Book", "category": "accessories", "checked": true, "isEssential": false },
+          { "id": "item-7", "name": "Rain Ponchos", "category": "clothing", "checked": false, "isEssential": false },
+          { "id": "item-8", "name": "Snacks & Water Bottles", "category": "food", "checked": true, "isEssential": true }
         ],
         "createdAt": "2025-01-15T00:00:00.000Z"
       }
@@ -66,14 +85,20 @@
     "budgets": [
       {
         "id": "demo-budget-item-1",
-        "name": "Disney World Budget",
-        "totalBudget": 5000,
+        "name": "Disney World Family Budget",
+        "totalBudget": 8000,
         "currency": "USD",
         "categories": [
-          { "id": "cat-1", "name": "Accommodation", "budget": 2000, "spent": 0 },
-          { "id": "cat-2", "name": "Tickets", "budget": 1500, "spent": 0 },
-          { "id": "cat-3", "name": "Food", "budget": 1000, "spent": 0 },
-          { "id": "cat-4", "name": "Souvenirs", "budget": 500, "spent": 0 }
+          { "id": "cat-1", "name": "Accommodation", "budget": 2800, "spent": 0 },
+          { "id": "cat-2", "name": "Park Tickets", "budget": 2000, "spent": 0 },
+          { "id": "cat-3", "name": "Food & Dining", "budget": 1500, "spent": 0 },
+          { "id": "cat-4", "name": "Transportation", "budget": 800, "spent": 0 },
+          { "id": "cat-5", "name": "Souvenirs", "budget": 500, "spent": 0 },
+          { "id": "cat-6", "name": "Extras & Activities", "budget": 400, "spent": 0 }
+        ],
+        "expenses": [
+          { "id": "exp-1", "category": "Park Tickets", "description": "4-Day Park Hopper Passes", "amount": 1800, "date": "2025-01-20", "isEstimate": false },
+          { "id": "exp-2", "category": "Accommodation", "description": "Disney Resort Deposit", "amount": 500, "date": "2025-01-25", "isEstimate": false }
         ],
         "createdAt": "2025-01-15T00:00:00.000Z"
       }
@@ -81,54 +106,86 @@
     "tripPlans": [
       {
         "id": "demo-planner-item-1",
-        "name": "Disney World Itinerary",
+        "name": "Magical Disney World Itinerary",
         "days": [
           {
             "id": "day-1",
-            "date": "2025-03-15T00:00:00.000Z",
+            "date": "2025-06-15T00:00:00.000Z",
             "park": "Magic Kingdom",
             "activities": [
               {
                 "id": "act-1",
-                "time": "9:00 AM",
+                "time": "8:00 AM",
+                "title": "Early Entry - Seven Dwarfs Mine Train",
+                "location": "Fantasyland",
+                "type": "attraction",
+                "priority": "high"
+              },
+              {
+                "id": "act-2",
+                "time": "9:30 AM",
                 "title": "Space Mountain",
                 "location": "Tomorrowland",
                 "type": "attraction",
                 "priority": "high"
               },
               {
-                "id": "act-2",
-                "time": "11:30 AM",
+                "id": "act-3",
+                "time": "11:00 AM",
                 "title": "Be Our Guest Restaurant",
                 "location": "Fantasyland",
                 "type": "dining",
                 "priority": "medium"
               },
               {
-                "id": "act-3",
+                "id": "act-4",
                 "time": "2:00 PM",
-                "title": "Seven Dwarfs Mine Train",
-                "location": "Fantasyland",
+                "title": "Pirates of the Caribbean",
+                "location": "Adventureland",
                 "type": "attraction",
+                "priority": "medium"
+              },
+              {
+                "id": "act-5",
+                "time": "3:30 PM",
+                "title": "Haunted Mansion",
+                "location": "Liberty Square",
+                "type": "attraction",
+                "priority": "medium"
+              },
+              {
+                "id": "act-6",
+                "time": "8:00 PM",
+                "title": "Happily Ever After Fireworks",
+                "location": "Cinderella Castle",
+                "type": "entertainment",
                 "priority": "high"
               }
             ]
           },
           {
             "id": "day-2",
-            "date": "2025-03-16T00:00:00.000Z",
+            "date": "2025-06-16T00:00:00.000Z",
             "park": "Epcot",
             "activities": [
               {
-                "id": "act-4",
-                "time": "10:00 AM",
+                "id": "act-7",
+                "time": "9:00 AM",
                 "title": "Test Track",
                 "location": "Future World",
                 "type": "attraction",
                 "priority": "high"
               },
               {
-                "id": "act-5",
+                "id": "act-8",
+                "time": "10:30 AM",
+                "title": "Soarin' Around the World",
+                "location": "The Land",
+                "type": "attraction",
+                "priority": "high"
+              },
+              {
+                "id": "act-9",
                 "time": "12:30 PM",
                 "title": "Le Cellier Steakhouse",
                 "location": "Canada Pavilion",
@@ -136,12 +193,83 @@
                 "priority": "medium"
               },
               {
-                "id": "act-6",
-                "time": "3:00 PM",
+                "id": "act-10",
+                "time": "2:30 PM",
                 "title": "Frozen Ever After",
                 "location": "Norway Pavilion",
                 "type": "attraction",
                 "priority": "medium"
+              },
+              {
+                "id": "act-11",
+                "time": "4:00 PM",
+                "title": "World Showcase Tour",
+                "location": "World Showcase",
+                "type": "attraction",
+                "priority": "low"
+              },
+              {
+                "id": "act-12",
+                "time": "9:00 PM",
+                "title": "Epcot Forever",
+                "location": "World Showcase Lagoon",
+                "type": "entertainment",
+                "priority": "high"
+              }
+            ]
+          },
+          {
+            "id": "day-3",
+            "date": "2025-06-17T00:00:00.000Z",
+            "park": "Disney's Hollywood Studios",
+            "activities": [
+              {
+                "id": "act-13",
+                "time": "8:00 AM",
+                "title": "Rise of the Resistance",
+                "location": "Star Wars: Galaxy's Edge",
+                "type": "attraction",
+                "priority": "high"
+              },
+              {
+                "id": "act-14",
+                "time": "9:30 AM",
+                "title": "Millennium Falcon: Smugglers Run",
+                "location": "Star Wars: Galaxy's Edge",
+                "type": "attraction",
+                "priority": "high"
+              },
+              {
+                "id": "act-15",
+                "time": "11:00 AM",
+                "title": "Toy Story Mania!",
+                "location": "Toy Story Land",
+                "type": "attraction",
+                "priority": "medium"
+              },
+              {
+                "id": "act-16",
+                "time": "12:30 PM",
+                "title": "Sci-Fi Dine-In Theater",
+                "location": "Commissary Lane",
+                "type": "dining",
+                "priority": "medium"
+              },
+              {
+                "id": "act-17",
+                "time": "2:00 PM",
+                "title": "Tower of Terror",
+                "location": "Sunset Boulevard",
+                "type": "attraction",
+                "priority": "medium"
+              },
+              {
+                "id": "act-18",
+                "time": "8:30 PM",
+                "title": "Fantasmic!",
+                "location": "Sunset Boulevard",
+                "type": "entertainment",
+                "priority": "high"
               }
             ]
           }

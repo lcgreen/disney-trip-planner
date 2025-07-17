@@ -174,14 +174,40 @@ export const migrateWidgetData = () => {
 export const ensureDemoDashboard = () => {
   const state = store.getState() as RootState
   const user = state.user.currentUser
-  const configs = state.widgets.configs
 
-  if (user?.level === 'anon' && configs.length === 0) {
-    // Load demo dashboard for anonymous users
-    const { demoDashboard } = require('@/config')
+  if (user?.level === 'anon') {
+    // Always load demo dashboard for anonymous users
+    const demoDashboard = require('@/config/demo-dashboard.json')
     if (demoDashboard?.widgets) {
       store.dispatch(setConfigs(demoDashboard.widgets))
-      console.log('[WidgetMigration] Loaded demo dashboard for anonymous user')
+      console.log('[WidgetMigration] Loaded demo dashboard for anonymous user (always)')
+    }
+
+    // Also load demo data into unified storage for widgets to access
+    if (demoDashboard?.data) {
+      const { UnifiedStorage } = require('@/lib/unifiedStorage')
+
+      // Load countdown data
+      if (demoDashboard.data.countdowns) {
+        UnifiedStorage.savePluginItems('countdown', demoDashboard.data.countdowns)
+      }
+
+      // Load budget data
+      if (demoDashboard.data.budgets) {
+        UnifiedStorage.savePluginItems('budget', demoDashboard.data.budgets)
+      }
+
+      // Load packing data
+      if (demoDashboard.data.packingLists) {
+        UnifiedStorage.savePluginItems('packing', demoDashboard.data.packingLists)
+      }
+
+      // Load planner data
+      if (demoDashboard.data.tripPlans) {
+        UnifiedStorage.savePluginItems('planner', demoDashboard.data.tripPlans)
+      }
+
+      console.log('[WidgetMigration] Loaded demo data into unified storage (always)')
     }
   }
 }

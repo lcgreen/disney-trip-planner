@@ -14,7 +14,7 @@ const initialState: CountdownState = {
   isSaving: false,
   // Real-time countdown state
   targetDate: '', // Start empty to avoid hydration mismatch
-  selectedPark: getAllParksFlattened()[0] || null,
+  selectedPark: null, // Start with no park selected to avoid conflicts
   settings: {
     showMilliseconds: false,
     showTimezone: true,
@@ -45,11 +45,12 @@ export const createCountdown = createAsyncThunk(
   'countdown/create',
   async (name: string = 'My Disney Trip') => {
     const id = `countdown-${Date.now()}`
+    const defaultPark = getAllParksFlattened()[0] // Get the first park as default
     const newItem: CountdownData = {
       id,
       name,
       tripDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-      park: { name: 'Disney World' },
+      park: defaultPark, // Use the full park object
       settings: {
         showMilliseconds: false,
         showTimezone: true,
@@ -166,10 +167,39 @@ const countdownSlice = createSlice({
     },
     loadCountdown: (state, action: PayloadAction<CountdownData>) => {
       const countdown = action.payload
+      console.log('[Redux] Loading countdown:', countdown)
+      console.log('[Redux] Park data:', countdown.park)
+      console.log('[Redux] Available parks:', state.disneyParks.map(p => ({ id: p.id, name: p.name })))
+
       state.targetDate = countdown.tripDate
-      state.selectedPark = countdown.park || null
+
+      // Handle park data more robustly
+      if (countdown.park) {
+        // If park has an id, try to find the full park object from the available parks
+        if (countdown.park.id) {
+          const fullPark = state.disneyParks.find(p => p.id === countdown.park.id)
+          if (fullPark) {
+            state.selectedPark = fullPark
+            console.log('[Redux] Found park by ID:', fullPark.name)
+          } else {
+            // Fallback to the saved park data if we can't find the full object
+            state.selectedPark = countdown.park
+            console.log('[Redux] Using park data as provided (no ID match)')
+          }
+        } else {
+          // If no id, use the saved park data directly
+          state.selectedPark = countdown.park
+          console.log('[Redux] Using park data as provided (no ID)')
+        }
+      } else {
+        state.selectedPark = null
+        console.log('[Redux] No park data provided')
+      }
+
       state.settings = countdown.settings || state.settings
       state.customTheme = countdown.theme || null
+
+      console.log('[Redux] Final selectedPark:', state.selectedPark)
     },
     clearAllCountdowns: (state) => {
       state.items = []

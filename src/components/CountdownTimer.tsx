@@ -16,6 +16,7 @@ import { useReduxCountdown } from '@/hooks/useReduxCountdown'
 import { useReduxUser } from '@/hooks/useReduxUser'
 import { useReduxWidgets } from '@/hooks/useReduxWidgets'
 import { useEditableName } from '@/hooks/useEditableName'
+import { useCountdownTimer } from '@/hooks/useCountdownTimer'
 import {
   CountdownHeader,
   CountdownDisplay,
@@ -100,7 +101,9 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
 
   // Load initial data
   useEffect(() => {
+    console.log('[CountdownTimer] Load initial data effect:', { isEditMode, activeCountdown })
     if (isEditMode && activeCountdown) {
+      console.log('[CountdownTimer] Loading countdown data:', activeCountdown)
       loadCountdown(activeCountdown)
     }
   }, [isEditMode, activeCountdown, loadCountdown])
@@ -219,6 +222,13 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
       startCountdown()
     }
   }
+
+  // Use the countdown timer hook
+  useCountdownTimer(
+    countdownData.targetDate,
+    countdownData.isActive,
+    countdownData.settings.showMilliseconds
+  )
 
   // Play completion sound when countdown reaches zero
   useEffect(() => {
@@ -573,5 +583,7 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
     </div>
   )
 })
+
+CountdownTimer.displayName = 'CountdownTimer'
 
 export default CountdownTimer

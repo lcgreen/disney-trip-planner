@@ -35,21 +35,34 @@ export default function DashboardPage() {
   } = useReduxWidgets()
   const [showAddWidget, setShowAddWidget] = useState(false)
   const [showConfigManager, setShowConfigManager] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Handle hydration to prevent mismatch
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // Initialize widget data on mount
   useEffect(() => {
-    migrateWidgetData()
-    ensureDemoDashboard()
-  }, [])
+    if (isHydrated) {
+      migrateWidgetData()
+      ensureDemoDashboard()
+    }
+  }, [isHydrated])
 
   // Update demo dashboard when user level changes
   useEffect(() => {
-    ensureDemoDashboard()
-  }, [userLevel])
+    if (isHydrated) {
+      ensureDemoDashboard()
+    }
+  }, [userLevel, isHydrated])
 
   const addWidget = (type: string) => {
     // Only allow authenticated users to add widgets
     if (userLevel === 'anon') return
+
+    // Only create widgets after hydration to prevent SSR/client mismatches
+    if (!isHydrated) return
 
     const newWidget: WidgetConfig = {
       id: `${type}-${Date.now()}`,
@@ -139,6 +152,20 @@ export default function DashboardPage() {
     }
   }
 
+  // Don't render anything until hydrated to prevent SSR mismatch
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading dashboard...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -151,7 +178,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="text-center" data-testid="dashboard-header">
             <h1 className="text-4xl font-bold text-gray-800 mb-4" data-testid="dashboard-title">
-              ✨ Disney Countdown Dashboard
+              ✨ Disney Trip Planner Dashboard
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto" data-testid="dashboard-description">
               Welcome to your magical Disney planning hub! Add widgets to track your countdown, plan your trip, manage your budget, and pack your essentials.
@@ -249,7 +276,7 @@ export default function DashboardPage() {
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">No widgets yet!</h3>
                 <p className="text-gray-600 mb-6">
                   {userLevel === 'anon'
-                    ? "Add some widgets to start planning your magical Disney adventure!"
+                    ? "Explore the demo widgets above to see how magical your Disney planning can be!"
                     : "Add some widgets to start planning your magical Disney adventure! Your widgets will be saved automatically."
                   }
                 </p>
@@ -258,7 +285,7 @@ export default function DashboardPage() {
                   disabled={userLevel === 'anon'}
                   data-testid="add-first-widget-button"
                 >
-                  Add Your First Widget
+                  {userLevel === 'anon' ? 'Demo Mode' : 'Add Your First Widget'}
                 </Button>
               </div>
             </motion.div>

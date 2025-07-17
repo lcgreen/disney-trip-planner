@@ -241,15 +241,6 @@ export default function TripPlanner({
                 error={error}
                 className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm"
               />
-              <button
-                onClick={() => {
-                  console.log('[Manual Test] Force saving trip plan data:', autoSaveData)
-                  forceSave()
-                }}
-                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-              >
-                Test Save
-              </button>
               {userLevel === 'anon' && (
                 <button
                   onClick={() => {

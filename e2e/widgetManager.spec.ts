@@ -77,7 +77,7 @@ test('can add a Countdown widget when authenticated', async ({ page }) => {
   // Check that the page title is correct
   const title = page.getByTestId('dashboard-title');
   await expect(title).toBeVisible();
-  await expect(title).toContainText('✨ Disney Countdown Dashboard');
+  await expect(title).toContainText('✨ Disney Trip Planner Dashboard');
 
   // Check that the dashboard description is visible
   const description = page.getByTestId('dashboard-description');

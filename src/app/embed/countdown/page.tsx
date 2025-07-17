@@ -11,7 +11,8 @@ import {
   getParkById,
   getThemeById,
   type DisneyPark,
-  type CountdownPalette
+  type CountdownPalette,
+  getAllParksFlattened
 } from '@/config'
 
 interface CountdownData {
@@ -43,7 +44,13 @@ function EmbedCountdown(): JSX.Element {
   const [countdown, setCountdown] = useState<CountdownData>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
   const [milliseconds, setMilliseconds] = useState<number>(0)
   const [isActive, setIsActive] = useState(true)
+  const [isHydrated, setIsHydrated] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Handle hydration to prevent mismatch
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // Parse URL parameters
   const parkId = searchParams.get('park') || 'magic-kingdom'
@@ -76,6 +83,9 @@ function EmbedCountdown(): JSX.Element {
   }
 
   useEffect(() => {
+    // Only run countdown timer after hydration to prevent mismatch
+    if (!isHydrated) return
+
     let interval: NodeJS.Timeout | null = null
 
     if (isActive && targetDate) {
@@ -121,7 +131,7 @@ function EmbedCountdown(): JSX.Element {
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [isActive, targetDate, settings.showMilliseconds, settings.playSound])
+  }, [isActive, targetDate, settings.showMilliseconds, settings.playSound, isHydrated])
 
   const formatTargetDate = (): string => {
     if (!targetDate) return ''

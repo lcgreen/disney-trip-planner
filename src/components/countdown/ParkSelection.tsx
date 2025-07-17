@@ -16,10 +16,16 @@ export function ParkSelection({
   onParkSelect,
   settings
 }: ParkSelectionProps) {
+  // Use first park as default if none selected
+  const effectiveSelectedPark = selectedPark || (disneyParks && disneyParks.length > 0 ? disneyParks[0] : null)
+
   // Debug logging
   console.log('ParkSelection render:', {
     disneyParksLength: disneyParks?.length,
-    disneyParks,
+    selectedParkId: selectedPark?.id,
+    selectedParkName: selectedPark?.name,
+    effectiveSelectedParkId: effectiveSelectedPark?.id,
+    effectiveSelectedParkName: effectiveSelectedPark?.name,
     selectedPark
   })
 
@@ -57,7 +63,7 @@ export function ParkSelection({
             key={park.id}
             onClick={() => onParkSelect(park)}
             className={`group p-5 rounded-xl border-2 transition-all duration-300 ${
-              selectedPark?.id === park.id
+              effectiveSelectedPark?.id === park.id
                 ? `border-transparent bg-gradient-to-r ${park.gradient} text-white shadow-xl`
                 : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-lg'
             }`}
@@ -66,11 +72,11 @@ export function ParkSelection({
           >
             <div className="text-left">
               <div className="font-bold text-lg mb-1">{park.name}</div>
-              <div className={`text-sm mb-2 ${selectedPark?.id === park.id ? 'text-white/90' : 'text-gray-600'}`}>
+              <div className={`text-sm mb-2 ${effectiveSelectedPark?.id === park.id ? 'text-white/90' : 'text-gray-600'}`}>
                 {park.location}
               </div>
               {settings.showTimezone && (
-                <div className={`text-xs ${selectedPark?.id === park.id ? 'text-white/75' : 'text-gray-500'}`}>
+                <div className={`text-xs ${effectiveSelectedPark?.id === park.id ? 'text-white/75' : 'text-gray-500'}`}>
                   Opens: {park.openingTime} ({park.timezone.split('/')[1]})
                 </div>
               )}

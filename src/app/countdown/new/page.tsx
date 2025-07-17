@@ -15,11 +15,20 @@ function NewCountdownContent() {
   const editItemId = searchParams.get('editItemId')
   const [isCreating, setIsCreating] = useState(false)
   const [createdItemId, setCreatedItemId] = useState<string | null>(null)
+  const [activeCountdown, setActiveCountdown] = useState<any>(null)
 
   // Handle edit mode - load existing item for editing
   useEffect(() => {
     if (editItemId) {
       setCreatedItemId(editItemId)
+      // Load the existing countdown data for editing
+      const countdownData = WidgetConfigManager.getSelectedItemData('countdown', editItemId)
+      console.log('[Edit Mode] Loading countdown data for editItemId:', editItemId, countdownData)
+      if (countdownData) {
+        setActiveCountdown(countdownData)
+      } else {
+        console.warn('[Edit Mode] No countdown data found for editItemId:', editItemId)
+      }
       return
     }
 
@@ -131,6 +140,7 @@ function NewCountdownContent() {
               createdItemId={createdItemId}
               widgetId={widgetId}
               isEditMode={!!createdItemId || !!editItemId}
+              activeCountdown={activeCountdown}
               onSave={handleAutoSave}
             />
           </div>

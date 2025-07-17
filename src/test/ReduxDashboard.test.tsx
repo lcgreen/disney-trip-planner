@@ -70,7 +70,7 @@ describe('Redux DashboardPage', () => {
 
     // Check for dashboard header
     expect(screen.getByTestId('dashboard-header')).toBeInTheDocument()
-    expect(screen.getByTestId('dashboard-title')).toHaveTextContent('Disney Countdown Dashboard')
+    expect(screen.getByTestId('dashboard-title')).toHaveTextContent('Disney Trip Planner Dashboard')
     expect(screen.getByTestId('dashboard-description')).toBeInTheDocument()
 
     // Check for user badges and action buttons

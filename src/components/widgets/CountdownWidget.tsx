@@ -34,8 +34,14 @@ export default function CountdownWidget({
     minutes: 0,
     seconds: 0
   })
+  const [isHydrated, setIsHydrated] = useState(false)
 
-    useEffect(() => {
+  // Handle hydration to prevent mismatch
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
+  useEffect(() => {
     if (isDemoMode) {
       // Load demo data for anonymous users
       const demoWidget = demoDashboard.widgets.find((w: any) => w.id === id)
@@ -98,7 +104,8 @@ export default function CountdownWidget({
   }, [id, isDemoMode])
 
   useEffect(() => {
-    if (!selectedCountdown?.tripDate) return
+    // Only run countdown timer after hydration to prevent mismatch
+    if (!isHydrated || !selectedCountdown?.tripDate) return
 
     const updateCountdown = () => {
       const now = new Date().getTime()
@@ -120,13 +127,16 @@ export default function CountdownWidget({
           minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
           seconds: Math.floor((difference % (1000 * 60)) / 1000)
         })
+      } else {
+        // Trip date has passed
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 })
       }
     }
 
     updateCountdown()
     const interval = setInterval(updateCountdown, 1000)
     return () => clearInterval(interval)
-  }, [selectedCountdown?.tripDate])
+  }, [selectedCountdown?.tripDate, isHydrated])
 
   const handleItemSelect = (itemId: string | null) => {
     // Only update configuration for authenticated users (not in demo mode)
@@ -142,6 +152,17 @@ export default function CountdownWidget({
 
   // Show different layouts based on width and settings
   const renderCountdown = () => {
+    // Helper function to format date consistently and avoid hydration issues
+    const formatDate = (dateString: string): string => {
+      if (!isHydrated) return 'Loading...' // Show loading state during SSR
+      const date = new Date(dateString)
+      return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+
     // Get layout from settings if available
     const layout = selectedCountdown?.settings?.layout || 'horizontal'
     if (!selectedCountdown) {
@@ -179,10 +200,7 @@ export default function CountdownWidget({
           <div className="text-center mb-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-2" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
             <p className="text-sm text-gray-600" data-testid="countdown-widget-subtitle">
-              {selectedCountdown.park?.name} • {(() => {
-                const date = new Date(selectedCountdown.tripDate)
-                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
-              })()}
+              {selectedCountdown.park?.name} • {formatDate(selectedCountdown.tripDate)}
             </p>
           </div>
           <div className="flex flex-col gap-3 text-center" data-testid="countdown-widget-timer">
@@ -213,10 +231,7 @@ export default function CountdownWidget({
           <div className="text-center mb-3">
             <h3 className="text-sm font-semibold text-gray-800 mb-1" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
             <p className="text-xs text-gray-500" data-testid="countdown-widget-subtitle">
-              {selectedCountdown.park?.name} • {(() => {
-                const date = new Date(selectedCountdown.tripDate)
-                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
-              })()}
+              {selectedCountdown.park?.name} • {formatDate(selectedCountdown.tripDate)}
             </p>
           </div>
           <div className="flex justify-center gap-2" data-testid="countdown-widget-timer">
@@ -247,10 +262,7 @@ export default function CountdownWidget({
           <div className="text-center mb-4">
             <h3 className="text-base font-semibold text-gray-800 mb-1" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
             <p className="text-xs text-gray-500" data-testid="countdown-widget-subtitle">
-              {selectedCountdown.park?.name} • {(() => {
-                const date = new Date(selectedCountdown.tripDate)
-                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
-              })()}
+              {selectedCountdown.park?.name} • {formatDate(selectedCountdown.tripDate)}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 text-center" data-testid="countdown-widget-timer">
@@ -281,10 +293,7 @@ export default function CountdownWidget({
           <div className="text-center mb-4">
             <h3 className="font-semibold text-gray-800 mb-1 truncate" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
             <p className="text-xs text-gray-500 truncate" data-testid="countdown-widget-subtitle">
-              {selectedCountdown.park?.name} • {(() => {
-                const date = new Date(selectedCountdown.tripDate)
-                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
-              })()}
+              {selectedCountdown.park?.name} • {formatDate(selectedCountdown.tripDate)}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-center" data-testid="countdown-widget-timer">
@@ -307,10 +316,7 @@ export default function CountdownWidget({
           <div className="text-center mb-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-1" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
             <p className="text-sm text-gray-600" data-testid="countdown-widget-subtitle">
-              {selectedCountdown.park?.name} • {(() => {
-                const date = new Date(selectedCountdown.tripDate)
-                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
-              })()}
+              {selectedCountdown.park?.name} • {formatDate(selectedCountdown.tripDate)}
             </p>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center" data-testid="countdown-widget-timer">
@@ -341,10 +347,7 @@ export default function CountdownWidget({
         <div className="text-center mb-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-2" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
           <p className="text-sm text-gray-600" data-testid="countdown-widget-subtitle">
-            {selectedCountdown.park?.name} • {(() => {
-              const date = new Date(selectedCountdown.tripDate)
-              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
-            })()}
+            {selectedCountdown.park?.name} • {formatDate(selectedCountdown.tripDate)}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4 text-center" data-testid="countdown-widget-timer">

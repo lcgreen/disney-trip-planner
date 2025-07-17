@@ -187,7 +187,11 @@ export const selectWidgetById = (state: { widgets: WidgetsState }, id: string) =
 export const selectWidgetsByType = (state: { widgets: WidgetsState }, type: string) =>
   state.widgets.configs.filter(config => config.type === type)
 
-export const selectOrderedWidgets = (state: { widgets: WidgetsState }) =>
-  [...state.widgets.configs].sort((a, b) => a.order - b.order)
+import { createSelector } from '@reduxjs/toolkit'
+
+export const selectOrderedWidgets = createSelector(
+  [(state: { widgets: WidgetsState }) => state.widgets.configs],
+  (configs) => [...configs].sort((a, b) => a.order - b.order)
+)
 
 export default widgetsSlice.reducer
