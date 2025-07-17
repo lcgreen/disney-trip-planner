@@ -1,3 +1,5 @@
+// Updated useAutoSave hook - fixed debouncing issue
+console.log('[useAutoSave] Loading updated useAutoSave hook')
 import { useEffect, useRef, useCallback, useState } from 'react'
 
 interface AutoSaveOptions {
@@ -27,34 +29,51 @@ export function useAutoSave<T>(
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastSavedDataRef = useRef<T | null>(null)
+  const currentDataRef = useRef<T>(data)
+  const saveFunctionRef = useRef(saveFunction)
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Debounced save function
-  const debouncedSave = useCallback(() => {
-    console.log('[useAutoSave] debouncedSave called, enabled:', enabled, 'data:', data)
-    if (!enabled) {
-      console.log('[useAutoSave] Auto-save disabled')
-      return
-    }
+  // Update refs when data or saveFunction changes
+  useEffect(() => {
+    currentDataRef.current = data
+  }, [data])
+
+  useEffect(() => {
+    saveFunctionRef.current = saveFunction
+  }, [saveFunction])
+
+
+
+
+
+  // Trigger auto-save when data changes
+  useEffect(() => {
+    if (!enabled) return
+
+    const currentData = currentDataRef.current
+    console.log('[useAutoSave] Data changed, triggering debounced save:', currentData)
 
     // Clear existing timeout
     if (timeoutRef.current) {
+      console.log('[useAutoSave] Clearing existing timeout')
       clearTimeout(timeoutRef.current)
     }
 
+    console.log('[useAutoSave] Setting new timeout with delay:', delay)
     // Set new timeout
     timeoutRef.current = setTimeout(async () => {
+      console.log('[useAutoSave] Timeout executed! About to save data...')
       try {
-        console.log('[useAutoSave] Executing save, data changed:', JSON.stringify(data) !== JSON.stringify(lastSavedDataRef.current))
+        console.log('[useAutoSave] Executing save, data changed:', JSON.stringify(currentData) !== JSON.stringify(lastSavedDataRef.current))
         // Check if data has actually changed
-        if (JSON.stringify(data) !== JSON.stringify(lastSavedDataRef.current)) {
+        if (JSON.stringify(currentData) !== JSON.stringify(lastSavedDataRef.current)) {
           setIsSaving(true)
           setError(null)
 
-          await saveFunction(data)
-          lastSavedDataRef.current = JSON.parse(JSON.stringify(data)) // Deep clone
+          await saveFunctionRef.current(currentData)
+          lastSavedDataRef.current = JSON.parse(JSON.stringify(currentData)) // Deep clone
           setLastSaved(new Date())
           setIsSaving(false)
           onSave?.()
@@ -68,11 +87,6 @@ export function useAutoSave<T>(
         onError?.(error as Error)
       }
     }, delay)
-  }, [data, saveFunction, delay, enabled, onSave, onError])
-
-  // Trigger auto-save when data changes
-  useEffect(() => {
-    debouncedSave()
 
     // Cleanup timeout on unmount
     return () => {
@@ -80,7 +94,7 @@ export function useAutoSave<T>(
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [debouncedSave])
+  }, [data, delay, enabled, onSave, onError]) // Removed memoizedSaveFunction from dependencies
 
   // Force save function (for immediate saves)
   const forceSave = useCallback(async () => {
@@ -95,7 +109,7 @@ export function useAutoSave<T>(
       setIsSaving(true)
       setError(null)
 
-      await saveFunction(data)
+      await saveFunctionRef.current(data)
       lastSavedDataRef.current = JSON.parse(JSON.stringify(data)) // Deep clone
       setLastSaved(new Date())
       setIsSaving(false)

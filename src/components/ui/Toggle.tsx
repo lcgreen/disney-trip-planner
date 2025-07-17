@@ -162,6 +162,7 @@ export const SettingToggle: React.FC<SettingToggleProps> = ({
   onChange,
   disabled = false,
   variant = "disney",
+  ...props
 }) => (
   <Toggle
     variant={variant}
@@ -170,6 +171,7 @@ export const SettingToggle: React.FC<SettingToggleProps> = ({
     disabled={disabled}
     label={setting}
     description={description}
+    {...props}
   />
 )
 

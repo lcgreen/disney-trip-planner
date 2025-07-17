@@ -326,7 +326,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       await waitFor(() => {
         expect(AutoSaveService.saveCountdownData).toHaveBeenCalledWith(
           expect.objectContaining({
-            tripDate: '2024-12-26T00:00',
+            tripDate: '2024-12-26T00:00:00.000Z',
           }),
           'test-widget-1'
         )
@@ -365,7 +365,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       await waitFor(() => {
         expect(AutoSaveService.saveCountdownData).toHaveBeenCalledWith(
           expect.objectContaining({
-            tripDate: '2024-12-26T00:00',
+            tripDate: '2024-12-26T00:00:00.000Z',
           }),
           'test-widget-1'
         )
@@ -452,7 +452,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       await waitFor(() => {
         expect(AutoSaveService.saveCountdownData).toHaveBeenCalledWith(
           expect.objectContaining({
-            tripDate: '2024-12-26T00:00',
+            tripDate: '2024-12-26T00:00:00.000Z',
           }),
           'test-widget-1'
         )
@@ -565,7 +565,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       await waitFor(() => {
         expect(AutoSaveService.saveCountdownData).toHaveBeenCalledWith(
           expect.objectContaining({
-            tripDate: '2024-12-26T00:00',
+            tripDate: '2024-12-26T00:00:00.000Z',
             name: 'Test Countdown',
           }),
           'test-widget-1'

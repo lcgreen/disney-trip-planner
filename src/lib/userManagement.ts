@@ -187,6 +187,12 @@ export class UserManager {
       throw new Error('No user to upgrade')
     }
 
+    console.log('[UserManager Debug] Upgrading to standard:', {
+      currentUser: { id: this.currentUser.id, level: this.currentUser.level },
+      email,
+      name
+    })
+
     const upgradedUser: User = {
       ...this.currentUser,
       email,
@@ -198,6 +204,11 @@ export class UserManager {
 
     this.currentUser = upgradedUser
     this.saveUser(upgradedUser)
+    console.log('[UserManager Debug] User upgraded to standard successfully:', {
+      id: upgradedUser.id,
+      level: upgradedUser.level,
+      email: upgradedUser.email
+    })
     return upgradedUser
   }
 
@@ -210,6 +221,10 @@ export class UserManager {
       throw new Error('Must upgrade to standard first')
     }
 
+    console.log('[UserManager Debug] Upgrading to premium:', {
+      currentUser: { id: this.currentUser.id, level: this.currentUser.level }
+    })
+
     const upgradedUser: User = {
       ...this.currentUser,
       level: UserLevel.PREMIUM,
@@ -218,6 +233,11 @@ export class UserManager {
 
     this.currentUser = upgradedUser
     this.saveUser(upgradedUser)
+    console.log('[UserManager Debug] User upgraded to premium successfully:', {
+      id: upgradedUser.id,
+      level: upgradedUser.level,
+      email: upgradedUser.email
+    })
     return upgradedUser
   }
 
@@ -297,7 +317,9 @@ export class UserManager {
         hasAccess = false
     }
 
-    console.debug(`Feature access for '${feature}': User level ${userLevel}, required ${requiredLevel}, access: ${hasAccess}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(`Feature access for '${feature}': User level ${userLevel}, required ${requiredLevel}, access: ${hasAccess}`)
+    }
     return hasAccess
   }
 
@@ -359,7 +381,13 @@ export class UserManager {
   // Storage management
   private saveUser(user: User): void {
     if (typeof window === 'undefined') return
+    console.log('[UserManager Debug] Saving user to localStorage:', {
+      id: user.id,
+      level: user.level,
+      email: user.email
+    })
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
+    console.log('[UserManager Debug] User saved successfully to localStorage')
   }
 
   private loadUser(): void {
@@ -367,8 +395,19 @@ export class UserManager {
 
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.USER)
+      console.log('[UserManager Debug] Loading user from localStorage:', {
+        hasSavedData: !!saved,
+        savedData: saved ? JSON.parse(saved) : null
+      })
       if (saved) {
         this.currentUser = JSON.parse(saved)
+        console.log('[UserManager Debug] User loaded successfully:', {
+          id: this.currentUser?.id,
+          level: this.currentUser?.level,
+          email: this.currentUser?.email
+        })
+      } else {
+        console.log('[UserManager Debug] No saved user found, will create anonymous user')
       }
     } catch (error) {
       console.warn('Failed to load user data:', error)
@@ -402,12 +441,18 @@ export class UserManager {
     }
   }
 
-  // Initialize user if none exists
+    // Initialize user if none exists
   ensureUser(): User {
     if (!this.currentUser) {
       return this.createAnonUser()
     }
     return this.currentUser
+  }
+
+  // Force reload user from localStorage
+  reloadUser(): void {
+    console.log('[UserManager Debug] Force reloading user from localStorage')
+    this.loadUser()
   }
 }
 

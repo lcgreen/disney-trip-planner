@@ -44,6 +44,7 @@ export class UnifiedStorage {
   }
 
   static async saveData<T>(key: string, data: T): Promise<void> {
+    console.log('[UnifiedStorage] saveData called with:', { key, data })
     if (typeof window === 'undefined') return
 
     const instance = UnifiedStorage.getInstance()
@@ -51,14 +52,26 @@ export class UnifiedStorage {
     // Update cache (always works for memory storage)
     instance.storageCache.set(key, data)
 
+    // Debug logging for user state
+    const currentUser = userManager.getCurrentUser()
+    const hasSaveAccess = userManager.hasFeatureAccess('saveData')
+    console.log('[UnifiedStorage Debug] saveData called:', {
+      key,
+      currentUser: currentUser ? { id: currentUser.id, level: currentUser.level, email: currentUser.email } : null,
+      hasSaveAccess,
+      isTestEnv: process.env.NODE_ENV === 'test',
+      willSaveToLocalStorage: process.env.NODE_ENV === 'test' || hasSaveAccess
+    })
+
     // Check if user has save permissions for persistent storage
-    if (process.env.NODE_ENV !== 'test' && !userManager.hasFeatureAccess('saveData')) {
+    if (process.env.NODE_ENV !== 'test' && !hasSaveAccess) {
       console.log('Anonymous user: Data saved to memory only (not persistent)')
       return
     }
 
     // Save to localStorage for authenticated users
     localStorage.setItem(key, JSON.stringify(data))
+    console.log('[UnifiedStorage Debug] Data saved to localStorage:', key)
   }
 
   static async updateData<T>(key: string, updates: Partial<T>): Promise<void> {

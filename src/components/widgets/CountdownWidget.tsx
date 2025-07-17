@@ -73,7 +73,7 @@ export default function CountdownWidget({
   useEffect(() => {
     if (isDemoMode) return // Don't watch for updates in demo mode
 
-    const checkForUpdates = () => {
+        const checkForUpdates = () => {
       const countdownPlugin = PluginRegistry.getPlugin('countdown')
       if (countdownPlugin) {
         const widgetConfig = WidgetConfigManager.getConfig(id)
@@ -140,19 +140,22 @@ export default function CountdownWidget({
     }
   }
 
-  // Show different layouts based on width
+  // Show different layouts based on width and settings
   const renderCountdown = () => {
+    // Get layout from settings if available
+    const layout = selectedCountdown?.settings?.layout || 'horizontal'
     if (!selectedCountdown) {
       return (
-        <div className="h-full flex flex-col items-center justify-center text-center p-2">
+        <div className="h-full flex flex-col items-center justify-center text-center p-2" data-testid="countdown-widget-empty">
           <Clock className="w-10 h-10 text-gray-300 mb-3" />
-          <h3 className="text-base font-medium text-gray-600 mb-1">No Countdown Selected</h3>
-          <p className="text-xs text-gray-500 mb-3 max-w-[200px]">
+          <h3 className="text-base font-medium text-gray-600 mb-1" data-testid="countdown-widget-empty-title">No Countdown Selected</h3>
+          <p className="text-xs text-gray-500 mb-3 max-w-[200px]" data-testid="countdown-widget-empty-description">
             Create a new countdown or select one from settings
           </p>
           <button
             onClick={() => window.location.href = `/countdown/new?widgetId=${id}`}
             className="px-3 py-1.5 bg-disney-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium"
+            data-testid="countdown-widget-create-new"
           >
             Create New
           </button>
@@ -165,28 +168,131 @@ export default function CountdownWidget({
     // Get park-specific gradient or fallback to default Disney colors
     const parkGradient = selectedCountdown.park?.gradient || 'from-disney-blue to-disney-purple'
 
-    // Determine layout based on width
+    // Determine layout based on width and settings
     const isWide = width === '3' || width === '4'
     const isNarrow = width === '1'
 
-    if (isNarrow) {
+    // Use settings layout if available, otherwise fall back to width-based layout
+    if (layout === 'vertical') {
       return (
-        <div className="h-full flex flex-col justify-center">
+        <div className="h-full flex flex-col justify-center" data-testid="countdown-widget-vertical">
           <div className="text-center mb-4">
-            <h3 className="font-semibold text-gray-800 mb-1 truncate">{selectedCountdown.name}</h3>
-            <p className="text-xs text-gray-500 truncate">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
+            <p className="text-sm text-gray-600" data-testid="countdown-widget-subtitle">
               {selectedCountdown.park?.name} • {(() => {
                 const date = new Date(selectedCountdown.tripDate)
                 return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
               })()}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-center">
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+          <div className="flex flex-col gap-3 text-center" data-testid="countdown-widget-timer">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-days">
+              <div className="text-xl font-bold">{timeLeft.days}</div>
+              <div className="text-xs opacity-90">Days</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-hours">
+              <div className="text-xl font-bold">{formatTime(timeLeft.hours)}</div>
+              <div className="text-xs opacity-90">Hours</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-minutes">
+              <div className="text-xl font-bold">{formatTime(timeLeft.minutes)}</div>
+              <div className="text-xs opacity-90">Minutes</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-seconds">
+              <div className="text-xl font-bold">{formatTime(timeLeft.seconds)}</div>
+              <div className="text-xs opacity-90">Seconds</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (layout === 'compact') {
+      return (
+        <div className="h-full flex flex-col justify-center" data-testid="countdown-widget-compact">
+          <div className="text-center mb-3">
+            <h3 className="text-sm font-semibold text-gray-800 mb-1" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
+            <p className="text-xs text-gray-500" data-testid="countdown-widget-subtitle">
+              {selectedCountdown.park?.name} • {(() => {
+                const date = new Date(selectedCountdown.tripDate)
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
+              })()}
+            </p>
+          </div>
+          <div className="flex justify-center gap-2" data-testid="countdown-widget-timer">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg px-3 py-2`} data-testid="countdown-widget-days">
+              <div className="text-lg font-bold">{timeLeft.days}</div>
+              <div className="text-xs opacity-90">D</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg px-3 py-2`} data-testid="countdown-widget-hours">
+              <div className="text-lg font-bold">{formatTime(timeLeft.hours)}</div>
+              <div className="text-xs opacity-90">H</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg px-3 py-2`} data-testid="countdown-widget-minutes">
+              <div className="text-lg font-bold">{formatTime(timeLeft.minutes)}</div>
+              <div className="text-xs opacity-90">M</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg px-3 py-2`} data-testid="countdown-widget-seconds">
+              <div className="text-lg font-bold">{formatTime(timeLeft.seconds)}</div>
+              <div className="text-xs opacity-90">S</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (layout === 'grid') {
+      return (
+        <div className="h-full flex flex-col justify-center" data-testid="countdown-widget-grid">
+          <div className="text-center mb-4">
+            <h3 className="text-base font-semibold text-gray-800 mb-1" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
+            <p className="text-xs text-gray-500" data-testid="countdown-widget-subtitle">
+              {selectedCountdown.park?.name} • {(() => {
+                const date = new Date(selectedCountdown.tripDate)
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
+              })()}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-center" data-testid="countdown-widget-timer">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-2`} data-testid="countdown-widget-days">
               <div className="text-lg font-bold">{timeLeft.days}</div>
               <div className="text-xs opacity-90">Days</div>
             </div>
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-2`} data-testid="countdown-widget-hours">
+              <div className="text-lg font-bold">{formatTime(timeLeft.hours)}</div>
+              <div className="text-xs opacity-90">Hours</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-2`} data-testid="countdown-widget-minutes">
+              <div className="text-lg font-bold">{formatTime(timeLeft.minutes)}</div>
+              <div className="text-xs opacity-90">Minutes</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-2`} data-testid="countdown-widget-seconds">
+              <div className="text-lg font-bold">{formatTime(timeLeft.seconds)}</div>
+              <div className="text-xs opacity-90">Seconds</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (isNarrow) {
+      return (
+        <div className="h-full flex flex-col justify-center" data-testid="countdown-widget-narrow">
+          <div className="text-center mb-4">
+            <h3 className="font-semibold text-gray-800 mb-1 truncate" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
+            <p className="text-xs text-gray-500 truncate" data-testid="countdown-widget-subtitle">
+              {selectedCountdown.park?.name} • {(() => {
+                const date = new Date(selectedCountdown.tripDate)
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
+              })()}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-center" data-testid="countdown-widget-timer">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-days">
+              <div className="text-lg font-bold">{timeLeft.days}</div>
+              <div className="text-xs opacity-90">Days</div>
+            </div>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-hours">
               <div className="text-lg font-bold">{formatTime(timeLeft.hours)}</div>
               <div className="text-xs opacity-90">Hours</div>
             </div>
@@ -197,30 +303,30 @@ export default function CountdownWidget({
 
     if (isWide) {
       return (
-        <div className="h-full flex flex-col justify-center">
+        <div className="h-full flex flex-col justify-center" data-testid="countdown-widget-wide">
           <div className="text-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-1">{selectedCountdown.name}</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="text-lg font-semibold text-gray-800 mb-1" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
+            <p className="text-sm text-gray-600" data-testid="countdown-widget-subtitle">
               {selectedCountdown.park?.name} • {(() => {
                 const date = new Date(selectedCountdown.tripDate)
                 return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
               })()}
             </p>
           </div>
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+          <div className="grid grid-cols-4 gap-2 text-center" data-testid="countdown-widget-timer">
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-days">
               <div className="text-xl font-bold">{timeLeft.days}</div>
               <div className="text-xs opacity-90">Days</div>
             </div>
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-hours">
               <div className="text-xl font-bold">{formatTime(timeLeft.hours)}</div>
               <div className="text-xs opacity-90">Hours</div>
             </div>
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-minutes">
               <div className="text-xl font-bold">{formatTime(timeLeft.minutes)}</div>
               <div className="text-xs opacity-90">Minutes</div>
             </div>
-            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`}>
+            <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-3`} data-testid="countdown-widget-seconds">
               <div className="text-xl font-bold">{formatTime(timeLeft.seconds)}</div>
               <div className="text-xs opacity-90">Seconds</div>
             </div>
@@ -229,24 +335,24 @@ export default function CountdownWidget({
       )
     }
 
-    // Default layout (2 columns)
+    // Default layout (horizontal - 2 columns)
     return (
-      <div className="h-full flex flex-col justify-center">
+      <div className="h-full flex flex-col justify-center" data-testid="countdown-widget-horizontal">
         <div className="text-center mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">{selectedCountdown.name}</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2" data-testid="countdown-widget-title">{selectedCountdown.name}</h3>
+          <p className="text-sm text-gray-600" data-testid="countdown-widget-subtitle">
             {selectedCountdown.park?.name} • {(() => {
               const date = new Date(selectedCountdown.tripDate)
               return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString()
             })()}
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
+        <div className="grid grid-cols-2 gap-4 text-center" data-testid="countdown-widget-timer">
+          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`} data-testid="countdown-widget-days">
             <div className="text-2xl font-bold">{timeLeft.days}</div>
             <div className="text-sm opacity-90">Days</div>
           </div>
-          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`}>
+          <div className={`bg-gradient-to-r ${parkGradient} text-white rounded-lg p-4`} data-testid="countdown-widget-hours">
             <div className="text-2xl font-bold">{formatTime(timeLeft.hours)}</div>
             <div className="text-sm opacity-90">Hours</div>
           </div>

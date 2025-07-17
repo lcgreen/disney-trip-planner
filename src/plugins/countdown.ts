@@ -91,8 +91,6 @@ export class CountdownPlugin implements PluginInterface {
         park: item.park || { name: 'Disney World' }
       }
 
-
-
       return normalizedItem
     }
 

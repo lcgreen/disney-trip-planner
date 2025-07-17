@@ -47,6 +47,7 @@ export interface SelectProps
   success?: string
   leftIcon?: React.ReactNode
   className?: string
+  dataTestId?: string
 }
 
 const Select = forwardRef<
@@ -64,6 +65,7 @@ const Select = forwardRef<
   success,
   leftIcon,
   children,
+  dataTestId,
   ...props
 }, ref) => {
   const generatedId = React.useId()
@@ -85,6 +87,7 @@ const Select = forwardRef<
           ref={ref}
           id={selectId}
           className={cn(selectVariants({ variant: currentVariant, size }), className)}
+          data-testid={dataTestId}
         >
           <div className="flex items-center space-x-2 flex-1">
             {leftIcon && (

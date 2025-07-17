@@ -27,27 +27,25 @@ export class AutoSaveService {
     theme?: any
     createdAt: string
   }, widgetId?: string): Promise<void> {
+    console.log('[AutoSaveService] saveCountdownData called with:', { data, widgetId })
     try {
       // Check if user has save permissions
       const { userManager } = await import('@/lib/userManagement')
-      const currentUser = userManager.getCurrentUser()
 
-      // Allow anonymous users to save to memory only
-      if (!userManager.hasFeatureAccess('saveData')) {
-        console.log('Anonymous user: Auto-save to memory only')
-        // Still update widget config for anonymous users
-        if (widgetId) {
-          const { WidgetConfigManager } = await import('@/lib/widgetConfig')
-          const config = WidgetConfigManager.getConfig(widgetId)
-          if (!config?.selectedItemId || config.selectedItemId !== data.id) {
-            WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
-            console.log('[AutoSave] Linked widget', widgetId, 'to countdown', data.id)
-          }
-        }
-        return
-      }
+      // Ensure user exists (create anonymous user if none exists)
+      const currentUser = userManager.ensureUser()
 
-      // Update using UnifiedStorage
+      // Debug logging for auto-save
+      console.log('[AutoSaveService Debug] saveCountdownData called:', {
+        dataId: data.id,
+        dataName: data.name,
+        widgetId,
+        currentUser: { id: currentUser.id, level: currentUser.level, email: currentUser.email },
+        hasSaveAccess: userManager.hasFeatureAccess('saveData'),
+        isTestEnv: process.env.NODE_ENV === 'test'
+      })
+
+      // Update using UnifiedStorage (handles anonymous users automatically)
       const countdowns = UnifiedStorage.getPluginItems('countdown')
       let found = false;
       const updatedCountdowns = countdowns.map((c: any) => {
@@ -60,6 +58,11 @@ export class AutoSaveService {
       if (!found) {
         updatedCountdowns.push({ ...data, updatedAt: new Date().toISOString() });
       }
+      console.log('[AutoSaveService Debug] About to save countdowns:', {
+        count: updatedCountdowns.length,
+        found,
+        dataId: data.id
+      })
       await UnifiedStorage.savePluginItems('countdown', updatedCountdowns)
 
       // Ensure widget config links to this countdown
@@ -67,7 +70,7 @@ export class AutoSaveService {
         const { WidgetConfigManager } = await import('@/lib/widgetConfig')
         const config = WidgetConfigManager.getConfig(widgetId)
         if (!config?.selectedItemId || config.selectedItemId !== data.id) {
-          WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
+          await WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
           console.log('[AutoSave] Linked widget', widgetId, 'to countdown', data.id)
         } else {
           console.log('[AutoSave] Widget', widgetId, 'already linked to countdown', data.id)
@@ -104,23 +107,10 @@ export class AutoSaveService {
     try {
       // Check if user has save permissions
       const { userManager } = await import('@/lib/userManagement')
+      // Ensure user exists (create anonymous user if none exists)
+      userManager.ensureUser()
 
-      // Allow anonymous users to save to memory only
-      if (!userManager.hasFeatureAccess('saveData')) {
-        console.log('Anonymous user: Auto-save to memory only')
-        // Still update widget config for anonymous users
-        if (widgetId) {
-          const { WidgetConfigManager } = await import('@/lib/widgetConfig')
-          const config = WidgetConfigManager.getConfig(widgetId)
-          if (!config?.selectedItemId || config.selectedItemId !== data.id) {
-            WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
-            console.log('[AutoSave] Linked widget', widgetId, 'to budget', data.id)
-          }
-        }
-        return
-      }
-
-      // Update using UnifiedStorage
+      // Update using UnifiedStorage (handles anonymous users automatically)
       const budgets = UnifiedStorage.getPluginItems('budget')
       let found = false;
       const updatedBudgets = budgets.map((b: any) => {
@@ -140,7 +130,7 @@ export class AutoSaveService {
         const { WidgetConfigManager } = await import('@/lib/widgetConfig')
         const config = WidgetConfigManager.getConfig(widgetId)
         if (!config?.selectedItemId || config.selectedItemId !== data.id) {
-          WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
+          await WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
           console.log('[AutoSave] Linked widget', widgetId, 'to budget', data.id)
         } else {
           console.log('[AutoSave] Widget', widgetId, 'already linked to budget', data.id)
@@ -176,23 +166,10 @@ export class AutoSaveService {
     try {
       // Check if user has save permissions
       const { userManager } = await import('@/lib/userManagement')
+      // Ensure user exists (create anonymous user if none exists)
+      userManager.ensureUser()
 
-      // Allow anonymous users to save to memory only
-      if (!userManager.hasFeatureAccess('saveData')) {
-        console.log('Anonymous user: Auto-save to memory only')
-        // Still update widget config for anonymous users
-        if (widgetId) {
-          const { WidgetConfigManager } = await import('@/lib/widgetConfig')
-          const config = WidgetConfigManager.getConfig(widgetId)
-          if (!config?.selectedItemId || config.selectedItemId !== data.id) {
-            WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
-            console.log('[AutoSave] Linked widget', widgetId, 'to packing', data.id)
-          }
-        }
-        return
-      }
-
-      // Update using UnifiedStorage
+      // Update using UnifiedStorage (handles anonymous users automatically)
       const lists = UnifiedStorage.getPluginItems('packing')
       let found = false;
       const updatedLists = lists.map((l: any) => {
@@ -212,7 +189,7 @@ export class AutoSaveService {
         const { WidgetConfigManager } = await import('@/lib/widgetConfig')
         const config = WidgetConfigManager.getConfig(widgetId)
         if (!config?.selectedItemId || config.selectedItemId !== data.id) {
-          WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
+          await WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
           console.log('[AutoSave] Linked widget', widgetId, 'to packing', data.id)
         } else {
           console.log('[AutoSave] Widget', widgetId, 'already linked to packing', data.id)
@@ -247,27 +224,10 @@ export class AutoSaveService {
     try {
       // Check if user has save permissions
       const { userManager } = await import('@/lib/userManagement')
-      console.log('[AutoSaveService] Checking save permissions...')
-      console.log('[AutoSaveService] User level:', userManager.getCurrentUser()?.level)
-      console.log('[AutoSaveService] Has saveData access:', userManager.hasFeatureAccess('saveData'))
-      console.log('[AutoSaveService] Has planner access:', userManager.hasFeatureAccess('planner'))
+      // Ensure user exists (create anonymous user if none exists)
+      userManager.ensureUser()
 
-      // Allow anonymous users to save to memory only
-      if (!userManager.hasFeatureAccess('saveData')) {
-        console.log('Anonymous user: Auto-save to memory only')
-        // Still update widget config for anonymous users
-        if (widgetId) {
-          const { WidgetConfigManager } = await import('@/lib/widgetConfig')
-          const config = WidgetConfigManager.getConfig(widgetId)
-          if (!config?.selectedItemId || config.selectedItemId !== data.id) {
-            WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
-            console.log('[AutoSave] Linked widget', widgetId, 'to planner', data.id)
-          }
-        }
-        return
-      }
-
-      // Update using UnifiedStorage
+      // Update using UnifiedStorage (handles anonymous users automatically)
       const plans = UnifiedStorage.getPluginItems('planner')
       let found = false;
       const updatedPlans = plans.map((p: any) => {
@@ -287,7 +247,7 @@ export class AutoSaveService {
         const { WidgetConfigManager } = await import('@/lib/widgetConfig')
         const config = WidgetConfigManager.getConfig(widgetId)
         if (!config?.selectedItemId || config.selectedItemId !== data.id) {
-          WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
+          await WidgetConfigManager.updateConfig(widgetId, { selectedItemId: data.id })
           console.log('[AutoSave] Linked widget', widgetId, 'to planner', data.id)
         } else {
           console.log('[AutoSave] Widget', widgetId, 'already linked to planner', data.id)

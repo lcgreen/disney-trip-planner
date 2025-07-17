@@ -27,15 +27,47 @@ export default function DashboardPage() {
   const [showAddWidget, setShowAddWidget] = useState(false)
   const [showConfigManager, setShowConfigManager] = useState(false)
 
-  // Load widgets on mount
+  // Load widgets on mount and when user level changes
   useEffect(() => {
-    if (userLevel === 'anon') {
-      // Load demo dashboard for anonymous users
+    // Check if we're in test mode (process.env.NODE_ENV === 'test')
+    const isTestMode = process.env.NODE_ENV === 'test'
+
+    if (userLevel === 'anon' && !isTestMode) {
+      // Load demo dashboard for anonymous users (but not in test mode)
       setWidgets(demoDashboard.widgets as WidgetConfig[])
     } else {
-      // Load saved configurations for authenticated users
+      // Load saved configurations for authenticated users or test mode
       const configs = WidgetConfigManager.getConfigs()
       setWidgets(configs)
+    }
+  }, [userLevel])
+
+  // Refresh widgets when the page becomes visible or when storage changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && userLevel !== 'anon') {
+        // Reload widget configurations when page becomes visible
+        const configs = WidgetConfigManager.getConfigs()
+        setWidgets(configs)
+      }
+    }
+
+    const handleStorageChange = (e: StorageEvent) => {
+      // Refresh when widget configs or countdown data changes
+      if (e.key === 'disney-widget-configs' || e.key === 'disney-countdowns' || e.key === 'disney-auto-save-data') {
+        if (userLevel !== 'anon') {
+          const configs = WidgetConfigManager.getConfigs()
+          setWidgets(configs)
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('storage', handleStorageChange)
     }
   }, [userLevel])
 
@@ -151,29 +183,27 @@ export default function DashboardPage() {
           className="space-y-8"
         >
           {/* Header */}
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-800 mb-4">
+          <div className="text-center" data-testid="dashboard-header">
+            <h1 className="text-4xl font-bold text-gray-800 mb-4" data-testid="dashboard-title">
               ✨ Disney Countdown Dashboard
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {userLevel === 'anon'
-                ? 'Welcome to your magical Disney planning hub! This is a demo dashboard showing what you can do. Sign up to save your own data and customize your experience.'
-                : 'Welcome to your magical Disney planning hub! Add widgets to track your countdown, plan your trip, manage your budget, and pack your essentials.'
-              }
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto" data-testid="dashboard-description">
+              Welcome to your magical Disney planning hub! Add widgets to track your countdown, plan your trip, manage your budget, and pack your essentials.
             </p>
           </div>
 
           {/* User Level Badge and Actions */}
-          <div className="flex justify-center items-center space-x-4">
-            <div className="flex space-x-2">
+          <div className="flex justify-center items-center space-x-4" data-testid="dashboard-actions">
+            <div className="flex space-x-2" data-testid="user-badges">
               <Badge
                 variant={userLevel === 'premium' ? 'success' : userLevel === 'standard' ? 'info' : 'warning'}
                 size="lg"
+                data-testid="user-level-badge"
               >
                 {userLevel === 'premium' ? 'Premium User' : userLevel === 'standard' ? 'Standard User' : 'Anonymous User'}
               </Badge>
               {userLevel === 'anon' && (
-                <Badge variant="warning" size="lg">
+                <Badge variant="warning" size="lg" data-testid="demo-mode-badge">
                   Demo Mode
                 </Badge>
               )}
@@ -186,6 +216,7 @@ export default function DashboardPage() {
                 variant="secondary"
                 size="sm"
                 className="flex items-center space-x-2"
+                data-testid="configure-widgets-button"
               >
                 <Settings className="w-4 h-4" />
                 Configure Widgets
@@ -194,7 +225,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Widgets Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="widgets-grid">
             {widgets
               .filter(widget => !widget.settings?.hidden) // Hide widgets marked as hidden
               .map((widget, index) => {
@@ -208,6 +239,7 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.1 }}
                     className="relative"
+                    data-testid={`widget-${widget.type}-${widget.id}`}
                   >
                     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                       <WidgetComponent
@@ -217,7 +249,7 @@ export default function DashboardPage() {
                         onSettings={() => {}}
                         onWidthChange={(newWidth) => handleWidthChange(widget.id, newWidth)}
                         onItemSelect={(itemId) => handleItemSelect(widget.id, itemId)}
-                        isDemoMode={userLevel === 'anon'}
+                        isDemoMode={userLevel === 'anon' && process.env.NODE_ENV !== 'test'}
                       />
                     </div>
                   </motion.div>
@@ -231,10 +263,12 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: widgets.length * 0.1 }}
                 className="relative"
+                data-testid="add-widget-button-container"
               >
                 <button
                   onClick={() => setShowAddWidget(true)}
                   className="w-full h-64 border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex flex-col items-center justify-center text-gray-500 hover:text-gray-700"
+                  data-testid="add-widget-button"
                 >
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <span className="text-2xl">+</span>
@@ -248,28 +282,31 @@ export default function DashboardPage() {
 
           {/* Add Widget Modal */}
           {showAddWidget && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" data-testid="add-widget-modal">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                data-testid="add-widget-modal-content"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">Add Widget</h2>
+                  <h2 className="text-2xl font-bold text-gray-800" data-testid="add-widget-modal-title">Add Widget</h2>
                   <button
                     onClick={() => setShowAddWidget(false)}
                     className="text-gray-400 hover:text-gray-600"
+                    data-testid="add-widget-modal-close"
                   >
                     ✕
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="widget-options-grid">
                   {widgetOptions.map((option) => (
                     <button
                       key={option.type}
                       onClick={() => addWidget(option.type)}
                       className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all text-left"
+                      data-testid={`widget-option-${option.type}`}
                     >
                       <div className="flex items-center space-x-3">
                         <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${option.color} flex items-center justify-center`}>

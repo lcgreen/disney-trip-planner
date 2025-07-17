@@ -2,7 +2,7 @@
 
 import { Pencil } from 'lucide-react'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, MapPin, Sparkles, Settings, Share2, Code, Copy, Download, Upload, Palette, Volume2, VolumeX, RefreshCw, Star, ChevronDown, ChevronUp } from 'lucide-react'
 import { format, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds, addDays, addHours } from 'date-fns'
@@ -193,6 +193,16 @@ export default function CountdownTimer({
     }
   }, [selectedPark])
 
+  // Ensure countdown is active if both date and park are set and date is in the future
+  useEffect(() => {
+    if (targetDate && selectedPark) {
+      const selectedDate = new Date(targetDate)
+      if (selectedDate > new Date()) {
+        setIsActive(true)
+      }
+    }
+  }, [targetDate, selectedPark])
+
   // Load created item in edit mode
   useEffect(() => {
     if (isEditMode && createdItemId) {
@@ -277,15 +287,22 @@ export default function CountdownTimer({
   }, [isActive, targetDate, settings.showMilliseconds, settings.playSound])
 
     // Auto-save functionality for widget editing
-  const autoSaveData = widgetId && isEditMode && targetDate ? {
-    id: createdItemId || activeCountdown?.id || Date.now().toString(),
-    name: editedName || name || 'New Countdown',
-    tripDate: targetDate, // <-- use tripDate everywhere
-    park: selectedPark,
-    settings,
-    theme: customTheme || undefined,
-    createdAt: activeCountdown?.createdAt || new Date().toISOString()
-  } : null
+  const autoSaveData = useMemo(() => {
+    if (!widgetId || !isEditMode || !targetDate) return null
+
+    return {
+      id: createdItemId || activeCountdown?.id || Date.now().toString(),
+      name: editedName || name || 'New Countdown',
+      tripDate: (() => {
+        const date = new Date(targetDate)
+        return !isNaN(date.getTime()) ? date.toISOString() : targetDate
+      })(),
+      park: selectedPark,
+      settings,
+      theme: customTheme || undefined,
+      createdAt: activeCountdown?.createdAt || new Date().toISOString()
+    }
+  }, [widgetId, isEditMode, targetDate, createdItemId, activeCountdown?.id, activeCountdown?.createdAt, editedName, name, selectedPark?.id, JSON.stringify(settings), customTheme?.id])
 
   const { forceSave, isSaving, lastSaved, error } = useAutoSave(
     autoSaveData,
@@ -307,26 +324,18 @@ export default function CountdownTimer({
     }
   )
 
-  // Debug logging for auto-save conditions
+  // Debug logging for auto-save conditions (only in development)
   useEffect(() => {
-    console.log('[AutoSave Debug] Conditions:', {
-      widgetId,
-      isEditMode,
-      hasActiveCountdown: !!activeCountdown,
-      hasAutoSaveData: !!autoSaveData,
-      autoSaveEnabled: !!autoSaveData,
-      autoSaveData: autoSaveData,
-      targetDate,
-      hasTargetDate: !!targetDate
-    })
-  }, [widgetId, isEditMode, activeCountdown, autoSaveData, targetDate])
-
-  // Manual trigger for testing auto-save
-  useEffect(() => {
-    if (widgetId && isEditMode && targetDate) {
-      console.log('[AutoSave] Manual trigger - conditions met for auto-save')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AutoSave Debug] Conditions:', {
+        widgetId,
+        isEditMode,
+        hasAutoSaveData: !!autoSaveData,
+        autoSaveEnabled: !!autoSaveData,
+        targetDate: !!targetDate
+      })
     }
-  }, [widgetId, isEditMode, targetDate])
+  }, [widgetId, isEditMode, autoSaveData, targetDate])
 
   const handleStartCountdown = (): void => {
     if (targetDate) {
@@ -566,13 +575,19 @@ export default function CountdownTimer({
 
           {/* Auto-save indicator for widget editing */}
           {widgetId && isEditMode && (
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex justify-center gap-4">
               <AutoSaveIndicator
                 isSaving={isSaving}
                 lastSaved={lastSaved}
                 error={error}
                 className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm"
               />
+              <button
+                onClick={() => forceSave()}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Force Save
+              </button>
             </div>
           )}
         </motion.div>
@@ -674,6 +689,7 @@ export default function CountdownTimer({
                 <SettingsPanel
                   title="Customisation Options"
                   defaultExpanded={true}
+                  data-testid="settings-panel"
                 >
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Theme Selection */}
@@ -709,26 +725,37 @@ export default function CountdownTimer({
                           setting="Show milliseconds"
                           checked={settings.showMilliseconds}
                           onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showMilliseconds: checked }))}
+                          data-testid="setting-show-milliseconds"
                         />
                         <SettingToggle
                           setting="Show timezone"
                           checked={settings.showTimezone}
                           onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTimezone: checked }))}
+                          data-testid="setting-show-timezone"
                         />
                         <SettingToggle
                           setting="Show planning tips"
                           checked={settings.showTips}
                           onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTips: checked }))}
+                          data-testid="setting-show-tips"
                         />
                         <SettingToggle
                           setting="Show attractions"
                           checked={settings.showAttractions}
                           onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showAttractions: checked }))}
+                          data-testid="setting-show-attractions"
                         />
                         <SettingToggle
                           setting="Play completion sound"
                           checked={settings.playSound}
                           onChange={(checked: boolean) => setSettings(prev => ({ ...prev, playSound: checked }))}
+                          data-testid="setting-play-sound"
+                        />
+                        <SettingToggle
+                          setting="Auto refresh"
+                          checked={settings.autoRefresh}
+                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, autoRefresh: checked }))}
+                          data-testid="setting-auto-refresh"
                         />
                       </div>
                     </div>
@@ -749,6 +776,7 @@ export default function CountdownTimer({
                               { value: 'neon', label: 'Neon' },
                               { value: 'minimal', label: 'Minimal' }
                             ]}
+                            dataTestId="setting-digit-style"
                           />
                         </div>
                         <div>
@@ -763,6 +791,7 @@ export default function CountdownTimer({
                               { value: 'compact', label: 'Compact' },
                               { value: 'grid', label: 'Grid' }
                             ]}
+                            dataTestId="setting-layout"
                           />
                         </div>
                         <div>
@@ -777,6 +806,22 @@ export default function CountdownTimer({
                               { value: 'large', label: 'Large' },
                               { value: 'xl', label: 'Extra Large' }
                             ]}
+                            dataTestId="setting-font-size"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Background Effect</label>
+                          <Select
+                            defaultValue={settings.backgroundEffect}
+                            value={settings.backgroundEffect}
+                            onValueChange={(value: string) => setSettings(prev => ({ ...prev, backgroundEffect: value as CountdownSettings['backgroundEffect'] }))}
+                            options={[
+                              { value: 'none', label: 'None' },
+                              { value: 'particles', label: 'Particles' },
+                              { value: 'gradient', label: 'Gradient' },
+                              { value: 'animated', label: 'Animated' }
+                            ]}
+                            dataTestId="setting-background-effect"
                           />
                         </div>
                       </div>
@@ -962,6 +1007,7 @@ export default function CountdownTimer({
              role="timer"
              aria-live="polite"
              aria-label={`Disney countdown timer showing ${countdown.days} days, ${countdown.hours} hours, ${countdown.minutes} minutes, and ${countdown.seconds} seconds until your trip to ${selectedPark?.name || 'Disney'}`}
+             data-testid="countdown-timer-container"
             >
               {/* Enhanced Background decorations */}
               <div className="absolute inset-0 opacity-10">
@@ -1002,26 +1048,27 @@ export default function CountdownTimer({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
                     className={`${getLayoutClassName()} mb-8`}
+                    data-testid="countdown-timer-active"
                   >
-                    <div className={getDigitClassName()}>
-                      <div className={`${getFontSizeClass()} font-bold`}>{countdown.days}</div>
+                    <div className={getDigitClassName()} data-testid="countdown-days-container">
+                      <div className={`${getFontSizeClass()} font-bold`} data-testid="countdown-days-value">{countdown.days}</div>
                       <div className="text-sm md:text-base opacity-80 mt-2">Days</div>
                     </div>
-                    <div className={getDigitClassName()}>
-                      <div className={`${getFontSizeClass()} font-bold`}>{countdown.hours}</div>
+                    <div className={getDigitClassName()} data-testid="countdown-hours-container">
+                      <div className={`${getFontSizeClass()} font-bold`} data-testid="countdown-hours-value">{countdown.hours}</div>
                       <div className="text-sm md:text-base opacity-80 mt-2">Hours</div>
                     </div>
-                    <div className={getDigitClassName()}>
-                      <div className={`${getFontSizeClass()} font-bold`}>{countdown.minutes}</div>
+                    <div className={getDigitClassName()} data-testid="countdown-minutes-container">
+                      <div className={`${getFontSizeClass()} font-bold`} data-testid="countdown-minutes-value">{countdown.minutes}</div>
                       <div className="text-sm md:text-base opacity-80 mt-2">Minutes</div>
                     </div>
-                    <div className={getDigitClassName()}>
-                      <div className={`${getFontSizeClass()} font-bold`}>{countdown.seconds}</div>
+                    <div className={getDigitClassName()} data-testid="countdown-seconds-container">
+                      <div className={`${getFontSizeClass()} font-bold`} data-testid="countdown-seconds-value">{countdown.seconds}</div>
                       <div className="text-sm md:text-base opacity-80 mt-2">Seconds</div>
                     </div>
                     {settings.showMilliseconds && (
-                      <div className={getDigitClassName()}>
-                        <div className={`${getFontSizeClass()} font-bold`}>{Math.floor(milliseconds / 10)}</div>
+                      <div className={getDigitClassName()} data-testid="countdown-milliseconds-container">
+                        <div className={`${getFontSizeClass()} font-bold`} data-testid="countdown-milliseconds-value">{Math.floor(milliseconds / 10)}</div>
                         <div className="text-sm md:text-base opacity-80 mt-2">Centiseconds</div>
                       </div>
                     )}
@@ -1031,8 +1078,9 @@ export default function CountdownTimer({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="mb-8"
+                    data-testid="countdown-timer-inactive"
                   >
-                                         <p className="text-xl md:text-2xl">Select a date to start your countdown! ✨</p>
+                    <p className="text-xl md:text-2xl">Select a date to start your countdown! ✨</p>
                   </motion.div>
                 )}
 

@@ -72,7 +72,7 @@ export default function UserProfile() {
 
   return (
     <>
-      <Card className="p-6 bg-white/80 backdrop-blur-sm border border-white/20">
+      <Card className="p-6 bg-white/80 backdrop-blur-sm border border-white/20" data-testid="user-profile">
         <div className="flex items-center space-x-4">
           <div className={`p-3 rounded-full bg-gradient-to-r ${getLevelColor()} text-white`}>
             {getLevelIcon()}
@@ -80,10 +80,10 @@ export default function UserProfile() {
 
           <div className="flex-1">
             <div className="flex items-center space-x-2">
-              <h3 className="text-lg font-semibold text-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800" data-testid="user-name">
                 {user?.name || 'Anonymous User'}
               </h3>
-              <Badge variant={userLevel === UserLevel.PREMIUM ? 'premium' : userLevel === UserLevel.STANDARD ? 'primary' : 'default'}>
+              <Badge variant={userLevel === UserLevel.PREMIUM ? 'premium' : userLevel === UserLevel.STANDARD ? 'primary' : 'default'} data-testid="user-level-badge">
                 {getLevelName()}
               </Badge>
             </div>
@@ -106,6 +106,7 @@ export default function UserProfile() {
             <Button
               onClick={() => setShowLoginModal(true)}
               className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
+              data-testid="sign-up-button"
             >
               <Mail className="w-4 h-4 mr-2" />
               Sign Up for Free
@@ -138,6 +139,7 @@ export default function UserProfile() {
               onClick={logout}
               variant="outline"
               className="w-full text-gray-600 hover:text-red-600"
+              data-testid="logout-button"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
@@ -167,6 +169,7 @@ export default function UserProfile() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="your@email.com"
+              data-testid="email-input"
             />
           </div>
 
@@ -180,6 +183,7 @@ export default function UserProfile() {
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Your Name"
+              data-testid="name-input"
             />
           </div>
 
@@ -188,6 +192,7 @@ export default function UserProfile() {
               onClick={handleUpgradeToStandard}
               disabled={!email.trim()}
               className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+              data-testid="create-account-button"
             >
               Create Account
             </Button>
