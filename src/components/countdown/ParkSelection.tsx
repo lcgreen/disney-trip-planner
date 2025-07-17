@@ -16,6 +16,30 @@ export function ParkSelection({
   onParkSelect,
   settings
 }: ParkSelectionProps) {
+  // Debug logging
+  console.log('ParkSelection render:', {
+    disneyParksLength: disneyParks?.length,
+    disneyParks,
+    selectedPark
+  })
+
+  if (!disneyParks || disneyParks.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 md:p-8"
+      >
+        <h3 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-3 text-gray-800">
+          <MapPin className="w-6 h-6 text-disney-blue" />
+          Choose Your Disney Destination
+        </h3>
+        <div className="text-gray-600">Loading parks...</div>
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

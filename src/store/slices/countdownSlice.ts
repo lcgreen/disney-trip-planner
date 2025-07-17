@@ -3,7 +3,7 @@ import { CountdownState, CountdownAction } from '../types'
 import { CountdownData } from '@/types'
 import { DisneyPark, CountdownPalette } from '@/config/types'
 import { userManager } from '@/lib/userMigration'
-import { getAllParks, getAllThemes } from '@/config'
+import { getAllParksFlattened, getAllThemes } from '@/config'
 
 const initialState: CountdownState = {
   items: [],
@@ -13,8 +13,8 @@ const initialState: CountdownState = {
   lastSaved: null,
   isSaving: false,
   // Real-time countdown state
-  targetDate: '',
-  selectedPark: getAllParks()[0] || null,
+  targetDate: '', // Start empty to avoid hydration mismatch
+  selectedPark: getAllParksFlattened()[0] || null,
   settings: {
     showMilliseconds: false,
     showTimezone: true,
@@ -37,7 +37,7 @@ const initialState: CountdownState = {
     total: 0
   },
   milliseconds: 0,
-  disneyParks: getAllParks()
+  disneyParks: getAllParksFlattened()
 }
 
 // Async thunks for countdown operations

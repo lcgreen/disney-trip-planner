@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Calendar } from 'lucide-react'
 import { Badge } from '@/components/ui'
 import { getQuickDateOptions, calculateQuickDate } from '@/config'
+import { useState, useEffect } from 'react'
 
 interface DateSelectionProps {
   targetDate: string
@@ -14,6 +15,14 @@ export function DateSelection({
   onDateChange,
   onStartCountdown
 }: DateSelectionProps) {
+  const [minDate, setMinDate] = useState('')
+
+  // Set min date on client side to avoid hydration mismatch
+  useEffect(() => {
+    const now = new Date()
+    setMinDate(now.toISOString().slice(0, 16))
+  }, [])
+
   const quickDateOptions = getQuickDateOptions().map(option => ({
     label: option.label,
     days: () => calculateQuickDate(option)
@@ -84,10 +93,7 @@ export function DateSelection({
             type="datetime-local"
             value={targetDate}
             onChange={handleDateInputChange}
-            min={(() => {
-              const now = new Date()
-              return !isNaN(now.getTime()) ? now.toISOString().slice(0, 16) : ''
-            })()}
+            min={minDate}
             className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-disney-blue focus:border-disney-blue transition-all duration-300 text-lg"
             aria-label="Select your Disney trip date and time"
           />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Code, Copy } from 'lucide-react'
 import {
@@ -40,7 +40,12 @@ interface CountdownTimerProps {
   setCanSave?: (canSave: boolean) => void
 }
 
-export default function CountdownTimer({
+export interface CountdownTimerRef {
+  saveCurrentCountdown: () => void
+  loadCountdown: (countdown: CountdownData) => void
+}
+
+const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
   createdItemId = null,
   widgetId = null,
   isEditMode = false,
@@ -52,7 +57,7 @@ export default function CountdownTimer({
   savedCountdowns = [],
   activeCountdown = null,
   setCanSave
-}: CountdownTimerProps): JSX.Element {
+}, ref) => {
   // UI state
   const [showSettings, setShowSettings] = useState(false)
   const [showEmbed, setShowEmbed] = useState(false)
@@ -100,12 +105,45 @@ export default function CountdownTimer({
     }
   }, [isEditMode, activeCountdown, loadCountdown])
 
+  // Set default date on client side to avoid hydration mismatch
+  useEffect(() => {
+    if (!countdownData.targetDate) {
+      const defaultDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)
+      setTargetDate(defaultDate)
+    }
+  }, [countdownData.targetDate, setTargetDate])
+
   // Load created item in edit mode
   useEffect(() => {
     if (isEditMode && createdItemId && activeCountdown) {
       loadCountdown(activeCountdown)
     }
   }, [isEditMode, createdItemId, activeCountdown, loadCountdown])
+
+  // Update parent when data changes (similar to PackingChecklist)
+  useEffect(() => {
+    if (onSave) {
+      onSave({
+        name: name.trim(),
+        park: countdownData.selectedPark,
+        tripDate: countdownData.targetDate,
+        settings: countdownData.settings,
+        theme: countdownData.customTheme || undefined,
+      })
+    }
+    const hasChanges = countdownData.targetDate || countdownData.selectedPark || Object.keys(countdownData.settings).length > 0
+    setCanSave?.(hasChanges && name.trim().length > 0)
+  }, [countdownData.targetDate, countdownData.selectedPark, countdownData.settings, countdownData.customTheme, name, onSave, setCanSave])
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    saveCurrentCountdown: () => {
+      // This is handled by PluginPageWrapper now
+    },
+    loadCountdown: (countdown: CountdownData) => {
+      loadCountdown(countdown)
+    }
+  }))
 
   // Configuration data
   const customThemes = getAllThemes()
@@ -534,4 +572,6 @@ export default function CountdownTimer({
       </div>
     </div>
   )
-}
+})
+
+export default CountdownTimer

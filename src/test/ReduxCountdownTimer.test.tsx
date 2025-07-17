@@ -193,6 +193,11 @@ describe('Redux CountdownTimer', () => {
       const dateInput = screen.getByLabelText('Select your Disney trip date and time')
       expect(dateInput).toBeInTheDocument()
 
+      // Wait for the default date to be set (component sets it on mount)
+      await waitFor(() => {
+        expect(dateInput).toHaveValue(expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/))
+      })
+
       // Change the date
       await user.clear(dateInput)
       await user.type(dateInput, '2024-12-26T00:00')
