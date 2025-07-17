@@ -162,7 +162,7 @@ export const loadInitialState = () => {
         isActive: false,
         countdown: { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 },
         milliseconds: 0,
-        disneyParks: getAllParksFlattened()
+        disneyParks: []
       }
     }
 

@@ -37,15 +37,17 @@ const initialState: CountdownState = {
     total: 0
   },
   milliseconds: 0,
-  disneyParks: getAllParksFlattened()
+  disneyParks: [] // Start empty to avoid hydration mismatch
 }
 
 // Async thunks for countdown operations
 export const createCountdown = createAsyncThunk(
   'countdown/create',
-  async (name: string = 'My Disney Trip') => {
+  async (name: string = 'My Disney Trip', { getState }: { getState: () => any }) => {
     const id = `countdown-${Date.now()}`
-    const defaultPark = getAllParksFlattened()[0] // Get the first park as default
+    const state = getState()
+    const parks = state.countdown.disneyParks.length > 0 ? state.countdown.disneyParks : getAllParksFlattened()
+    const defaultPark = parks[0] // Get the first park as default
     const newItem: CountdownData = {
       id,
       name,
@@ -203,7 +205,13 @@ const countdownSlice = createSlice({
     },
     clearAllCountdowns: (state) => {
       state.items = []
-    }
+    },
+    // Add new reducer to initialize parks data
+    initializeParks: (state) => {
+      if (state.disneyParks.length === 0) {
+        state.disneyParks = getAllParksFlattened()
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -290,6 +298,7 @@ export const {
   resetCountdown,
   loadCountdown,
   clearAllCountdowns,
+  initializeParks,
 } = countdownSlice.actions
 
 // Selectors

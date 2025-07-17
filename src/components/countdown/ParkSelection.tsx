@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { MapPin } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import type { DisneyPark } from '@/config'
 import type { CountdownSettings } from '@/types'
 
@@ -16,12 +17,24 @@ export function ParkSelection({
   onParkSelect,
   settings
 }: ParkSelectionProps) {
+  // Use client-side state to prevent hydration mismatch
+  const [isClient, setIsClient] = useState(false)
+  const [clientParks, setClientParks] = useState<DisneyPark[]>([])
+
+  // Set client-side flag and parks data after hydration
+  useEffect(() => {
+    setIsClient(true)
+    setClientParks(disneyParks || [])
+  }, [disneyParks])
+
   // Use first park as default if none selected
-  const effectiveSelectedPark = selectedPark || (disneyParks && disneyParks.length > 0 ? disneyParks[0] : null)
+  const effectiveSelectedPark = selectedPark || (clientParks && clientParks.length > 0 ? clientParks[0] : null)
 
   // Debug logging
   console.log('ParkSelection render:', {
+    isClient,
     disneyParksLength: disneyParks?.length,
+    clientParksLength: clientParks?.length,
     selectedParkId: selectedPark?.id,
     selectedParkName: selectedPark?.name,
     effectiveSelectedParkId: effectiveSelectedPark?.id,
@@ -29,7 +42,8 @@ export function ParkSelection({
     selectedPark
   })
 
-  if (!disneyParks || disneyParks.length === 0) {
+  // Show loading state during SSR and initial client render
+  if (!isClient || !clientParks || clientParks.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -58,7 +72,7 @@ export function ParkSelection({
         Choose Your Disney Destination
       </h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {disneyParks.map((park) => (
+        {clientParks.map((park) => (
           <motion.button
             key={park.id}
             onClick={() => onParkSelect(park)}

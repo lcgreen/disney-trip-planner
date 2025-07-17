@@ -27,6 +27,7 @@ import {
   resetCountdown,
   loadCountdown,
   clearAllCountdowns,
+  initializeParks,
 } from '@/store/slices/countdownSlice'
 import { CountdownData } from '@/types'
 import { useCountdownAutoSave } from './useReduxAutoSave'
@@ -108,6 +109,13 @@ export function useReduxCountdown(): UseReduxCountdownReturn {
     milliseconds: state.countdown.milliseconds,
     disneyParks: state.countdown.disneyParks
   }))
+
+  // Initialize parks data on client side to prevent hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined' && countdownData.disneyParks.length === 0) {
+      dispatch(initializeParks())
+    }
+  }, [dispatch, countdownData.disneyParks.length])
 
   // Actions
   const createCountdownAction = useCallback(async (name: string = 'My Disney Trip'): Promise<string> => {
