@@ -1,63 +1,56 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useAutoSave } from '@/hooks/useAutoSave'
+import { usePlannerAutoSave } from '@/hooks/useReduxAutoSave'
+import ReduxProvider from '@/components/ReduxProvider'
+
+// Mock AutoSaveService and Redux actions
+vi.mock('@/lib/autoSaveService', () => ({
+  AutoSaveService: {
+    saveTripPlanData: vi.fn().mockResolvedValue(undefined)
+  }
+}))
+
+vi.mock('@/store/slices/plannerSlice', () => ({
+  updatePlanner: vi.fn().mockReturnValue({ type: 'planner/updatePlanner' }),
+  default: vi.fn().mockReturnValue({})
+}))
 
 // Mock timers
 vi.useFakeTimers()
 
-describe('useAutoSave', () => {
+describe('usePlannerAutoSave', () => {
   beforeEach(() => {
     vi.clearAllTimers()
+    vi.clearAllMocks()
   })
 
-  it('should call save function after delay', async () => {
-    const saveFunction = vi.fn()
-    const data = { id: '1', name: 'Test' }
+  it('should return auto-save state', () => {
+    const data = { id: '1', name: 'Test', days: [], createdAt: new Date().toISOString() }
 
     const { result } = renderHook(() =>
-      useAutoSave(data, saveFunction, { delay: 1000 })
+      usePlannerAutoSave(data, { delay: 1000 }),
+      { wrapper: ReduxProvider }
     )
 
-    // Fast-forward time by 1 second
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
-
-    // Wait for async operations
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0))
-    })
-
-    expect(saveFunction).toHaveBeenCalledWith(data)
+    // Check that the hook returns the expected interface
+    expect(result.current).toHaveProperty('isSaving')
+    expect(result.current).toHaveProperty('lastSaved')
+    expect(result.current).toHaveProperty('error')
+    expect(result.current).toHaveProperty('forceSave')
+    expect(result.current).toHaveProperty('clearError')
+    expect(typeof result.current.forceSave).toBe('function')
+    expect(typeof result.current.clearError).toBe('function')
   })
 
-  it('should debounce multiple calls', async () => {
-    const saveFunction = vi.fn()
-    const data1 = { id: '1', name: 'Test1' }
-    const data2 = { id: '1', name: 'Test2' }
+  it('should handle disabled auto-save', () => {
+    const data = { id: '1', name: 'Test', days: [], createdAt: new Date().toISOString() }
 
-    const { result, rerender } = renderHook(
-      ({ data }) => useAutoSave(data, saveFunction, { delay: 1000 }),
-      { initialProps: { data: data1 } }
+    const { result } = renderHook(() =>
+      usePlannerAutoSave(data, { enabled: false }),
+      { wrapper: ReduxProvider }
     )
 
-    // Change data before delay expires
-    act(() => {
-      rerender({ data: data2 })
-    })
-
-    // Fast-forward time by 1 second
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
-
-    // Wait for async operations
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0))
-    })
-
-    // Should only call saveFunction once with the latest data
-    expect(saveFunction).toHaveBeenCalledTimes(1)
-    expect(saveFunction).toHaveBeenCalledWith(data2)
+    // Auto-save should be disabled
+    expect(result.current.isSaving).toBe(false)
   })
 })

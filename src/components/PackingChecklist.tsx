@@ -22,6 +22,7 @@ import {
 import { PackingData } from '@/types'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useReduxPacking } from '@/hooks/useReduxPacking'
+import { useEditableName } from '@/hooks/useEditableName'
 
 interface PackingChecklistProps {
   createdItemId?: string | null
@@ -55,6 +56,16 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
   activeList = null,
   setCanSave
 }, ref) => {
+  // Editable name functionality
+  const {
+    isEditingName,
+    editedName,
+    handleNameEdit,
+    handleNameChange,
+    handleNameBlur,
+    handleNameKeyDown
+  } = useEditableName({ name, onNameChange })
+
   // Get Redux packing state and actions
   const {
     packingItems: items,
@@ -148,6 +159,38 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
           >
             Make sure you&rsquo;re prepared for your magical Disney adventure with our comprehensive packing guide!
           </motion.p>
+
+          {/* Editable name for widget editing */}
+          {widgetId && isEditMode && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex justify-center mb-6"
+            >
+              {isEditingName ? (
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={handleNameChange}
+                  onBlur={handleNameBlur}
+                  onKeyDown={handleNameKeyDown}
+                  placeholder="Enter packing list name..."
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue text-center text-lg font-medium"
+                  style={{ minWidth: '300px' }}
+                  autoFocus
+                />
+              ) : (
+                <button
+                  onClick={handleNameEdit}
+                  className="px-4 py-2 text-center text-lg font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  style={{ minWidth: '300px' }}
+                >
+                  {name || 'Click to enter packing list name...'}
+                </button>
+              )}
+            </motion.div>
+          )}
         </div>
 
         {/* Weather Selection */}

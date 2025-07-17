@@ -28,6 +28,38 @@ export const createAnonUser = createAsyncThunk(
   }
 )
 
+export const createStandardUser = createAsyncThunk(
+  'user/createStandardUser',
+  async ({ email, name }: { email: string; name?: string }): Promise<User> => {
+    if (!email || !email.trim()) {
+      throw new Error('Email is required to create a standard user')
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format')
+    }
+
+    const user: User = {
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      email: email.trim(),
+      name: name?.trim() || undefined,
+      level: UserLevel.STANDARD,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      preferences: {
+        theme: 'auto',
+        notifications: true,
+        autoSave: true,
+        defaultView: 'dashboard'
+      }
+    }
+    return user
+  }
+)
+
 export const upgradeToStandard = createAsyncThunk(
   'user/upgradeToStandard',
   async ({ email, name }: { email: string; name?: string }, { getState }: { getState: () => any }): Promise<User> => {
@@ -152,6 +184,20 @@ const userSlice = createSlice({
       .addCase(createAnonUser.rejected, (state, action) => {
         state.isLoading = false
         state.error = action.error.message || 'Failed to create anonymous user'
+      })
+      // createStandardUser
+      .addCase(createStandardUser.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(createStandardUser.fulfilled, (state, action) => {
+        state.currentUser = action.payload
+        state.isLoading = false
+        state.error = null
+      })
+      .addCase(createStandardUser.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.error.message || 'Failed to create standard user'
       })
       // upgradeToStandard
       .addCase(upgradeToStandard.pending, (state) => {

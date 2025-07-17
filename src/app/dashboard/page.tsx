@@ -6,7 +6,6 @@ import { Settings } from 'lucide-react'
 import { useReduxUser } from '@/hooks/useReduxUser'
 import { useReduxWidgets } from '@/hooks/useReduxWidgets'
 import { PluginRegistry } from '@/lib/pluginSystem'
-import { hasLevelAccess } from '@/lib/userManagement'
 import { type WidgetConfig } from '@/types'
 import { CountdownWidget, TripPlannerWidget, BudgetWidget, PackingWidget, WidgetConfigManager as WidgetConfigManagerComponent } from '@/components/widgets'
 import { Button, Badge } from '@/components/ui'
@@ -23,7 +22,7 @@ interface WidgetOption {
 }
 
 export default function DashboardPage() {
-  const { userLevel, hasFeatureAccess } = useReduxUser()
+  const { userLevel, hasFeatureAccess, hasLevelAccess } = useReduxUser()
   const {
     widgets,
     orderedWidgets,

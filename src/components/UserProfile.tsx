@@ -8,7 +8,7 @@ import { UserLevel } from '@/lib/userManagement'
 import { Button, Modal, Badge, Card } from '@/components/ui'
 
 export default function UserProfile() {
-  const { user, isLoggedIn, isPremium, isStandard, userLevel, getUpgradeFeatures, logout, upgradeToStandard, upgradeToPremium, upgradeToAdmin, createAnonUser } = useReduxUser()
+  const { user, isLoggedIn, isPremium, isStandard, userLevel, getUpgradeFeatures, logout, upgradeToStandard, upgradeToPremium, upgradeToAdmin, createAnonUser, createStandardUser } = useReduxUser()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [email, setEmail] = useState('')
@@ -57,19 +57,13 @@ export default function UserProfile() {
     if (!email.trim()) return
 
     try {
-      // Ensure we have a user before attempting to upgrade
-      if (!user) {
-        console.log('[Debug] No user found, creating anonymous user first')
-        await createAnonUser()
-      }
-
-      // Now upgrade to standard
-      await upgradeToStandard(email.trim(), name.trim() || undefined)
+      // Create a standard user directly
+      await createStandardUser(email.trim(), name.trim() || undefined)
       setShowLoginModal(false)
       setEmail('')
       setName('')
     } catch (error) {
-      console.error('Failed to upgrade to standard:', error)
+      console.error('Failed to create standard user:', error)
       // You could add a toast notification or error state here
       // For now, we'll just log the error
     }

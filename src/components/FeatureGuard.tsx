@@ -4,7 +4,6 @@ import { ReactNode, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Lock, Crown, ArrowUp, Check, Star, DollarSign, Calendar, Clock } from 'lucide-react'
 import { useReduxUser } from '@/hooks/useReduxUser'
-import { hasFeatureAccess, hasLevelAccess } from '@/lib/userManagement'
 import { Button, Modal, Badge } from '@/components/ui'
 
 interface FeatureGuardProps {
@@ -22,7 +21,7 @@ export default function FeatureGuard({
   fallback,
   showUpgradePrompt = true
 }: FeatureGuardProps) {
-  const { user, userLevel, getUpgradeFeatures, upgradeToStandard, upgradeToPremium, createAnonUser } = useReduxUser()
+  const { user, userLevel, getUpgradeFeatures, upgradeToStandard, upgradeToPremium, createAnonUser, hasFeatureAccess, hasLevelAccess } = useReduxUser()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [email, setEmail] = useState('')

@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Calendar, Clock, DollarSign, Package, Home, Menu, X, Crown, Layout, User } from 'lucide-react'
 import { useReduxUser } from '@/hooks/useReduxUser'
-import { hasFeatureAccess } from '@/lib/userManagement'
 
 interface NavigationItem {
   href: string
@@ -103,7 +102,7 @@ export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const pathname = usePathname()
-  const { isPremium, isStandard, userLevel, hasFeatureAccess: checkFeatureAccess } = useReduxUser()
+  const { isPremium, isStandard, userLevel, hasFeatureAccess } = useReduxUser()
 
   useEffect(() => {
     setIsMounted(true)
@@ -180,7 +179,7 @@ export default function Navigation() {
             {navigationItems.map((item) => {
               const isActive = pathname === item.href
               // Allow all navigation for anonymous users, but show premium badges
-              const canAccess = userLevel === 'anon' || !item.requiredLevel || checkFeatureAccess(item.requiredLevel === 'premium' ? 'tripPlanner' : 'countdown')
+              const canAccess = userLevel === 'anon' || !item.requiredLevel || hasFeatureAccess(item.requiredLevel === 'premium' ? 'tripPlanner' : 'countdown')
               const IconComponent = getIconComponent(item.icon, item.label)
               const CrownComponent = getIconComponent(Crown, 'Crown')
 

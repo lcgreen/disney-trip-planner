@@ -1,5 +1,6 @@
 import { Middleware } from '@reduxjs/toolkit'
 import { RootState } from '../types'
+import { getAllParksFlattened } from '@/config'
 
 // Storage keys for different parts of the state
 const STORAGE_KEYS = {
@@ -16,6 +17,10 @@ const STORAGE_ACTIONS = [
   'user/setUser',
   'user/clearUser',
   'user/updateUser',
+  'user/createStandardUser/fulfilled',
+  'user/upgradeToStandard/fulfilled',
+  'user/upgradeToPremium/fulfilled',
+  'user/upgradeToAdmin/fulfilled',
   'widgets/setConfigs',
   'widgets/addConfig',
   'widgets/updateConfig',
@@ -157,7 +162,7 @@ export const loadInitialState = () => {
         isActive: false,
         countdown: { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 },
         milliseconds: 0,
-        disneyParks: []
+        disneyParks: getAllParksFlattened()
       }
     }
 

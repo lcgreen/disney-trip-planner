@@ -10,6 +10,7 @@ import {
   selectIsStandard,
   selectIsAdmin,
   createAnonUser,
+  createStandardUser,
   upgradeToStandard,
   upgradeToPremium,
   upgradeToAdmin,
@@ -32,6 +33,7 @@ export interface UseReduxUserReturn {
 
   // Actions
   createAnonUser: () => Promise<User>
+  createStandardUser: (email: string, name?: string) => Promise<User>
   upgradeToStandard: (email: string, name?: string) => Promise<User>
   upgradeToPremium: () => Promise<User>
   upgradeToAdmin: () => Promise<User>
@@ -76,6 +78,25 @@ export function useReduxUser(): UseReduxUserReturn {
         throw error
       }
       throw new Error('Failed to create anonymous user')
+    }
+  }, [dispatch])
+
+  const createStandardUserAction = useCallback(async (email: string, name?: string): Promise<User> => {
+    try {
+      const result = await dispatch(createStandardUser({ email, name }))
+      if (createStandardUser.fulfilled.match(result)) {
+        return result.payload
+      }
+
+      // If we get here, the action was rejected
+      // Use a simple fallback error message
+      throw new Error('Failed to create standard user')
+    } catch (error) {
+      // Handle any other errors that might occur
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Failed to create standard user')
     }
   }, [dispatch])
 
@@ -203,6 +224,7 @@ export function useReduxUser(): UseReduxUserReturn {
 
     // Actions
     createAnonUser: createAnonUserAction,
+    createStandardUser: createStandardUserAction,
     upgradeToStandard: upgradeToStandardAction,
     upgradeToPremium: upgradeToPremiumAction,
     upgradeToAdmin: upgradeToAdminAction,

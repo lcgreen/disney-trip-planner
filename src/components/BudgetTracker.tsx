@@ -25,6 +25,8 @@ import { BudgetData, Expense, BudgetCategory } from '@/types'
 import { useReduxBudget } from '@/hooks/useReduxBudget'
 import { useReduxUser } from '@/hooks/useReduxUser'
 import { useReduxWidgets } from '@/hooks/useReduxWidgets'
+import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useEditableName } from '@/hooks/useEditableName'
 
 // Color mappings for Tailwind classes to hex values
 const colorMap: Record<string, string> = {
@@ -67,6 +69,16 @@ export default function BudgetTracker({
   activeBudget = null,
   setCanSave
 }: BudgetTrackerProps) {
+  // Editable name functionality
+  const {
+    isEditingName,
+    editedName,
+    handleNameEdit,
+    handleNameChange,
+    handleNameBlur,
+    handleNameKeyDown
+  } = useEditableName({ name, onNameChange })
+
   // Redux hooks
   const {
     budgetData,
@@ -88,8 +100,8 @@ export default function BudgetTracker({
     resetNewExpense
   } = useReduxBudget()
 
-  const { user } = useReduxUser()
-  const { checkAndApplyPendingLinks, cleanupDeletedItemReferences } = useReduxWidgets()
+  const { user, hasFeatureAccess } = useReduxUser()
+  const { checkAndApplyPendingLinks } = useReduxWidgets()
 
   // Get configuration data
   const configCategories = getAllBudgetCategories()
@@ -217,19 +229,19 @@ export default function BudgetTracker({
   const handleDeleteBudget = (id: string) => {
     deleteBudget(id)
     // Clean up widget configurations that reference this deleted item
-    cleanupDeletedItemReferences(id, 'budget')
+    WidgetConfigManager.cleanupDeletedItemReferences(id, 'budget')
   }
 
   const handleClearSavedBudgets = () => {
     // Check if user has save permissions before clearing
-    if (!user?.hasFeatureAccess('saveData')) {
+    if (!hasFeatureAccess('saveData')) {
       console.warn('Clear blocked: User does not have save permissions')
       return
     }
 
     // Clean up widget configurations for all budget items before clearing
     savedBudgets?.forEach(budget => {
-      cleanupDeletedItemReferences(budget.id, 'budget')
+      WidgetConfigManager.cleanupDeletedItemReferences(budget.id, 'budget')
     })
 
     clearAllBudgets()
@@ -260,6 +272,38 @@ export default function BudgetTracker({
           >
             Keep track of your Disney vacation expenses and stay within budget for the most magical trip ever!
           </motion.p>
+
+          {/* Editable name for widget editing */}
+          {widgetId && isEditMode && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex justify-center mb-6"
+            >
+              {isEditingName ? (
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={handleNameChange}
+                  onBlur={handleNameBlur}
+                  onKeyDown={handleNameKeyDown}
+                  placeholder="Enter budget name..."
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue text-center text-lg font-medium"
+                  style={{ minWidth: '300px' }}
+                  autoFocus
+                />
+              ) : (
+                <button
+                  onClick={handleNameEdit}
+                  className="px-4 py-2 text-center text-lg font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  style={{ minWidth: '300px' }}
+                >
+                  {name || 'Click to enter budget name...'}
+                </button>
+              )}
+            </motion.div>
+          )}
         </div>
 
         {/* Budget Overview Stats */}

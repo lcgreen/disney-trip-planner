@@ -24,9 +24,9 @@ import {
   getParkById
 } from '@/config'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-import { useAutoSave } from '@/hooks/useAutoSave'
-import { AutoSaveService } from '@/lib/autoSaveService'
+import { usePlannerAutoSave } from '@/hooks/useReduxAutoSave'
 import { useReduxUser } from '@/hooks/useReduxUser'
+import { useEditableName } from '@/hooks/useEditableName'
 import { PlannerData } from '@/types'
 import { useReduxPlanner } from '@/hooks/useReduxPlanner'
 
@@ -58,6 +58,16 @@ export default function TripPlanner({
   setCanSave
 }: TripPlannerProps) {
   const { userLevel, upgradeToPremium } = useReduxUser()
+
+  // Editable name functionality
+  const {
+    isEditingName,
+    editedName,
+    handleNameEdit,
+    handleNameChange,
+    handleNameBlur,
+    handleNameKeyDown
+  } = useEditableName({ name, onNameChange })
 
   // Get Redux planner state and actions
   const {
@@ -141,26 +151,16 @@ export default function TripPlanner({
     }
   }, [autoSaveData, widgetId, isEditMode])
 
-  const { forceSave, isSaving, lastSaved, error } = useAutoSave(
+  const { forceSave, isSaving, lastSaved, error } = usePlannerAutoSave(
     autoSaveData,
-    async (data) => {
-      if (data) {
-        console.log('[AutoSave] Attempting to save trip plan data:', data)
-        try {
-          await AutoSaveService.saveTripPlanData(data, widgetId || undefined)
-        } catch (error) {
-          console.error('[AutoSave] Error in save function:', error)
-          throw error
-        }
-      }
-    },
     {
       enabled: !!autoSaveData,
       delay: 1000, // 1 second delay
+      widgetId: widgetId || undefined,
       onSave: () => {
         console.log('[AutoSave] Successfully auto-saved trip plan changes')
       },
-      onError: (error) => {
+      onError: (error: Error) => {
         console.error('[AutoSave] Auto-save failed:', error)
       }
     }
@@ -205,17 +205,30 @@ export default function TripPlanner({
             Plan your magical Disney adventure day by day with our comprehensive trip planner!
           </motion.p>
 
-          {/* Name input for widget editing */}
+          {/* Editable name for widget editing */}
           {widgetId && isEditMode && (
             <div className="flex justify-center mb-4">
-              <input
-                type="text"
-                value={currentName}
-                onChange={(e) => setCurrentName(e.target.value)}
-                placeholder="Enter trip plan name..."
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue text-center text-lg font-medium"
-                style={{ minWidth: '300px' }}
-              />
+              {isEditingName ? (
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={handleNameChange}
+                  onBlur={handleNameBlur}
+                  onKeyDown={handleNameKeyDown}
+                  placeholder="Enter trip plan name..."
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue text-center text-lg font-medium"
+                  style={{ minWidth: '300px' }}
+                  autoFocus
+                />
+              ) : (
+                <button
+                  onClick={handleNameEdit}
+                  className="px-4 py-2 text-center text-lg font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  style={{ minWidth: '300px' }}
+                >
+                  {name || 'Click to enter trip plan name...'}
+                </button>
+              )}
             </div>
           )}
 

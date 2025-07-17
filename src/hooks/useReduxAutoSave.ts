@@ -7,6 +7,7 @@ interface AutoSaveOptions {
   enabled?: boolean // Whether auto-save is enabled
   onSave?: () => void // Callback when save is triggered
   onError?: (error: Error) => void // Callback for save errors
+  widgetId?: string // Widget ID for linking data to widgets
 }
 
 interface UseReduxAutoSaveReturn {
@@ -134,8 +135,21 @@ export function useCountdownAutoSave(
   data: any,
   options: AutoSaveOptions = {}
 ) {
-  const { updateCountdown } = require('@/store/slices/countdownSlice')
-  return useReduxAutoSave('countdown', data, updateCountdown, options)
+  // Create a custom save action that integrates with AutoSaveService
+  const saveCountdownData = (countdownData: any) => {
+    return async (dispatch: any) => {
+      const { AutoSaveService } = await import('@/lib/autoSaveService')
+      const { updateCountdown } = await import('@/store/slices/countdownSlice')
+
+      // First save to AutoSaveService for persistence
+      await AutoSaveService.saveCountdownData(countdownData, options.widgetId)
+
+      // Then update Redux state
+      dispatch(updateCountdown({ id: countdownData.id, updates: countdownData }))
+    }
+  }
+
+  return useReduxAutoSave('countdown', data, saveCountdownData, options)
 }
 
 /**
@@ -145,8 +159,21 @@ export function useBudgetAutoSave(
   data: any,
   options: AutoSaveOptions = {}
 ) {
-  const { updateBudget } = require('@/store/slices/budgetSlice')
-  return useReduxAutoSave('budget', data, updateBudget, options)
+  // Create a custom save action that integrates with AutoSaveService
+  const saveBudgetData = (budgetData: any) => {
+    return async (dispatch: any) => {
+      const { AutoSaveService } = await import('@/lib/autoSaveService')
+      const { updateBudget } = await import('@/store/slices/budgetSlice')
+
+      // First save to AutoSaveService for persistence
+      await AutoSaveService.saveBudgetData(budgetData, options.widgetId)
+
+      // Then update Redux state
+      dispatch(updateBudget({ id: budgetData.id, updates: budgetData }))
+    }
+  }
+
+  return useReduxAutoSave('budget', data, saveBudgetData, options)
 }
 
 /**
@@ -156,8 +183,21 @@ export function usePackingAutoSave(
   data: any,
   options: AutoSaveOptions = {}
 ) {
-  const { updatePacking } = require('@/store/slices/packingSlice')
-  return useReduxAutoSave('packing', data, updatePacking, options)
+  // Create a custom save action that integrates with AutoSaveService
+  const savePackingData = (packingData: any) => {
+    return async (dispatch: any) => {
+      const { AutoSaveService } = await import('@/lib/autoSaveService')
+      const { updatePacking } = await import('@/store/slices/packingSlice')
+
+      // First save to AutoSaveService for persistence
+      await AutoSaveService.savePackingData(packingData, options.widgetId)
+
+      // Then update Redux state
+      dispatch(updatePacking({ id: packingData.id, updates: packingData }))
+    }
+  }
+
+  return useReduxAutoSave('packing', data, savePackingData, options)
 }
 
 /**
@@ -167,6 +207,19 @@ export function usePlannerAutoSave(
   data: any,
   options: AutoSaveOptions = {}
 ) {
-  const { updatePlanner } = require('@/store/slices/plannerSlice')
-  return useReduxAutoSave('planner', data, updatePlanner, options)
+  // Create a custom save action that integrates with AutoSaveService
+  const savePlannerData = (plannerData: any) => {
+    return async (dispatch: any) => {
+      const { AutoSaveService } = await import('@/lib/autoSaveService')
+      const { updatePlanner } = await import('@/store/slices/plannerSlice')
+
+      // First save to AutoSaveService for persistence
+      await AutoSaveService.saveTripPlanData(plannerData, options.widgetId)
+
+      // Then update Redux state
+      dispatch(updatePlanner({ id: plannerData.id, updates: plannerData }))
+    }
+  }
+
+  return useReduxAutoSave('planner', data, savePlannerData, options)
 }
