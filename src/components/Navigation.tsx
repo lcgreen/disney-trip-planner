@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Calendar, Clock, DollarSign, Package, Home, Menu, X, Crown, Layout, User } from 'lucide-react'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import { hasFeatureAccess } from '@/lib/userManagement'
 
 interface NavigationItem {
@@ -103,7 +103,7 @@ export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const pathname = usePathname()
-  const { isPremium, isStandard, userLevel, hasFeatureAccess: checkFeatureAccess } = useUser()
+  const { isPremium, isStandard, userLevel, hasFeatureAccess: checkFeatureAccess } = useReduxUser()
 
   useEffect(() => {
     setIsMounted(true)

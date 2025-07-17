@@ -22,9 +22,9 @@ import {
   type BudgetCategory as ConfigBudgetCategory
 } from '@/config'
 import { BudgetData, Expense, BudgetCategory } from '@/types'
-import { WidgetConfigManager } from '@/lib/widgetConfig'
-import { useAutoSave } from '@/hooks/useAutoSave'
-import { AutoSaveService } from '@/lib/autoSaveService'
+import { useReduxBudget } from '@/hooks/useReduxBudget'
+import { useReduxUser } from '@/hooks/useReduxUser'
+import { useReduxWidgets } from '@/hooks/useReduxWidgets'
 
 // Color mappings for Tailwind classes to hex values
 const colorMap: Record<string, string> = {
@@ -67,171 +67,178 @@ export default function BudgetTracker({
   activeBudget = null,
   setCanSave
 }: BudgetTrackerProps) {
+  // Redux hooks
+  const {
+    budgetData,
+    isLoading,
+    error,
+    createBudget,
+    updateBudget,
+    deleteBudget,
+    loadBudget,
+    clearAllBudgets,
+    setTotalBudget,
+    setCategories,
+    updateCategoryBudget,
+    setExpenses,
+    addExpense,
+    deleteExpense,
+    setShowAddExpense,
+    setNewExpense,
+    resetNewExpense
+  } = useReduxBudget()
+
+  const { user } = useReduxUser()
+  const { checkAndApplyPendingLinks, cleanupDeletedItemReferences } = useReduxWidgets()
+
   // Get configuration data
   const configCategories = getAllBudgetCategories()
   const budgetSettings = getBudgetSettings()
   const budgetTips = getBudgetTips()
 
-  // Convert config categories to component format
-  const defaultCategories: BudgetCategory[] = configCategories.map(cat => ({
-    id: cat.id,
-    name: cat.name,
-    budget: 0,
-    color: cat.color,
-    icon: cat.icon
-  }))
-
-  const [totalBudget, setTotalBudget] = useState<number>(0)
-  const [categories, setCategories] = useState<BudgetCategory[]>(defaultCategories)
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [showAddExpense, setShowAddExpense] = useState(false)
-  const [newExpense, setNewExpense] = useState({
-    category: 'tickets',
-    description: '',
-    amount: '',
-    date: new Date().toISOString().split('T')[0],
-    isEstimate: true
-  })
-
   // Load initial data
   useEffect(() => {
     if (isEditMode && activeBudget) {
-      setTotalBudget(activeBudget.totalBudget)
-      setCategories(activeBudget.categories)
-      setExpenses(activeBudget.expenses)
+      loadBudget(activeBudget)
     }
-  }, [isEditMode, activeBudget])
-
-  // Auto-save functionality for widget editing
-  const autoSaveData = widgetId && isEditMode && activeBudget?.id ? {
-    id: activeBudget.id,
-    name: name || 'My Budget',
-    totalBudget,
-    categories: categories.map(cat => ({
-      id: cat.id,
-      name: cat.name,
-      budget: cat.budget,
-      color: cat.color,
-      icon: cat.icon
-    })),
-    expenses: expenses.map(expense => ({
-      id: expense.id,
-      category: expense.category,
-      description: expense.description,
-      amount: expense.amount,
-      date: expense.date,
-      isEstimate: expense.isEstimate
-    })),
-    createdAt: activeBudget?.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  } : null
-
-  const { forceSave, isSaving, lastSaved, error } = useAutoSave(
-    autoSaveData,
-    async (data) => {
-      if (data) {
-        await AutoSaveService.saveBudgetData(data, widgetId || undefined)
-      }
-    },
-    {
-      enabled: !!autoSaveData,
-      delay: 1000, // 1 second delay
-      onSave: () => {
-        console.log('Auto-saved budget changes')
-      },
-      onError: (error) => {
-        console.error('Auto-save failed:', error)
-      }
-    }
-  )
+  }, [isEditMode, activeBudget, loadBudget])
 
   // Load created item in edit mode
   useEffect(() => {
-    if (isEditMode && createdItemId) {
-      const budget = WidgetConfigManager.getSelectedItemData('budget', createdItemId) as BudgetData
-      if (budget) {
-        setTotalBudget(budget.totalBudget)
-        setCategories(budget.categories)
-        setExpenses(budget.expenses)
-        onNameChange?.(budget.name)
-      }
+    if (isEditMode && createdItemId && activeBudget) {
+      loadBudget(activeBudget)
     }
-  }, [isEditMode, createdItemId, onNameChange])
+  }, [isEditMode, createdItemId, activeBudget, loadBudget])
 
   // Update parent when data changes
   useEffect(() => {
     if (onSave) {
       onSave({
-        totalBudget,
-        categories,
-        expenses
+        totalBudget: budgetData.totalBudget,
+        categories: budgetData.categories,
+        expenses: budgetData.expenses
       })
     }
     setCanSave?.(true)
-  }, [totalBudget, categories, expenses, onSave, setCanSave])
+  }, [budgetData.totalBudget, budgetData.categories, budgetData.expenses, onSave, setCanSave])
 
-  const addExpense = () => {
-    if (newExpense.description && newExpense.amount) {
+  const handleAddExpense = () => {
+    if (budgetData.newExpense.description && budgetData.newExpense.amount) {
       const expense: Expense = {
         id: Date.now().toString(),
-        category: newExpense.category,
-        description: newExpense.description,
-        amount: parseFloat(newExpense.amount),
-        date: newExpense.date,
-        isEstimate: newExpense.isEstimate
+        category: budgetData.newExpense.category,
+        description: budgetData.newExpense.description,
+        amount: parseFloat(budgetData.newExpense.amount),
+        date: budgetData.newExpense.date,
+        isEstimate: budgetData.newExpense.isEstimate
       }
-      setExpenses([...expenses, expense])
-      setNewExpense({
-        category: 'tickets',
-        description: '',
-        amount: '',
-        date: new Date().toISOString().split('T')[0],
-        isEstimate: true
-      })
+      addExpense(expense)
+      resetNewExpense()
       setShowAddExpense(false)
     }
   }
 
-  const deleteExpense = (id: string) => {
-    setExpenses(expenses.filter(e => e.id !== id))
+  const handleDeleteExpense = (id: string) => {
+    deleteExpense(id)
   }
 
-  const updateCategoryBudget = (categoryId: string, budget: number) => {
-    setCategories(categories.map(cat =>
-      cat.id === categoryId ? { ...cat, budget } : cat
-    ))
+  const handleUpdateCategoryBudget = (categoryId: string, budget: number) => {
+    updateCategoryBudget(categoryId, budget)
   }
 
   const getTotalSpent = () => {
-    return expenses.reduce((total, expense) => total + expense.amount, 0)
+    return budgetData.expenses.reduce((total, expense) => total + expense.amount, 0)
   }
 
   const getCategorySpent = (categoryId: string) => {
-    return expenses
+    return budgetData.expenses
       .filter(e => e.category === categoryId)
       .reduce((total, expense) => total + expense.amount, 0)
   }
 
   const getCategoryProgress = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId)
+    const category = budgetData.categories.find(c => c.id === categoryId)
     if (!category || category.budget === 0) return 0
     return (getCategorySpent(categoryId) / category.budget) * 100
   }
 
   const getRemainingBudget = () => {
-    return totalBudget - getTotalSpent()
+    return budgetData.totalBudget - getTotalSpent()
   }
 
   const getCategoryName = (categoryId: string) => {
-    return categories.find(c => c.id === categoryId)?.name || 'Unknown'
+    return budgetData.categories.find(c => c.id === categoryId)?.name || 'Unknown'
   }
 
   const getOverallProgress = () => {
-    if (totalBudget === 0) return 0
-    return (getTotalSpent() / totalBudget) * 100
+    if (budgetData.totalBudget === 0) return 0
+    return (getTotalSpent() / budgetData.totalBudget) * 100
   }
 
   const categoryOptions = getBudgetCategoryOptions()
+
+  const saveBudget = () => {
+    if (!name.trim()) return
+
+    // If we're editing an existing item, update it
+    if (isEditMode && createdItemId) {
+      const updatedBudget: BudgetData = {
+        id: createdItemId,
+        name: name.trim(),
+        totalBudget: budgetData.totalBudget,
+        categories: budgetData.categories,
+        expenses: budgetData.expenses,
+        createdAt: savedBudgets?.find(b => b.id === createdItemId)?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      updateBudget(createdItemId, updatedBudget)
+      onSave?.(updatedBudget)
+    } else {
+      // Creating a new budget
+      const newBudget: BudgetData = {
+        id: Date.now().toString(),
+        name: name.trim(),
+        totalBudget: budgetData.totalBudget,
+        categories: budgetData.categories,
+        expenses: budgetData.expenses,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      createBudget(name.trim())
+      onNew?.()
+
+      // Check for pending widget links and auto-link if needed
+      checkAndApplyPendingLinks(newBudget.id, 'budget')
+    }
+  }
+
+  const handleDeleteBudget = (id: string) => {
+    deleteBudget(id)
+    // Clean up widget configurations that reference this deleted item
+    cleanupDeletedItemReferences(id, 'budget')
+  }
+
+  const handleClearSavedBudgets = () => {
+    // Check if user has save permissions before clearing
+    if (!user?.hasFeatureAccess('saveData')) {
+      console.warn('Clear blocked: User does not have save permissions')
+      return
+    }
+
+    // Clean up widget configurations for all budget items before clearing
+    savedBudgets?.forEach(budget => {
+      cleanupDeletedItemReferences(budget.id, 'budget')
+    })
+
+    clearAllBudgets()
+  }
+
+  const handleLoadBudget = (saved: BudgetData) => {
+    loadBudget(saved)
+    onLoad?.(saved)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4 md:p-6 lg:p-8">
@@ -264,7 +271,7 @@ export default function BudgetTracker({
         >
           <StatCard
             title="Total Budget"
-            value={totalBudget}
+            value={budgetData.totalBudget}
             icon={<Target className="w-5 h-5" />}
             variant="disney"
             description="Set your total trip budget"
@@ -288,7 +295,7 @@ export default function BudgetTracker({
         </motion.div>
 
         {/* Total Budget Progress */}
-        {totalBudget > 0 && (
+        {budgetData.totalBudget > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -296,7 +303,7 @@ export default function BudgetTracker({
             className="mb-8"
           >
             <BudgetProgress
-              budget={totalBudget}
+              budget={budgetData.totalBudget}
               spent={getTotalSpent()}
               category="Overall Budget"
               currency="£"
@@ -322,7 +329,7 @@ export default function BudgetTracker({
               <span className="text-lg mr-2">£</span>
               <input
                 type="number"
-                value={totalBudget || ''}
+                value={budgetData.totalBudget || ''}
                 onChange={(e) => setTotalBudget(parseFloat(e.target.value) || 0)}
                 className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue focus:border-disney-blue text-lg"
                 placeholder="0"
@@ -343,7 +350,7 @@ export default function BudgetTracker({
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((category, index) => (
+            {budgetData.categories.map((category, index) => (
               <motion.div
                 key={category.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -363,7 +370,7 @@ export default function BudgetTracker({
                     <input
                       type="number"
                       value={category.budget || ''}
-                      onChange={(e) => updateCategoryBudget(category.id, parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleUpdateCategoryBudget(category.id, parseFloat(e.target.value) || 0)}
                       className="flex-1 border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-disney-blue focus:border-disney-blue"
                       placeholder="0"
                     />
@@ -407,7 +414,7 @@ export default function BudgetTracker({
             </button>
           </div>
 
-          {expenses.length === 0 ? (
+          {budgetData.expenses.length === 0 ? (
             <div className="text-center py-12">
               <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-6" />
               <h4 className="text-xl md:text-2xl font-semibold text-gray-600 mb-4">No expenses yet</h4>
@@ -422,7 +429,7 @@ export default function BudgetTracker({
           ) : (
             <div className="space-y-4">
               <AnimatePresence>
-                {expenses
+                {budgetData.expenses
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map((expense, index) => (
                     <motion.div
@@ -435,14 +442,14 @@ export default function BudgetTracker({
                     >
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center ${
-                          categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'
+                          budgetData.categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'
                         }`}>
                           <span className={`text-sm md:text-base ${
                             getSafeTextColor(
-                              colorMap[categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'] || '#6b7280'
+                              colorMap[budgetData.categories.find(c => c.id === expense.category)?.color || 'bg-gray-500'] || '#6b7280'
                             )
                           }`}>
-                            {categories.find(c => c.id === expense.category)?.icon || '💰'}
+                            {budgetData.categories.find(c => c.id === expense.category)?.icon || '💰'}
                           </span>
                         </div>
                         <div>
@@ -465,7 +472,7 @@ export default function BudgetTracker({
                       <div className="flex items-center gap-4">
                         <span className="text-xl md:text-2xl font-bold">£{expense.amount.toFixed(2)}</span>
                         <button
-                          onClick={() => deleteExpense(expense.id)}
+                          onClick={() => handleDeleteExpense(expense.id)}
                           className="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -480,7 +487,7 @@ export default function BudgetTracker({
 
         {/* Add Expense Modal */}
         <Modal
-          isOpen={showAddExpense}
+          isOpen={budgetData.showAddExpense}
           onClose={() => setShowAddExpense(false)}
           title="Add Expense"
           size="md"
@@ -489,8 +496,8 @@ export default function BudgetTracker({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
               <Select
-                value={newExpense.category}
-                onValueChange={(value) => setNewExpense({...newExpense, category: value})}
+                value={budgetData.newExpense.category}
+                onValueChange={(value) => setNewExpense({category: value})}
                 options={categoryOptions}
               />
             </div>
@@ -499,8 +506,8 @@ export default function BudgetTracker({
               <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
               <input
                 type="text"
-                value={newExpense.description}
-                onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+                value={budgetData.newExpense.description}
+                onChange={(e) => setNewExpense({description: e.target.value})}
                 placeholder="e.g., Park tickets, Hotel booking"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
               />
@@ -510,8 +517,8 @@ export default function BudgetTracker({
               <label className="block text-sm font-medium text-gray-700 mb-2">Amount (£)</label>
               <input
                 type="number"
-                value={newExpense.amount}
-                onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                value={budgetData.newExpense.amount}
+                onChange={(e) => setNewExpense({amount: e.target.value})}
                 placeholder="0.00"
                 step="0.01"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
@@ -522,21 +529,21 @@ export default function BudgetTracker({
               <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
               <input
                 type="date"
-                value={newExpense.date}
-                onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+                value={budgetData.newExpense.date}
+                onChange={(e) => setNewExpense({date: e.target.value})}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-disney-blue"
               />
             </div>
 
             <Checkbox
-              checked={newExpense.isEstimate}
-              onCheckedChange={(checked) => setNewExpense({...newExpense, isEstimate: Boolean(checked)})}
+              checked={budgetData.newExpense.isEstimate}
+              onCheckedChange={(checked) => setNewExpense({isEstimate: Boolean(checked)})}
               label="This is an estimate"
             />
           </div>
 
           <div className="flex gap-3 mt-6">
-            <button onClick={addExpense} className="btn-disney flex-1">
+            <button onClick={handleAddExpense} className="btn-disney flex-1">
               Add Expense
             </button>
             <button

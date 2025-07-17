@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useEffect, forwardRef, useImperativeHandle } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, Luggage, Check, Star, Save, FolderOpen } from 'lucide-react'
 import {
@@ -15,15 +15,13 @@ import {
 } from '@/components/ui'
 import {
   getAllPackingCategories,
-  getDefaultPackingItems,
   getPackingCategoryOptions,
-  getAllWeatherConditions,
   getPackingTips,
-  type PackingCategory,
-  type PackingItem as ConfigPackingItem
+  type PackingCategory
 } from '@/config'
-import { PackingData, PackingItem } from '@/types'
+import { PackingData } from '@/types'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
+import { useReduxPacking } from '@/hooks/useReduxPacking'
 
 interface PackingChecklistProps {
   createdItemId?: string | null
@@ -57,48 +55,49 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
   activeList = null,
   setCanSave
 }, ref) => {
+  // Get Redux packing state and actions
+  const {
+    packingItems: items,
+    selectedWeather,
+    filterCategory,
+    showAddItem,
+    newItem,
+    completionStats: stats,
+    weatherConditions,
+    configDefaultItems,
+    itemsByCategory,
+    getItemsByCategory,
+    toggleItem,
+    deleteItem,
+    toggleWeather,
+    setFilterCategory,
+    setShowAddItem,
+    setNewItem,
+    addItem,
+    loadPackingData
+  } = useReduxPacking()
+
   // Get configuration data
-  const categories = getAllPackingCategories()
-  const configDefaultItems = getDefaultPackingItems()
-  const weatherConditions = getAllWeatherConditions()
-  const packingTips = getPackingTips()
-
-  // Convert config items to component format
-  const defaultItems: PackingItem[] = configDefaultItems.map((item, index) => ({
-    ...item,
-    id: index.toString(),
-    checked: false
-  }))
-
-  const [items, setItems] = useState<PackingItem[]>(defaultItems)
-  const [showAddItem, setShowAddItem] = useState(false)
-  const [newItem, setNewItem] = useState({
-    name: '',
-    category: 'other',
-    isEssential: false
-  })
-  const [selectedWeather, setSelectedWeather] = useState<string[]>(['sunny'])
-  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const allCategories = getAllPackingCategories()
+  const allPackingTips = getPackingTips()
 
   // Load initial data
   useEffect(() => {
     if (isEditMode && activeList) {
-      setItems(activeList.items)
-      setSelectedWeather(activeList.selectedWeather)
+      loadPackingData(activeList)
     }
-  }, [isEditMode, activeList])
+  }, [isEditMode, activeList, loadPackingData])
 
   // Load created item in edit mode
   useEffect(() => {
     if (isEditMode && createdItemId) {
       const packingList = WidgetConfigManager.getSelectedItemData('packing', createdItemId) as PackingData
       if (packingList) {
-        setItems(packingList.items)
-        setSelectedWeather(packingList.selectedWeather)
+        loadPackingData(packingList)
         onNameChange?.(packingList.name)
       }
     }
-  }, [isEditMode, createdItemId, onNameChange])
+  }, [isEditMode, createdItemId, onNameChange, loadPackingData])
 
   // Update parent when data changes
   useEffect(() => {
@@ -118,88 +117,16 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
       // This is handled by PluginPageWrapper now
     },
     loadList: (list: PackingData) => {
-      setItems(list.items)
-      setSelectedWeather(list.selectedWeather)
+      loadPackingData(list)
     }
   }))
-
-  const addItem = () => {
-    if (newItem.name.trim()) {
-      const item: PackingItem = {
-        id: Date.now().toString(),
-        name: newItem.name.trim(),
-        category: newItem.category,
-        checked: false
-      }
-      setItems([...items, item])
-      setNewItem({ name: '', category: 'other', isEssential: false })
-      setShowAddItem(false)
-    }
-  }
-
-  const toggleItem = (id: string) => {
-    setItems(items.map(item =>
-      item.id === id ? { ...item, checked: !item.checked } : item
-    ))
-  }
-
-  const deleteItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id))
-  }
-
-  const toggleWeather = (weather: string) => {
-    setSelectedWeather(prev =>
-      prev.includes(weather)
-        ? prev.filter(w => w !== weather)
-        : [...prev, weather]
-    )
-  }
-
-  const getFilteredItems = () => {
-    let filtered = items
-
-    // Filter by category
-    if (filterCategory !== 'all') {
-      filtered = filtered.filter(item => item.category === filterCategory)
-    }
-
-    // Filter by weather (if weather dependency exists in config)
-    filtered = filtered.filter(item => {
-      const configItem = configDefaultItems.find(config => config.name === item.name)
-      if (!configItem?.weatherDependent) return true
-      return configItem.weatherDependent.some(weather => selectedWeather.includes(weather))
-    })
-
-    return filtered
-  }
-
-  const getItemsByCategory = (categoryId: string) => {
-    return getFilteredItems().filter(item => item.category === categoryId)
-  }
-
-  const getCompletionStats = () => {
-    const total = getFilteredItems().length
-    const completed = getFilteredItems().filter(item => item.checked).length
-    const essential = getFilteredItems().filter(item => {
-      const configItem = configDefaultItems.find(config => config.name === item.name)
-      return configItem?.isEssential
-    }).length
-    const completedEssential = getFilteredItems().filter(item => {
-      const configItem = configDefaultItems.find(config => config.name === item.name)
-      return configItem?.isEssential && item.checked
-    }).length
-
-    return { total, completed, essential, completedEssential }
-  }
 
   const categoryOptions = getPackingCategoryOptions()
 
-  const categorySelectOptions = categories.map(cat => ({
+  const categorySelectOptions = allCategories.map(cat => ({
     value: cat.id,
     label: `${cat.icon} ${cat.name}`
   }))
-
-  const stats = getCompletionStats()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4 md:p-6 lg:p-8">
@@ -287,7 +214,7 @@ const PackingChecklist = forwardRef<PackingChecklistRef, PackingChecklistProps>(
         {/* Packing Lists by Category */}
         <div className="space-y-6">
           <AnimatePresence>
-            {categories.map((category, index) => {
+            {allCategories.map((category: PackingCategory, index: number) => {
               const categoryItems = getItemsByCategory(category.id)
               if (categoryItems.length === 0) return null
 

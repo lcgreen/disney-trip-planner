@@ -3,14 +3,15 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Settings } from 'lucide-react'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
+import { useReduxWidgets } from '@/hooks/useReduxWidgets'
 import { PluginRegistry } from '@/lib/pluginSystem'
 import { hasLevelAccess } from '@/lib/userManagement'
-import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { type WidgetConfig } from '@/types'
 import { CountdownWidget, TripPlannerWidget, BudgetWidget, PackingWidget, WidgetConfigManager as WidgetConfigManagerComponent } from '@/components/widgets'
 import { Button, Badge } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
+import { migrateWidgetData, ensureDemoDashboard } from '@/lib/widgetMigration'
 
 interface WidgetOption {
   type: string
@@ -22,53 +23,29 @@ interface WidgetOption {
 }
 
 export default function DashboardPage() {
-  const { userLevel, hasFeatureAccess } = useUser()
-  const [widgets, setWidgets] = useState<WidgetConfig[]>([])
+  const { userLevel, hasFeatureAccess } = useReduxUser()
+  const {
+    widgets,
+    orderedWidgets,
+    isLoading,
+    error,
+    addWidget: addWidgetAction,
+    removeWidget: removeWidgetAction,
+    reorderWidgets: reorderWidgetsAction,
+    updateWidget: updateWidgetAction
+  } = useReduxWidgets()
   const [showAddWidget, setShowAddWidget] = useState(false)
   const [showConfigManager, setShowConfigManager] = useState(false)
 
-  // Load widgets on mount and when user level changes
+  // Initialize widget data on mount
   useEffect(() => {
-    // Check if we're in test mode (process.env.NODE_ENV === 'test')
-    const isTestMode = process.env.NODE_ENV === 'test'
+    migrateWidgetData()
+    ensureDemoDashboard()
+  }, [])
 
-    if (userLevel === 'anon' && !isTestMode) {
-      // Load demo dashboard for anonymous users (but not in test mode)
-      setWidgets(demoDashboard.widgets as WidgetConfig[])
-    } else {
-      // Load saved configurations for authenticated users or test mode
-      const configs = WidgetConfigManager.getConfigs()
-      setWidgets(configs)
-    }
-  }, [userLevel])
-
-  // Refresh widgets when the page becomes visible or when storage changes
+  // Update demo dashboard when user level changes
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && userLevel !== 'anon') {
-        // Reload widget configurations when page becomes visible
-        const configs = WidgetConfigManager.getConfigs()
-        setWidgets(configs)
-      }
-    }
-
-    const handleStorageChange = (e: StorageEvent) => {
-      // Refresh when widget configs or countdown data changes
-      if (e.key === 'disney-widget-configs' || e.key === 'disney-countdowns' || e.key === 'disney-auto-save-data') {
-        if (userLevel !== 'anon') {
-          const configs = WidgetConfigManager.getConfigs()
-          setWidgets(configs)
-        }
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('storage', handleStorageChange)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('storage', handleStorageChange)
-    }
+    ensureDemoDashboard()
   }, [userLevel])
 
   const addWidget = (type: string) => {
@@ -85,9 +62,7 @@ export default function DashboardPage() {
       settings: {}
     }
 
-    WidgetConfigManager.addConfigSync(newWidget)
-    const updatedWidgets = WidgetConfigManager.getConfigs()
-    setWidgets(updatedWidgets)
+    addWidgetAction(newWidget)
     setShowAddWidget(false)
   }
 
@@ -95,40 +70,32 @@ export default function DashboardPage() {
     // Only allow authenticated users to remove widgets
     if (userLevel === 'anon') return
 
-    WidgetConfigManager.removeConfigSync(widgetId)
-    const updatedWidgets = WidgetConfigManager.getConfigs()
-    setWidgets(updatedWidgets)
+    removeWidgetAction(widgetId)
   }
 
   const reorderWidgets = (fromIndex: number, toIndex: number) => {
     // Only allow authenticated users to reorder widgets
     if (userLevel === 'anon') return
 
-    const newOrder = [...widgets.map(w => w.id)]
+    const newOrder = [...orderedWidgets.map(w => w.id)]
     const [movedItem] = newOrder.splice(fromIndex, 1)
     newOrder.splice(toIndex, 0, movedItem)
 
-    WidgetConfigManager.reorderWidgetsSync(newOrder)
-    const updatedWidgets = WidgetConfigManager.getConfigs()
-    setWidgets(updatedWidgets)
+    reorderWidgetsAction(newOrder)
   }
 
   const handleWidthChange = (widgetId: string, newWidth: string) => {
     // Only allow authenticated users to change widget width
     if (userLevel === 'anon') return
 
-    WidgetConfigManager.updateConfigSync(widgetId, { width: newWidth })
-    const updatedWidgets = WidgetConfigManager.getConfigs()
-    setWidgets(updatedWidgets)
+    updateWidgetAction(widgetId, { width: newWidth })
   }
 
   const handleItemSelect = (widgetId: string, itemId: string | null) => {
     // Only allow authenticated users to select items
     if (userLevel === 'anon') return
 
-    WidgetConfigManager.updateConfigSync(widgetId, { selectedItemId: itemId || undefined })
-    const updatedWidgets = WidgetConfigManager.getConfigs()
-    setWidgets(updatedWidgets)
+    updateWidgetAction(widgetId, { selectedItemId: itemId || undefined })
   }
 
   const getWidgetOptions = (hasFeatureAccess: (feature: string) => boolean, userLevel: string) => {
@@ -198,37 +165,51 @@ export default function DashboardPage() {
               <Badge
                 variant={userLevel === 'premium' ? 'success' : userLevel === 'standard' ? 'info' : 'warning'}
                 size="lg"
-                data-testid="user-level-badge"
               >
-                {userLevel === 'premium' ? 'Premium User' : userLevel === 'standard' ? 'Standard User' : 'Anonymous User'}
+                {userLevel === 'premium' ? 'Premium' : userLevel === 'standard' ? 'Standard' : 'Anonymous'}
               </Badge>
-              {userLevel === 'anon' && (
-                <Badge variant="warning" size="lg" data-testid="demo-mode-badge">
-                  Demo Mode
-                </Badge>
-              )}
             </div>
 
-            {/* Widget Configuration Button - Only show for authenticated users */}
-            {userLevel !== 'anon' && (
+            {/* Action Buttons */}
+            <div className="flex space-x-2">
               <Button
-                onClick={() => setShowConfigManager(true)}
-                variant="secondary"
-                size="sm"
-                className="flex items-center space-x-2"
-                data-testid="configure-widgets-button"
+                onClick={() => setShowAddWidget(true)}
+                disabled={userLevel === 'anon'}
+                data-testid="add-widget-button"
               >
-                <Settings className="w-4 h-4" />
-                Configure Widgets
+                Add Widget
               </Button>
-            )}
+              <Button
+                variant="outline"
+                onClick={() => setShowConfigManager(true)}
+                disabled={userLevel === 'anon'}
+                data-testid="manage-widgets-button"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Manage Widgets
+              </Button>
+            </div>
           </div>
 
+          {/* Loading State */}
+          {isLoading && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading widgets...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-8">
+              <p className="text-red-600">Error loading widgets: {error}</p>
+            </div>
+          )}
+
           {/* Widgets Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="widgets-grid">
-            {widgets
-              .filter(widget => !widget.settings?.hidden) // Hide widgets marked as hidden
-              .map((widget, index) => {
+          {!isLoading && !error && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" data-testid="widgets-grid">
+              {orderedWidgets.map((widget, index) => {
                 const WidgetComponent = getWidgetComponent(widget.type)
                 if (!WidgetComponent) return null
 
@@ -237,48 +218,52 @@ export default function DashboardPage() {
                     key={widget.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative"
-                    data-testid={`widget-${widget.type}-${widget.id}`}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className={`col-span-1 ${widget.width === 'wide' ? 'md:col-span-2' : widget.width === 'tall' ? 'row-span-2' : ''}`}
+                    data-testid={`widget-${widget.id}`}
                   >
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                      <WidgetComponent
-                        id={widget.id}
-                        width={widget.width}
-                        onRemove={() => removeWidget(widget.id)}
-                        onSettings={() => {}}
-                        onWidthChange={(newWidth) => handleWidthChange(widget.id, newWidth)}
-                        onItemSelect={(itemId) => handleItemSelect(widget.id, itemId)}
-                        isDemoMode={userLevel === 'anon' && process.env.NODE_ENV !== 'test'}
-                      />
-                    </div>
+                    <WidgetComponent
+                      id={widget.id}
+                      width={widget.width}
+                      onRemove={() => removeWidget(widget.id)}
+                      onSettings={() => setShowConfigManager(true)}
+                      onWidthChange={(newWidth) => handleWidthChange(widget.id, newWidth)}
+                      onItemSelect={(itemId) => handleItemSelect(widget.id, itemId)}
+                      isDemoMode={userLevel === 'anon'}
+                    />
                   </motion.div>
                 )
               })}
+            </div>
+          )}
 
-            {/* Add Widget Button - Only show for authenticated users */}
-            {userLevel !== 'anon' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: widgets.length * 0.1 }}
-                className="relative"
-                data-testid="add-widget-button-container"
-              >
-                <button
+          {/* Empty State */}
+          {!isLoading && !error && orderedWidgets.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-12"
+              data-testid="empty-state"
+            >
+              <div className="max-w-md mx-auto">
+                <div className="text-6xl mb-4">🎢</div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">No widgets yet!</h3>
+                <p className="text-gray-600 mb-6">
+                  {userLevel === 'anon'
+                    ? "Add some widgets to start planning your magical Disney adventure!"
+                    : "Add some widgets to start planning your magical Disney adventure! Your widgets will be saved automatically."
+                  }
+                </p>
+                <Button
                   onClick={() => setShowAddWidget(true)}
-                  className="w-full h-64 border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex flex-col items-center justify-center text-gray-500 hover:text-gray-700"
-                  data-testid="add-widget-button"
+                  disabled={userLevel === 'anon'}
+                  data-testid="add-first-widget-button"
                 >
-                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-2xl">+</span>
-                  </div>
-                  <span className="font-medium">Add Widget</span>
-                  <span className="text-sm mt-1">Customize your dashboard</span>
-                </button>
-              </motion.div>
-            )}
-          </div>
+                  Add Your First Widget
+                </Button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Add Widget Modal */}
           {showAddWidget && (
@@ -332,14 +317,19 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Widget Configuration Manager */}
-          <WidgetConfigManagerComponent
-            isOpen={showConfigManager}
-            onClose={() => setShowConfigManager(false)}
-            onConfigsChange={setWidgets}
-            currentConfigs={widgets}
-            userLevel={userLevel}
-          />
+          {/* Config Manager Modal */}
+          {showConfigManager && (
+            <WidgetConfigManagerComponent
+              isOpen={showConfigManager}
+              onClose={() => setShowConfigManager(false)}
+              onConfigsChange={(configs) => {
+                // This will be handled by Redux automatically
+                console.log('Configs changed:', configs)
+              }}
+              currentConfigs={orderedWidgets}
+              userLevel={userLevel}
+            />
+          )}
         </motion.div>
       </div>
     </div>

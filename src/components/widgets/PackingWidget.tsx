@@ -5,7 +5,7 @@ import { Luggage, CheckCircle, Circle, Package, Crown } from 'lucide-react'
 import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import { PreviewOverlay } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
@@ -51,7 +51,7 @@ export default function PackingWidget({
   onItemSelect,
   isDemoMode = false
 }: PackingWidgetProps) {
-  const { isPremium: userIsPremium } = useUser()
+  const { isPremium: userIsPremium } = useReduxUser()
   const [selectedPackingList, setSelectedPackingList] = useState<any>(null)
   const [packedItems, setPackedItems] = useState<PackingItem[]>([])
   const [unpackedItems, setUnpackedItems] = useState<PackingItem[]>([])

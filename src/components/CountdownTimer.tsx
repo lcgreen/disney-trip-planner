@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Code, Copy } from 'lucide-react'
 import {
@@ -8,14 +8,13 @@ import {
   SavedItemsPanel,
   SettingsPanel,
   SettingToggle,
-  Select,
-  AutoSaveIndicator
+  Select
 } from '@/components/ui'
 import { getAllThemes } from '@/config'
-import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { CountdownData } from '@/types'
-import { useCountdownState } from '@/hooks/useCountdownState'
-import { useCountdownAutoSave } from '@/hooks/useCountdownAutoSave'
+import { useReduxCountdown } from '@/hooks/useReduxCountdown'
+import { useReduxUser } from '@/hooks/useReduxUser'
+import { useReduxWidgets } from '@/hooks/useReduxWidgets'
 import { useEditableName } from '@/hooks/useEditableName'
 import {
   CountdownHeader,
@@ -59,25 +58,32 @@ export default function CountdownTimer({
   const [showEmbed, setShowEmbed] = useState(false)
   const [showSaved, setShowSaved] = useState(false)
 
-  // Custom hooks
+  // Redux hooks
   const {
-    targetDate,
-    setTargetDate,
-    selectedPark,
-    setSelectedPark,
-    countdown,
-    milliseconds,
-    isActive,
-    settings,
-    setSettings,
-    customTheme,
-    setCustomTheme,
-    audioRef,
-    handleStartCountdown,
+    countdownData,
+    isLoading,
+    error,
+    updateCountdown,
+    createCountdown,
+    deleteCountdown,
     loadCountdown,
-    disneyParks
-  } = useCountdownState(isEditMode, createdItemId, activeCountdown)
+    clearAllCountdowns,
+    setTargetDate,
+    setSelectedPark,
+    setSettings,
+    setCustomTheme,
+    startCountdown,
+    stopCountdown,
+    resetCountdown
+  } = useReduxCountdown()
 
+  const { user, hasFeatureAccess } = useReduxUser()
+  const { checkAndApplyPendingLinks } = useReduxWidgets()
+
+  // Audio ref for completion sound
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Custom hooks
   const {
     isEditingName,
     editedName,
@@ -87,41 +93,25 @@ export default function CountdownTimer({
     handleNameKeyDown
   } = useEditableName({ name, onNameChange })
 
-  const {
-    forceSave,
-    isSaving,
-    lastSaved,
-    error
-  } = useCountdownAutoSave({
-    widgetId,
-    isEditMode,
-    targetDate,
-    createdItemId,
-    activeCountdown,
-    editedName,
-    name,
-    selectedPark,
-    settings,
-    customTheme
-  })
+  // Load initial data
+  useEffect(() => {
+    if (isEditMode && activeCountdown) {
+      loadCountdown(activeCountdown)
+    }
+  }, [isEditMode, activeCountdown, loadCountdown])
+
+  // Load created item in edit mode
+  useEffect(() => {
+    if (isEditMode && createdItemId && activeCountdown) {
+      loadCountdown(activeCountdown)
+    }
+  }, [isEditMode, createdItemId, activeCountdown, loadCountdown])
 
   // Configuration data
   const customThemes = getAllThemes()
 
-  // Auto-save current state for widgets (only when editing or when we have a valid countdown)
-  useEffect(() => {
-    if (targetDate && (isEditMode || createdItemId)) {
-      // Convert the datetime-local format to a proper ISO string
-      const date = new Date(targetDate)
-      if (!isNaN(date.getTime())) {
-        const isoString = date.toISOString()
-        // State is now managed by PluginPageWrapper
-      }
-    }
-  }, [targetDate, selectedPark, isEditMode, createdItemId])
-
   const getEmbedCode = (): string => {
-    const embedUrl = `${window.location.origin}/embed/countdown?park=${selectedPark?.id || 'disney-world'}&date=${encodeURIComponent(targetDate)}&theme=${customTheme?.id || 'classic'}&settings=${encodeURIComponent(JSON.stringify(settings))}`
+    const embedUrl = `${window.location.origin}/embed/countdown?park=${countdownData.selectedPark?.id || 'disney-world'}&date=${encodeURIComponent(countdownData.targetDate)}&theme=${countdownData.customTheme?.id || 'classic'}&settings=${encodeURIComponent(JSON.stringify(countdownData.settings))}`
     return `<iframe src="${embedUrl}" width="800" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"></iframe>`
   }
 
@@ -133,72 +123,51 @@ export default function CountdownTimer({
       const updatedCountdown: CountdownData = {
         id: createdItemId,
         name: name.trim(),
-        park: selectedPark,
-        tripDate: targetDate,
-        settings,
-        theme: customTheme || undefined,
+        park: countdownData.selectedPark,
+        tripDate: countdownData.targetDate,
+        settings: countdownData.settings,
+        theme: countdownData.customTheme || undefined,
         createdAt: savedCountdowns?.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
 
+      updateCountdown(createdItemId, updatedCountdown)
       onSave?.(updatedCountdown)
-
-      // Also update widget config manager data
-      const date = new Date(targetDate)
-      if (!isNaN(date.getTime())) {
-        const isoString = date.toISOString()
-        // State is now managed by PluginPageWrapper
-      }
     } else {
       // Creating a new countdown
       const newCountdown: CountdownData = {
         id: Date.now().toString(),
         name: name.trim(),
-        park: selectedPark,
-        tripDate: targetDate,
-        settings,
-        theme: customTheme || undefined,
+        park: countdownData.selectedPark,
+        tripDate: countdownData.targetDate,
+        settings: countdownData.settings,
+        theme: countdownData.customTheme || undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
 
+      createCountdown(name.trim())
       onNew?.()
 
       // Check for pending widget links and auto-link if needed
-      WidgetConfigManager.checkAndApplyPendingLinks(newCountdown.id, 'countdown')
-
-      // Also update widget config manager data
-      const date = new Date(targetDate)
-      if (!isNaN(date.getTime())) {
-        const isoString = date.toISOString()
-        // State is now managed by PluginPageWrapper
-      }
+      checkAndApplyPendingLinks(newCountdown.id, 'countdown')
     }
   }
 
-  const deleteCountdown = (id: string): void => {
-    // Clean up widget configurations that reference this deleted item
-    WidgetConfigManager.cleanupDeletedItemReferences(id, 'countdown')
+  const handleDeleteCountdown = (id: string): void => {
+    deleteCountdown(id)
+    // Note: Widget cleanup is handled automatically by the Redux store
   }
 
-  const clearSavedCountdowns = (): void => {
+  const handleClearSavedCountdowns = (): void => {
     // Check if user has save permissions before clearing
-    try {
-      const { userManager } = require('@/lib/userManagement')
-      if (!userManager.hasFeatureAccess('saveData')) {
-        console.warn('Clear blocked: User does not have save permissions')
-        return
-      }
-    } catch (error) {
-      console.warn('Could not check user permissions for clear operation')
+    if (!hasFeatureAccess('saveData')) {
+      console.warn('Clear blocked: User does not have save permissions')
+      return
     }
 
-    // Clean up widget configurations for all countdown items before clearing
-    savedCountdowns?.forEach(countdown => {
-      WidgetConfigManager.cleanupDeletedItemReferences(countdown.id, 'countdown')
-    })
-
-    localStorage.setItem('disney-countdowns', JSON.stringify({ countdowns: [] }))
+    // Note: Widget cleanup is handled automatically by the Redux store
+    clearAllCountdowns()
   }
 
   const handleLoadCountdown = (saved: CountdownData): void => {
@@ -206,6 +175,19 @@ export default function CountdownTimer({
     setShowSaved(false)
     onLoad?.(saved)
   }
+
+  const handleStartCountdown = (): void => {
+    if (countdownData.targetDate) {
+      startCountdown()
+    }
+  }
+
+  // Play completion sound when countdown reaches zero
+  useEffect(() => {
+    if (countdownData.isActive && countdownData.countdown.total <= 0 && countdownData.settings.playSound && audioRef.current) {
+      audioRef.current.play().catch(console.error)
+    }
+  }, [countdownData.isActive, countdownData.countdown.total, countdownData.settings.playSound])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -227,10 +209,10 @@ export default function CountdownTimer({
           onNameKeyDown={handleNameKeyDown}
           widgetId={widgetId}
           isEditMode={isEditMode}
-          isSaving={isSaving}
-          lastSaved={lastSaved}
+          isSaving={false} // Redux handles this automatically
+          lastSaved={null} // Redux handles this automatically
           error={error}
-          forceSave={forceSave}
+          forceSave={saveCountdown}
         />
 
         {/* Control Panel */}
@@ -257,7 +239,7 @@ export default function CountdownTimer({
                   title="Saved Countdowns"
                   count={savedCountdowns.length}
                   defaultExpanded={true}
-                  onClearAll={clearSavedCountdowns}
+                  onClearAll={handleClearSavedCountdowns}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {savedCountdowns.map((saved) => (
@@ -270,7 +252,7 @@ export default function CountdownTimer({
                         <div className="flex justify-between items-start mb-3">
                           <h4 className="font-semibold text-gray-800 truncate">{saved.name}</h4>
                           <button
-                            onClick={() => deleteCountdown(saved.id)}
+                            onClick={() => handleDeleteCountdown(saved.id)}
                             className="text-red-400 hover:text-red-600 transition-colors"
                           >
                             ×
@@ -324,7 +306,7 @@ export default function CountdownTimer({
                             key={theme.id}
                             onClick={() => setCustomTheme(theme)}
                             className={`w-full p-4 rounded-xl text-left transition-all duration-300 ${
-                              customTheme?.id === theme.id
+                              countdownData.customTheme?.id === theme.id
                                 ? 'ring-2 ring-disney-blue shadow-lg'
                                 : 'hover:shadow-md'
                             }`}
@@ -346,38 +328,38 @@ export default function CountdownTimer({
                       <div className="space-y-4">
                         <SettingToggle
                           setting="Show milliseconds"
-                          checked={settings.showMilliseconds}
-                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showMilliseconds: checked }))}
+                          checked={countdownData.settings.showMilliseconds}
+                          onChange={(checked: boolean) => setSettings({ ...countdownData.settings, showMilliseconds: checked })}
                           data-testid="setting-show-milliseconds"
                         />
                         <SettingToggle
                           setting="Show timezone"
-                          checked={settings.showTimezone}
-                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTimezone: checked }))}
+                          checked={countdownData.settings.showTimezone}
+                          onChange={(checked: boolean) => setSettings({ ...countdownData.settings, showTimezone: checked })}
                           data-testid="setting-show-timezone"
                         />
                         <SettingToggle
                           setting="Show planning tips"
-                          checked={settings.showTips}
-                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showTips: checked }))}
+                          checked={countdownData.settings.showTips}
+                          onChange={(checked: boolean) => setSettings({ ...countdownData.settings, showTips: checked })}
                           data-testid="setting-show-tips"
                         />
                         <SettingToggle
                           setting="Show attractions"
-                          checked={settings.showAttractions}
-                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, showAttractions: checked }))}
+                          checked={countdownData.settings.showAttractions}
+                          onChange={(checked: boolean) => setSettings({ ...countdownData.settings, showAttractions: checked })}
                           data-testid="setting-show-attractions"
                         />
                         <SettingToggle
                           setting="Play completion sound"
-                          checked={settings.playSound}
-                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, playSound: checked }))}
+                          checked={countdownData.settings.playSound}
+                          onChange={(checked: boolean) => setSettings({ ...countdownData.settings, playSound: checked })}
                           data-testid="setting-play-sound"
                         />
                         <SettingToggle
                           setting="Auto refresh"
-                          checked={settings.autoRefresh}
-                          onChange={(checked: boolean) => setSettings(prev => ({ ...prev, autoRefresh: checked }))}
+                          checked={countdownData.settings.autoRefresh}
+                          onChange={(checked: boolean) => setSettings({ ...countdownData.settings, autoRefresh: checked })}
                           data-testid="setting-auto-refresh"
                         />
                       </div>
@@ -390,9 +372,9 @@ export default function CountdownTimer({
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Digit Style</label>
                           <Select
-                            defaultValue={settings.digitStyle}
-                            value={settings.digitStyle}
-                            onValueChange={(value: string) => setSettings(prev => ({ ...prev, digitStyle: value as any }))}
+                            defaultValue={countdownData.settings.digitStyle}
+                            value={countdownData.settings.digitStyle}
+                            onValueChange={(value: string) => setSettings({ ...countdownData.settings, digitStyle: value as any })}
                             options={[
                               { value: 'modern', label: 'Modern' },
                               { value: 'classic', label: 'Classic' },
@@ -405,9 +387,9 @@ export default function CountdownTimer({
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Layout</label>
                           <Select
-                            defaultValue={settings.layout}
-                            value={settings.layout}
-                            onValueChange={(value: string) => setSettings(prev => ({ ...prev, layout: value as any }))}
+                            defaultValue={countdownData.settings.layout}
+                            value={countdownData.settings.layout}
+                            onValueChange={(value: string) => setSettings({ ...countdownData.settings, layout: value as any })}
                             options={[
                               { value: 'horizontal', label: 'Horizontal' },
                               { value: 'vertical', label: 'Vertical' },
@@ -420,9 +402,9 @@ export default function CountdownTimer({
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Font Size</label>
                           <Select
-                            defaultValue={settings.fontSize}
-                            value={settings.fontSize}
-                            onValueChange={(value: string) => setSettings(prev => ({ ...prev, fontSize: value as any }))}
+                            defaultValue={countdownData.settings.fontSize}
+                            value={countdownData.settings.fontSize}
+                            onValueChange={(value: string) => setSettings({ ...countdownData.settings, fontSize: value as any })}
                             options={[
                               { value: 'small', label: 'Small' },
                               { value: 'medium', label: 'Medium' },
@@ -435,9 +417,9 @@ export default function CountdownTimer({
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Background Effect</label>
                           <Select
-                            defaultValue={settings.backgroundEffect}
-                            value={settings.backgroundEffect}
-                            onValueChange={(value: string) => setSettings(prev => ({ ...prev, backgroundEffect: value as any }))}
+                            defaultValue={countdownData.settings.backgroundEffect}
+                            value={countdownData.settings.backgroundEffect}
+                            onValueChange={(value: string) => setSettings({ ...countdownData.settings, backgroundEffect: value as any })}
                             options={[
                               { value: 'none', label: 'None' },
                               { value: 'particles', label: 'Particles' },
@@ -508,43 +490,43 @@ export default function CountdownTimer({
         <div className="space-y-8">
           {/* Park Selection */}
           <ParkSelection
-            disneyParks={disneyParks}
-            selectedPark={selectedPark}
+            disneyParks={countdownData.disneyParks}
+            selectedPark={countdownData.selectedPark}
             onParkSelect={setSelectedPark}
-            settings={settings}
+            settings={countdownData.settings}
           />
 
           {/* Date Selection */}
           <DateSelection
-            targetDate={targetDate}
+            targetDate={countdownData.targetDate}
             onDateChange={setTargetDate}
             onStartCountdown={handleStartCountdown}
           />
 
           {/* Countdown Display */}
-          {targetDate && (
+          {countdownData.targetDate && (
             <CountdownDisplay
-              targetDate={targetDate}
-              selectedPark={selectedPark}
-              countdown={countdown}
-              milliseconds={milliseconds}
-              isActive={isActive}
-              settings={settings}
-              customTheme={customTheme}
+              targetDate={countdownData.targetDate}
+              selectedPark={countdownData.selectedPark}
+              countdown={countdownData.countdown}
+              milliseconds={countdownData.milliseconds}
+              isActive={countdownData.isActive}
+              settings={countdownData.settings}
+              customTheme={countdownData.customTheme}
             />
           )}
         </div>
 
         {/* Bottom Content with Improved Layout */}
-        {targetDate && (
+        {countdownData.targetDate && (
           <div className="space-y-8 mt-8">
             {/* Popular Attractions */}
-            {settings.showAttractions && (
-              <AttractionsSection selectedPark={selectedPark} />
+            {countdownData.settings.showAttractions && (
+              <AttractionsSection selectedPark={countdownData.selectedPark} />
             )}
 
             {/* Tips Section */}
-            {settings.showTips && (
+            {countdownData.settings.showTips && (
               <TipsSection />
             )}
           </div>

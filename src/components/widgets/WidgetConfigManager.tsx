@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Settings, X, Plus, Edit, Trash2, Eye, EyeOff, GripVertical, ArrowUp, ArrowDown } from 'lucide-react'
-import { WidgetConfigManager as ConfigManager } from '@/lib/widgetConfig'
+import { WidgetConfigManager as ConfigManager } from '@/lib/widgetMigration'
 import { type WidgetConfig } from '@/types'
 import { Button, Badge, Modal } from '@/components/ui'
 import { PluginRegistry } from '@/lib/pluginSystem'

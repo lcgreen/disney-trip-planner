@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Crown, Star, User, Lock, Check, X, Shield } from 'lucide-react'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import { UserLevel, FEATURES } from '@/lib/userManagement'
 import { FeatureGuard } from '@/components/ui'
 import UserProfile from '@/components/UserProfile'
 
 export default function TestUserLevelsPage() {
-  const { user, userLevel, availableFeatures, upgradeFeatures, hasFeatureAccess } = useUser()
+  const { user, userLevel, getAvailableFeatures, getUpgradeFeatures, hasFeatureAccess } = useReduxUser()
   const [selectedFeature, setSelectedFeature] = useState<string>('')
 
   const getLevelIcon = (level: UserLevel) => {
@@ -178,7 +178,7 @@ export default function TestUserLevelsPage() {
         >
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Your Available Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {availableFeatures.map((feature) => (
+            {getAvailableFeatures().map((feature) => (
               <div key={feature.feature} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
                 <Check className="w-5 h-5 text-green-500" />
                 <div>
@@ -193,7 +193,7 @@ export default function TestUserLevelsPage() {
         </motion.div>
 
         {/* Upgrade Features */}
-        {upgradeFeatures.length > 0 && (
+        {getUpgradeFeatures().length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -201,7 +201,7 @@ export default function TestUserLevelsPage() {
           >
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Upgrade to Unlock</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {upgradeFeatures.map((feature) => (
+              {getUpgradeFeatures().map((feature) => (
                 <div key={feature.feature} className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
                   <Lock className="w-5 h-5 text-orange-500" />
                   <div>

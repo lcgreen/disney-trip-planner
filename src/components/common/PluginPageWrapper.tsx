@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { LucideIcon } from 'lucide-react'
 import { PluginHeader, Modal, Badge } from '@/components/ui'
 import PreviewOverlay from '@/components/ui/PreviewOverlay'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import { UnifiedStorage } from '@/lib/unifiedStorage'
 import { PluginData } from '@/types'
 
@@ -54,7 +54,7 @@ export default function PluginPageWrapper<T extends PluginData>({
   saveModalTitle = `Save ${pluginId.charAt(0).toUpperCase() + pluginId.slice(1)}`,
   saveModalDescription = `Save your current ${pluginId} to access it later. Your data will be stored locally in your browser.`
 }: PluginPageWrapperProps<T>) {
-  const { hasFeatureAccess, userLevel, isPremium: userIsPremium } = useUser()
+  const { hasFeatureAccess, userLevel, isPremium: userIsPremium } = useReduxUser()
   const [savedItems, setSavedItems] = useState<T[]>([])
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showLoadModal, setShowLoadModal] = useState(false)

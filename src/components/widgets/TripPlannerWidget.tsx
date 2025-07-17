@@ -5,7 +5,7 @@ import { Calendar, MapPin, Clock, Crown } from 'lucide-react'
 import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import { PreviewOverlay } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
@@ -46,7 +46,7 @@ export default function TripPlannerWidget({
   onItemSelect,
   isDemoMode = false
 }: TripPlannerWidgetProps) {
-  const { isPremium: userIsPremium } = useUser()
+  const { isPremium: userIsPremium } = useReduxUser()
   const [selectedTripPlan, setSelectedTripPlan] = useState<any>(null)
   const [todaysActivities, setTodaysActivities] = useState<Activity[]>([])
 

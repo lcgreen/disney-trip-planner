@@ -6,13 +6,13 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import TripPlanner from '@/components/TripPlanner'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import PremiumRestriction from '@/components/PremiumRestriction'
 import plannerPlugin from '@/plugins/planner'
 
 function NewPlannerContent() {
   // All hooks must be called first, before any conditional logic
-  const { userLevel } = useUser()
+  const { userLevel } = useReduxUser()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)

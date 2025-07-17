@@ -6,12 +6,12 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import BudgetTracker from '@/components/BudgetTracker'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import PremiumRestriction from '@/components/PremiumRestriction'
 import budgetPlugin from '@/plugins/budget'
 
 function NewBudgetContent() {
-  const { userLevel } = useUser()
+  const { userLevel } = useReduxUser()
   const searchParams = useSearchParams()
   const router = useRouter()
   const widgetId = searchParams.get('widgetId')

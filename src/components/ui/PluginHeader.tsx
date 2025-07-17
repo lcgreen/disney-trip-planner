@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Save, FolderOpen, Plus, Crown } from 'lucide-react'
 import { Button, Badge, Modal } from '@/components/ui'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 
 interface PluginHeaderProps {
   title: string
@@ -43,7 +43,7 @@ export default function PluginHeader({
   saveModalTitle,
   saveModalDescription
 }: PluginHeaderProps) {
-  const { hasFeatureAccess } = useUser()
+  const { hasFeatureAccess } = useReduxUser()
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [nameToSave, setNameToSave] = useState('')
 

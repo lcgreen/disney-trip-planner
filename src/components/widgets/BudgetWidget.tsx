@@ -5,7 +5,7 @@ import { DollarSign, TrendingUp, TrendingDown, Wallet, Crown } from 'lucide-reac
 import WidgetBase from './WidgetBase'
 import { PluginRegistry, PluginStorage } from '@/lib/pluginSystem'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import { PreviewOverlay } from '@/components/ui'
 import demoDashboard from '@/config/demo-dashboard.json'
 import '@/plugins' // Import all plugins to register them
@@ -37,7 +37,7 @@ export default function BudgetWidget({
   onItemSelect,
   isDemoMode = false
 }: BudgetWidgetProps) {
-  const { isPremium: userIsPremium } = useUser()
+  const { isPremium: userIsPremium } = useReduxUser()
   const [selectedBudget, setSelectedBudget] = useState<any>(null)
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([])
 

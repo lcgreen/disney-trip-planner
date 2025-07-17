@@ -2,6 +2,7 @@ import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 import React from 'react'
 
+
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -122,3 +123,4 @@ globalThis.testUtils = {
     localStorageMock.clear.mockReset()
   },
 }
+

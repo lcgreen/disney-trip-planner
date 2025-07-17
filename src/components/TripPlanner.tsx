@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, Clock, MapPin, Plus, Star, Trash2, Edit, Save, FolderOpen, Download, Upload } from 'lucide-react'
 import {
@@ -26,8 +26,9 @@ import {
 import { WidgetConfigManager } from '@/lib/widgetConfig'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { AutoSaveService } from '@/lib/autoSaveService'
-import { useUser } from '@/hooks/useUser'
-import { PlannerData, PlannerDay, PlannerPlan } from '@/types'
+import { useReduxUser } from '@/hooks/useReduxUser'
+import { PlannerData } from '@/types'
+import { useReduxPlanner } from '@/hooks/useReduxPlanner'
 
 interface TripPlannerProps {
   createdItemId?: string | null
@@ -56,37 +57,49 @@ export default function TripPlanner({
   activePlan = null,
   setCanSave
 }: TripPlannerProps) {
-  const { userLevel, upgradeToPremium } = useUser()
-  const [days, setDays] = useState<PlannerDay[]>([])
-  const [currentName, setCurrentName] = useState(name)
-  const [showAddDay, setShowAddDay] = useState(false)
-  const [showAddPlan, setShowAddPlan] = useState(false)
-  const [editingPlan, setEditingPlan] = useState<PlannerPlan | null>(null)
-  const [newDay, setNewDay] = useState({
-    date: '',
-    park: 'magic-kingdom'
-  })
-  const [newPlan, setNewPlan] = useState({
-    time: '',
-    activity: '',
-    park: 'magic-kingdom'
-  })
-  const [selectedDayId, setSelectedDayId] = useState<string | null>(null)
-  const [formErrors, setFormErrors] = useState({ date: '', park: '' })
+  const { userLevel, upgradeToPremium } = useReduxUser()
+
+  // Get Redux planner state and actions
+  const {
+    days,
+    currentName,
+    showAddDay,
+    showAddPlan,
+    editingPlan,
+    newDay,
+    newPlan,
+    selectedDayId,
+    formErrors,
+    stats,
+    setCurrentName,
+    setShowAddDay,
+    setShowAddPlan,
+    setEditingPlan,
+    setNewDay,
+    setNewPlan,
+    setSelectedDayId,
+    setFormErrors,
+    addNewDay,
+    deleteDay,
+    addPlan,
+    updatePlan,
+    deletePlan,
+    loadPlannerData
+  } = useReduxPlanner()
 
   // Update currentName when name prop changes
   useEffect(() => {
     setCurrentName(name)
-  }, [name])
+  }, [name, setCurrentName])
 
   // Load initial data
   useEffect(() => {
     console.log('[TripPlanner] Loading from activePlan:', { isEditMode, activePlan })
     if (isEditMode && activePlan) {
       console.log('[TripPlanner] Setting days from activePlan:', activePlan.days)
-      setDays(activePlan.days)
+      loadPlannerData(activePlan)
     }
-  }, [isEditMode, activePlan])
+  }, [isEditMode, activePlan, loadPlannerData])
 
   // Load created item in edit mode
   useEffect(() => {
@@ -96,11 +109,11 @@ export default function TripPlanner({
       console.log('[TripPlanner] Found trip plan from WidgetConfigManager:', tripPlan)
       if (tripPlan) {
         console.log('[TripPlanner] Setting days from WidgetConfigManager:', tripPlan.days)
-        setDays(tripPlan.days)
+        loadPlannerData(tripPlan)
         onNameChange?.(tripPlan.name)
       }
     }
-  }, [isEditMode, createdItemId, onNameChange])
+  }, [isEditMode, createdItemId, onNameChange, loadPlannerData])
 
   // Update parent when data changes
   useEffect(() => {
@@ -166,91 +179,6 @@ export default function TripPlanner({
       currentName
     })
   }, [widgetId, isEditMode, activePlan, autoSaveData, days.length, currentName])
-
-  const addNewDay = () => {
-    // Clear previous errors
-    setFormErrors({ date: '', park: '' })
-
-    // Validation
-    if (!newDay.date) {
-      setFormErrors(prev => ({ ...prev, date: 'Date is required' }))
-      return
-    }
-
-    // Check if date already exists
-    const existingDay = days.find(day => day.date === newDay.date)
-    if (existingDay) {
-      setFormErrors(prev => ({ ...prev, date: 'A plan for this date already exists' }))
-      return
-    }
-
-    const day: PlannerDay = {
-      id: Date.now().toString(),
-      date: newDay.date,
-      plans: []
-    }
-
-    setDays([...days, day].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
-    setNewDay({ date: '', park: 'magic-kingdom' })
-    setShowAddDay(false)
-    setFormErrors({ date: '', park: '' })
-  }
-
-  const deleteDay = (dayId: string) => {
-    setDays(days.filter(day => day.id !== dayId))
-  }
-
-  const addPlan = () => {
-    if (!newPlan.time || !newPlan.activity || !selectedDayId) return
-
-    const plan: PlannerPlan = {
-      id: Date.now().toString(),
-      date: days.find(day => day.id === selectedDayId)?.date || '',
-      time: newPlan.time,
-      activity: newPlan.activity,
-      park: newPlan.park
-    }
-
-    setDays(days.map(day =>
-      day.id === selectedDayId
-        ? { ...day, plans: [...day.plans, plan].sort((a, b) => a.time.localeCompare(b.time)) }
-        : day
-    ))
-
-    setNewPlan({ time: '', activity: '', park: 'magic-kingdom' })
-    setShowAddPlan(false)
-    setSelectedDayId(null)
-  }
-
-  const updatePlan = (planId: string, updates: Partial<PlannerPlan>) => {
-    setDays(days.map(day => ({
-      ...day,
-      plans: day.plans.map(plan =>
-        plan.id === planId ? { ...plan, ...updates } : plan
-      )
-    })))
-  }
-
-  const deletePlan = (planId: string) => {
-    setDays(days.map(day => ({
-      ...day,
-      plans: day.plans.filter(plan => plan.id !== planId)
-    })))
-  }
-
-  const getTotalPlans = () => {
-    return days.reduce((total, day) => total + day.plans.length, 0)
-  }
-
-  const getPlansByPark = () => {
-    const plansByPark: Record<string, number> = {}
-    days.forEach(day => {
-      day.plans.forEach(plan => {
-        plansByPark[plan.park] = (plansByPark[plan.park] || 0) + 1
-      })
-    })
-    return plansByPark
-  }
 
   const parkOptions = getParkOptions()
   const activityTypeOptions = getActivityTypeOptions()
@@ -338,7 +266,7 @@ export default function TripPlanner({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Days</p>
-                <p className="text-2xl font-bold text-gray-800">{days.length}</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.totalDays}</p>
               </div>
               <Calendar className="w-8 h-8 text-blue-500" />
             </div>
@@ -348,7 +276,7 @@ export default function TripPlanner({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Plans</p>
-                <p className="text-2xl font-bold text-gray-800">{getTotalPlans()}</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.totalPlans}</p>
               </div>
               <Star className="w-8 h-8 text-yellow-500" />
             </div>
@@ -358,7 +286,7 @@ export default function TripPlanner({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Parks</p>
-                <p className="text-2xl font-bold text-gray-800">{Object.keys(getPlansByPark()).length}</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.parksCount}</p>
               </div>
               <MapPin className="w-8 h-8 text-green-500" />
             </div>

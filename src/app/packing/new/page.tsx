@@ -6,12 +6,12 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import PackingChecklist from '@/components/PackingChecklist'
 import { WidgetConfigManager } from '@/lib/widgetConfig'
-import { useUser } from '@/hooks/useUser'
+import { useReduxUser } from '@/hooks/useReduxUser'
 import { FeatureGuard } from '@/components/ui'
 import packingPlugin from '@/plugins/packing'
 
 function NewPackingContent() {
-  const { userLevel } = useUser()
+  const { userLevel } = useReduxUser()
   const searchParams = useSearchParams()
   const router = useRouter()
   const widgetId = searchParams.get('widgetId')

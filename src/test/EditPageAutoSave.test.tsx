@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { renderWithRedux } from './testUtils'
 import userEvent from '@testing-library/user-event'
 import { useSearchParams, useRouter } from 'next/navigation'
 import CountdownTimer from '@/components/CountdownTimer'
@@ -154,7 +155,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -179,7 +180,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       mockSearchParams.set('widgetId', 'test-widget-1')
       // Don't set editItemId to simulate new countdown creation
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId={null}
         widgetId="test-widget-1"
         isEditMode={false}
@@ -200,7 +201,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -229,7 +230,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       const user = userEvent.setup()
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -249,7 +250,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       const user = userEvent.setup()
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -276,7 +277,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
       vi.mocked(AutoSaveService.saveCountdownData).mockRejectedValue(new Error('Save failed'))
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -311,7 +312,7 @@ describe('Edit Page Auto-Save Functionality', () => {
         return Promise.resolve()
       })
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -343,7 +344,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       const user = userEvent.setup()
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -383,7 +384,7 @@ describe('Edit Page Auto-Save Functionality', () => {
 
       vi.mocked(AutoSaveService.saveCountdownData).mockRejectedValue(new Error('Save failed'))
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -431,7 +432,7 @@ describe('Edit Page Auto-Save Functionality', () => {
         return Promise.resolve()
       })
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -486,7 +487,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -515,7 +516,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -544,7 +545,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       const user = userEvent.setup()
       mockSearchParams.set('editItemId', 'test-countdown-1')
       mockSearchParams.set('widgetId', 'test-widget-1')
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
@@ -587,7 +588,7 @@ describe('Edit Page Auto-Save Functionality', () => {
       console.log('Mock data:', mockCountdownData)
       console.log('Mock function:', WidgetConfigManager.getSelectedItemData)
 
-      render(<CountdownTimer
+      renderWithRedux(<CountdownTimer
         createdItemId="test-countdown-1"
         widgetId="test-widget-1"
         isEditMode={true}
