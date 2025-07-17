@@ -1,30 +1,24 @@
 'use client'
 
-import { useState } from 'react'
 import { Clock } from 'lucide-react'
 import CountdownTimer from '@/components/CountdownTimer'
 import PluginPageWrapper from '@/components/common/PluginPageWrapper'
 import { CountdownData } from '@/types'
 
 export default function CountdownPage() {
-  const [currentName, setCurrentName] = useState<string>('')
-  const [canSave, setCanSave] = useState<boolean>(false)
-  const [activeCountdown, setActiveCountdown] = useState<CountdownData | null>(null)
-
   const handleSave = (data: Partial<CountdownData>) => {
     // This will be handled by PluginPageWrapper
     console.log('Save handled by PluginPageWrapper:', data)
   }
 
   const handleLoad = (countdown: CountdownData) => {
-    setActiveCountdown(countdown)
-    setCurrentName(countdown.name)
+    // The CountdownTimer component now handles this internally via Redux
+    console.log('Load handled by CountdownTimer:', countdown)
   }
 
   const handleNew = () => {
-    setCurrentName('')
-    setActiveCountdown(null)
-    setCanSave(false)
+    // The CountdownTimer component now handles this internally via Redux
+    console.log('New countdown handled by CountdownTimer')
   }
 
   return (
@@ -35,12 +29,9 @@ export default function CountdownPage() {
       gradient="bg-gradient-to-r from-disney-blue to-disney-purple"
       pluginId="countdown"
       isPremium={false}
-      currentName={currentName}
-      onNameChange={setCurrentName}
       onSave={handleSave}
       onLoad={handleLoad}
       onNew={handleNew}
-      setCanSave={setCanSave}
       placeholder="Name this countdown..."
       saveButtonText="Save Countdown"
       loadButtonText="Load Countdown"
@@ -48,15 +39,7 @@ export default function CountdownPage() {
       saveModalTitle="Save Countdown"
       saveModalDescription="Save your current countdown to access it later. Your countdown will be stored locally in your browser."
     >
-      <CountdownTimer
-        name={currentName}
-        onNameChange={setCurrentName}
-        onSave={handleSave}
-        onLoad={handleLoad}
-        onNew={handleNew}
-        activeCountdown={activeCountdown}
-        setCanSave={setCanSave}
-      />
+      <CountdownTimer />
     </PluginPageWrapper>
   )
 }

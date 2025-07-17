@@ -59,18 +59,22 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
   activeCountdown = null,
   setCanSave
 }, ref) => {
-  // UI state
+  // UI state - keep these local as they're UI-specific
   const [showSettings, setShowSettings] = useState(false)
   const [showEmbed, setShowEmbed] = useState(false)
   const [showSaved, setShowSaved] = useState(false)
 
-  // Redux hooks
+  // Redux hooks - use all available state and actions
   const {
-    countdownData,
+    countdowns, // Use Redux countdowns instead of props
+    currentCountdown,
     isLoading,
     error,
-    updateCountdown,
+    lastSaved,
+    isSaving,
+    countdownData,
     createCountdown,
+    updateCountdown,
     deleteCountdown,
     loadCountdown,
     clearAllCountdowns,
@@ -80,7 +84,8 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
     setCustomTheme,
     startCountdown,
     stopCountdown,
-    resetCountdown
+    resetCountdown,
+    setCurrentCountdown
   } = useReduxCountdown()
 
   const { user, hasFeatureAccess } = useReduxUser()
@@ -88,6 +93,9 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
 
   // Audio ref for completion sound
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Use Redux currentCountdown name if no name prop is provided
+  const displayName = name || currentCountdown?.name || ''
 
   // Custom hooks
   const {
@@ -97,7 +105,7 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
     handleNameChange,
     handleNameBlur,
     handleNameKeyDown
-  } = useEditableName({ name, onNameChange })
+  } = useEditableName({ name: displayName, onNameChange })
 
   // Load initial data
   useEffect(() => {
@@ -105,8 +113,9 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
     if (isEditMode && activeCountdown) {
       console.log('[CountdownTimer] Loading countdown data:', activeCountdown)
       loadCountdown(activeCountdown)
+      setCurrentCountdown(activeCountdown)
     }
-  }, [isEditMode, activeCountdown, loadCountdown])
+  }, [isEditMode, activeCountdown, loadCountdown, setCurrentCountdown])
 
   // Set default date on client side to avoid hydration mismatch
   useEffect(() => {
@@ -116,18 +125,11 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
     }
   }, [countdownData.targetDate, setTargetDate])
 
-  // Load created item in edit mode
-  useEffect(() => {
-    if (isEditMode && createdItemId && activeCountdown) {
-      loadCountdown(activeCountdown)
-    }
-  }, [isEditMode, createdItemId, activeCountdown, loadCountdown])
-
-  // Update parent when data changes (similar to PackingChecklist)
+  // Update parent when data changes
   useEffect(() => {
     if (onSave) {
       onSave({
-        name: name.trim(),
+        name: displayName.trim(),
         park: countdownData.selectedPark,
         tripDate: countdownData.targetDate,
         settings: countdownData.settings,
@@ -135,8 +137,8 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
       })
     }
     const hasChanges = countdownData.targetDate || countdownData.selectedPark || Object.keys(countdownData.settings).length > 0
-    setCanSave?.(hasChanges && name.trim().length > 0)
-  }, [countdownData.targetDate, countdownData.selectedPark, countdownData.settings, countdownData.customTheme, name, onSave, setCanSave])
+    setCanSave?.(hasChanges && displayName.trim().length > 0)
+  }, [countdownData.targetDate, countdownData.selectedPark, countdownData.settings, countdownData.customTheme, displayName, onSave, setCanSave])
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
@@ -145,6 +147,7 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
     },
     loadCountdown: (countdown: CountdownData) => {
       loadCountdown(countdown)
+      setCurrentCountdown(countdown)
     }
   }))
 
@@ -156,63 +159,67 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
     return `<iframe src="${embedUrl}" width="800" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"></iframe>`
   }
 
-  const saveCountdown = (): void => {
-    if (!name.trim()) return
+  const saveCountdown = async (): Promise<void> => {
+    if (!displayName.trim()) return
 
-    // If we're editing an existing item, update it
-    if (isEditMode && createdItemId) {
-      const updatedCountdown: CountdownData = {
-        id: createdItemId,
-        name: name.trim(),
-        park: countdownData.selectedPark,
-        tripDate: countdownData.targetDate,
-        settings: countdownData.settings,
-        theme: countdownData.customTheme || undefined,
-        createdAt: savedCountdowns?.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+    try {
+      // If we're editing an existing item, update it
+      if (isEditMode && createdItemId) {
+        const updatedCountdown: CountdownData = {
+          id: createdItemId,
+          name: displayName.trim(),
+          park: countdownData.selectedPark,
+          tripDate: countdownData.targetDate,
+          settings: countdownData.settings,
+          theme: countdownData.customTheme || undefined,
+          createdAt: countdowns?.find(c => c.id === createdItemId)?.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+
+        await updateCountdown(createdItemId, updatedCountdown)
+        onSave?.(updatedCountdown)
+      } else {
+        // Creating a new countdown
+        const newCountdownId = await createCountdown(displayName.trim())
+        onNew?.()
+
+        // Check for pending widget links and auto-link if needed
+        if (newCountdownId) {
+          checkAndApplyPendingLinks(newCountdownId, 'countdown')
+        }
       }
-
-      updateCountdown(createdItemId, updatedCountdown)
-      onSave?.(updatedCountdown)
-    } else {
-      // Creating a new countdown
-      const newCountdown: CountdownData = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        park: countdownData.selectedPark,
-        tripDate: countdownData.targetDate,
-        settings: countdownData.settings,
-        theme: countdownData.customTheme || undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-
-      createCountdown(name.trim())
-      onNew?.()
-
-      // Check for pending widget links and auto-link if needed
-      checkAndApplyPendingLinks(newCountdown.id, 'countdown')
+    } catch (error) {
+      console.error('Failed to save countdown:', error)
     }
   }
 
-  const handleDeleteCountdown = (id: string): void => {
-    deleteCountdown(id)
-    // Note: Widget cleanup is handled automatically by the Redux store
+  const handleDeleteCountdown = async (id: string): Promise<void> => {
+    try {
+      await deleteCountdown(id)
+      // Note: Widget cleanup is handled automatically by the Redux store
+    } catch (error) {
+      console.error('Failed to delete countdown:', error)
+    }
   }
 
-  const handleClearSavedCountdowns = (): void => {
+  const handleClearSavedCountdowns = async (): Promise<void> => {
     // Check if user has save permissions before clearing
     if (!hasFeatureAccess('saveData')) {
       console.warn('Clear blocked: User does not have save permissions')
       return
     }
 
-    // Note: Widget cleanup is handled automatically by the Redux store
-    clearAllCountdowns()
+    try {
+      await clearAllCountdowns()
+      // Note: Widget cleanup is handled automatically by the Redux store
+    } catch (error) {
+      console.error('Failed to clear countdowns:', error)
+    }
   }
 
   const handleLoadCountdown = (saved: CountdownData): void => {
     loadCountdown(saved)
+    setCurrentCountdown(saved)
     setShowSaved(false)
     onLoad?.(saved)
   }
@@ -237,6 +244,9 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
     }
   }, [countdownData.isActive, countdownData.countdown.total, countdownData.settings.playSound])
 
+  // Use Redux countdowns instead of props
+  const displayCountdowns = savedCountdowns.length > 0 ? savedCountdowns : countdowns
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       {/* Audio element for completion sound */}
@@ -248,7 +258,7 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <CountdownHeader
-          name={name}
+          name={displayName}
           isEditingName={isEditingName}
           editedName={editedName}
           onNameEdit={handleNameEdit}
@@ -257,8 +267,8 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
           onNameKeyDown={handleNameKeyDown}
           widgetId={widgetId}
           isEditMode={isEditMode}
-          isSaving={false} // Redux handles this automatically
-          lastSaved={null} // Redux handles this automatically
+          isSaving={isSaving}
+          lastSaved={lastSaved}
           error={error}
           forceSave={saveCountdown}
         />
@@ -285,12 +295,12 @@ const CountdownTimer = forwardRef<CountdownTimerRef, CountdownTimerProps>(({
               >
                 <SavedItemsPanel
                   title="Saved Countdowns"
-                  count={savedCountdowns.length}
+                  count={displayCountdowns.length}
                   defaultExpanded={true}
                   onClearAll={handleClearSavedCountdowns}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {savedCountdowns.map((saved) => (
+                    {displayCountdowns.map((saved) => (
                       <motion.div
                         key={saved.id}
                         initial={{ opacity: 0, scale: 0.9 }}

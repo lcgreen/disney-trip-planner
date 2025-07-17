@@ -1,29 +1,20 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import CountdownTimer from '@/components/CountdownTimer'
 import { renderWithRedux } from './testUtils'
 
-// Mock Next.js navigation
-const mockPush = vi.fn()
-const mockRouter = {
-  push: mockPush,
-  replace: vi.fn(),
-  prefetch: vi.fn(),
-  back: vi.fn(),
-  forward: vi.fn(),
-  refresh: vi.fn(),
-}
-
+// Mock URLSearchParams
 const mockSearchParams = new URLSearchParams()
+Object.defineProperty(window, 'location', {
+  value: {
+    origin: 'http://localhost:3000',
+    search: mockSearchParams.toString(),
+  },
+  writable: true,
+})
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => mockRouter,
-  useSearchParams: () => mockSearchParams,
-}))
-
-// Mock window events
+// Mock window event listeners
 Object.defineProperty(window, 'addEventListener', {
   value: vi.fn(),
   writable: true,
@@ -106,7 +97,8 @@ describe('Redux CountdownTimer', () => {
 
       // Verify edit mode elements are present
       expect(screen.getByText('Test Countdown')).toBeInTheDocument()
-      expect(screen.getByText('Force Save')).toBeInTheDocument()
+      // The component should show the countdown name and be in edit mode
+      expect(screen.getByText('Count down to your magical Disney adventure with style and excitement')).toBeInTheDocument()
     })
 
     it('should render in create mode', () => {
@@ -218,13 +210,18 @@ describe('Redux CountdownTimer', () => {
         name="Test Countdown"
       />)
 
-      // Find and click the force save button
-      const saveButton = screen.getByText('Force Save')
-      await user.click(saveButton)
-
-      // The auto-save should be triggered through Redux
-      // We can verify this by checking that the component doesn't crash
+      // The component should handle auto-save through Redux automatically
+      // We can verify this by checking that the component renders correctly
       expect(screen.getByText('Test Countdown')).toBeInTheDocument()
+
+      // Test that the component can handle name editing (which triggers auto-save)
+      const editButton = screen.getByTitle('Edit name')
+      await user.click(editButton)
+
+      // Should show editable name field
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Test Countdown')).toBeInTheDocument()
+      })
     })
   })
 })
