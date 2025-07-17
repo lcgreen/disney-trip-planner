@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
   images: {
     domains: ['images.unsplash.com', 'cdn.pixabay.com'],
   },
@@ -15,6 +16,7 @@ const nextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
+
 }
 
 module.exports = nextConfig
