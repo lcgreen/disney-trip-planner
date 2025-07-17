@@ -8,7 +8,7 @@ import { UserLevel } from '@/lib/userManagement'
 import { Button, Modal, Badge, Card } from '@/components/ui'
 
 export default function UserProfile() {
-  const { user, isLoggedIn, isPremium, isStandard, userLevel, getUpgradeFeatures, logout, upgradeToStandard, upgradeToPremium, upgradeToAdmin } = useReduxUser()
+  const { user, isLoggedIn, isPremium, isStandard, userLevel, getUpgradeFeatures, logout, upgradeToStandard, upgradeToPremium, upgradeToAdmin, createAnonUser } = useReduxUser()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [email, setEmail] = useState('')
@@ -53,21 +53,59 @@ export default function UserProfile() {
     }
   }
 
-  const handleUpgradeToStandard = () => {
+  const handleUpgradeToStandard = async () => {
     if (!email.trim()) return
-    upgradeToStandard(email.trim(), name.trim() || undefined)
-    setShowLoginModal(false)
-    setEmail('')
-    setName('')
+
+    try {
+      // Ensure we have a user before attempting to upgrade
+      if (!user) {
+        console.log('[Debug] No user found, creating anonymous user first')
+        await createAnonUser()
+      }
+
+      // Now upgrade to standard
+      await upgradeToStandard(email.trim(), name.trim() || undefined)
+      setShowLoginModal(false)
+      setEmail('')
+      setName('')
+    } catch (error) {
+      console.error('Failed to upgrade to standard:', error)
+      // You could add a toast notification or error state here
+      // For now, we'll just log the error
+    }
   }
 
-  const handleUpgradeToPremium = () => {
-    upgradeToPremium()
-    setShowUpgradeModal(false)
+  const handleUpgradeToPremium = async () => {
+    try {
+      // Ensure we have a user before attempting to upgrade
+      if (!user) {
+        console.log('[Debug] No user found, creating anonymous user first')
+        await createAnonUser()
+      }
+
+      // Now upgrade to premium
+      await upgradeToPremium()
+      setShowUpgradeModal(false)
+    } catch (error) {
+      console.error('Failed to upgrade to premium:', error)
+      // You could add a toast notification or error state here
+    }
   }
 
-  const handleUpgradeToAdmin = () => {
-    upgradeToAdmin()
+  const handleUpgradeToAdmin = async () => {
+    try {
+      // Ensure we have a user before attempting to upgrade
+      if (!user) {
+        console.log('[Debug] No user found, creating anonymous user first')
+        await createAnonUser()
+      }
+
+      // Now upgrade to admin
+      await upgradeToAdmin()
+    } catch (error) {
+      console.error('Failed to upgrade to admin:', error)
+      // You could add a toast notification or error state here
+    }
   }
 
   return (

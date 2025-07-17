@@ -38,10 +38,20 @@ export const upgradeToStandard = createAsyncThunk(
       throw new Error('No user to upgrade')
     }
 
+    if (!email || !email.trim()) {
+      throw new Error('Email is required to upgrade to standard')
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format')
+    }
+
     const upgradedUser: User = {
       ...currentUser,
-      email,
-      name,
+      email: email.trim(),
+      name: name?.trim() || undefined,
       level: UserLevel.STANDARD,
       updatedAt: new Date().toISOString(),
       lastLoginAt: new Date().toISOString()
@@ -59,6 +69,16 @@ export const upgradeToPremium = createAsyncThunk(
 
     if (!currentUser) {
       throw new Error('No user to upgrade')
+    }
+
+    // Check if user is already premium or higher
+    if (currentUser.level === UserLevel.PREMIUM || currentUser.level === UserLevel.ADMIN) {
+      throw new Error('User is already premium or higher')
+    }
+
+    // Check if user has an email (required for premium)
+    if (!currentUser.email) {
+      throw new Error('Email is required to upgrade to premium')
     }
 
     const upgradedUser: User = {

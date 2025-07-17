@@ -22,7 +22,7 @@ export default function FeatureGuard({
   fallback,
   showUpgradePrompt = true
 }: FeatureGuardProps) {
-  const { userLevel, getUpgradeFeatures, upgradeToStandard, upgradeToPremium } = useReduxUser()
+  const { user, userLevel, getUpgradeFeatures, upgradeToStandard, upgradeToPremium, createAnonUser } = useReduxUser()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [email, setEmail] = useState('')
@@ -39,17 +39,40 @@ export default function FeatureGuard({
     hasAccess = true
   }
 
-  const handleUpgradeToStandard = () => {
+  const handleUpgradeToStandard = async () => {
     if (!email.trim()) return
-    upgradeToStandard(email.trim(), name.trim() || undefined)
-    setShowLoginModal(false)
-    setEmail('')
-    setName('')
+
+    try {
+      // Ensure we have a user before attempting to upgrade
+      if (!user) {
+        console.log('[Debug] No user found, creating anonymous user first')
+        await createAnonUser()
+      }
+
+      // Now upgrade to standard
+      await upgradeToStandard(email.trim(), name.trim() || undefined)
+      setShowLoginModal(false)
+      setEmail('')
+      setName('')
+    } catch (error) {
+      console.error('Failed to upgrade to standard:', error)
+    }
   }
 
-  const handleUpgradeToPremium = () => {
-    upgradeToPremium()
-    setShowUpgradeModal(false)
+  const handleUpgradeToPremium = async () => {
+    try {
+      // Ensure we have a user before attempting to upgrade
+      if (!user) {
+        console.log('[Debug] No user found, creating anonymous user first')
+        await createAnonUser()
+      }
+
+      // Now upgrade to premium
+      await upgradeToPremium()
+      setShowUpgradeModal(false)
+    } catch (error) {
+      console.error('Failed to upgrade to premium:', error)
+    }
   }
 
   // If user has access, render children

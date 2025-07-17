@@ -61,35 +61,79 @@ export function useReduxUser(): UseReduxUserReturn {
 
   // Actions
   const createAnonUserAction = useCallback(async (): Promise<User> => {
-    const result = await dispatch(createAnonUser())
-    if (createAnonUser.fulfilled.match(result)) {
-      return result.payload
+    try {
+      const result = await dispatch(createAnonUser())
+      if (createAnonUser.fulfilled.match(result)) {
+        return result.payload
+      }
+
+      // If we get here, the action was rejected
+      // Use a simple fallback error message
+      throw new Error('Failed to create anonymous user')
+    } catch (error) {
+      // Handle any other errors that might occur
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Failed to create anonymous user')
     }
-    throw new Error(result.error?.message || 'Failed to create anonymous user')
   }, [dispatch])
 
   const upgradeToStandardAction = useCallback(async (email: string, name?: string): Promise<User> => {
-    const result = await dispatch(upgradeToStandard({ email, name }))
-    if (upgradeToStandard.fulfilled.match(result)) {
-      return result.payload
+    try {
+      const result = await dispatch(upgradeToStandard({ email, name }))
+      if (upgradeToStandard.fulfilled.match(result)) {
+        return result.payload
+      }
+
+      // If we get here, the action was rejected
+      // Use a simple fallback error message
+      throw new Error('Failed to upgrade to standard')
+    } catch (error) {
+      // Handle any other errors that might occur
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Failed to upgrade to standard')
     }
-    throw new Error(result.error?.message || 'Failed to upgrade to standard')
   }, [dispatch])
 
   const upgradeToPremiumAction = useCallback(async (): Promise<User> => {
-    const result = await dispatch(upgradeToPremium())
-    if (upgradeToPremium.fulfilled.match(result)) {
-      return result.payload
+    try {
+      const result = await dispatch(upgradeToPremium())
+      if (upgradeToPremium.fulfilled.match(result)) {
+        return result.payload
+      }
+
+      // If we get here, the action was rejected
+      // Use a simple fallback error message
+      throw new Error('Failed to upgrade to premium')
+    } catch (error) {
+      // Handle any other errors that might occur
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Failed to upgrade to premium')
     }
-    throw new Error(result.error?.message || 'Failed to upgrade to premium')
   }, [dispatch])
 
   const upgradeToAdminAction = useCallback(async (): Promise<User> => {
-    const result = await dispatch(upgradeToAdmin())
-    if (upgradeToAdmin.fulfilled.match(result)) {
-      return result.payload
+    try {
+      const result = await dispatch(upgradeToAdmin())
+      if (upgradeToAdmin.fulfilled.match(result)) {
+        return result.payload
+      }
+
+      // If we get here, the action was rejected
+      // Use a simple fallback error message
+      throw new Error('Failed to upgrade to admin')
+    } catch (error) {
+      // Handle any other errors that might occur
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Failed to upgrade to admin')
     }
-    throw new Error(result.error?.message || 'Failed to upgrade to admin')
   }, [dispatch])
 
   const logout = useCallback(() => {
