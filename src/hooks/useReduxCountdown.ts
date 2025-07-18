@@ -98,7 +98,7 @@ export function useReduxCountdown(): UseReduxCountdownReturn {
   const lastSaved = useAppSelector((state) => state.countdown.lastSaved)
   const isSaving = useAppSelector((state) => state.countdown.isSaving)
 
-  // Real-time countdown state
+  // Real-time countdown state - memoized to prevent unnecessary re-renders
   const countdownData = useAppSelector((state) => ({
     targetDate: state.countdown.targetDate,
     selectedPark: state.countdown.selectedPark,
@@ -108,7 +108,19 @@ export function useReduxCountdown(): UseReduxCountdownReturn {
     countdown: state.countdown.countdown,
     milliseconds: state.countdown.milliseconds,
     disneyParks: state.countdown.disneyParks
-  }))
+  }), (prev, next) => {
+    // Custom equality function to prevent unnecessary re-renders
+    return (
+      prev.targetDate === next.targetDate &&
+      prev.selectedPark === next.selectedPark &&
+      prev.settings === next.settings &&
+      prev.customTheme === next.customTheme &&
+      prev.isActive === next.isActive &&
+      prev.countdown === next.countdown &&
+      prev.milliseconds === next.milliseconds &&
+      prev.disneyParks === next.disneyParks
+    )
+  })
 
   // Initialize parks data on client side to prevent hydration mismatch
   useEffect(() => {

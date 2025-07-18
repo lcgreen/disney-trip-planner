@@ -171,6 +171,12 @@ const countdownSlice = createSlice({
       const countdown = action.payload
       console.log('[Redux] Loading countdown:', countdown)
       console.log('[Redux] Park data:', countdown.park)
+
+      // Ensure parks are initialized
+      if (state.disneyParks.length === 0) {
+        state.disneyParks = getAllParksFlattened()
+      }
+
       console.log('[Redux] Available parks:', state.disneyParks.map(p => ({ id: p.id, name: p.name })))
 
       state.targetDate = countdown.tripDate

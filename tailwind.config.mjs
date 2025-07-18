@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+const tailwindConfig = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -39,6 +39,9 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Selected
+        'selected': '#001F5C',
+
         // Primary Disney Colors (6)
         'disney-blue': '#001F5C',
         'disney-purple': '#4C1D95',
@@ -117,10 +120,12 @@ export default {
         'gradient-disney-magic': 'linear-gradient(45deg, #003087, #663399, #FFD700)',
         'gradient-magic': 'linear-gradient(135deg, #4169E1, #9370DB)',
         'gradient-sunset': 'linear-gradient(135deg, #FF8C00, #FF69B4)',
-      }
+      },
     },
   },
   plugins: [
     require('@tailwindcss/forms'),
   ],
 }
+
+export default tailwindConfig;
