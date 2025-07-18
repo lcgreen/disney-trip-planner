@@ -5,11 +5,15 @@ import { Clock } from 'lucide-react'
 import CountdownTimer from '@/components/CountdownTimer'
 import PluginPageWrapper from '@/components/common/PluginPageWrapper'
 import { CountdownData } from '@/types'
+import { useReduxCountdown } from '@/hooks/useReduxCountdown'
 
 export default function CountdownPage() {
   const [currentName, setCurrentName] = useState('')
   const [canSave, setCanSave] = useState(false)
   const [activeCountdown, setActiveCountdown] = useState<CountdownData | null>(null)
+
+  // Get Redux actions
+  const { loadCountdown, setCurrentCountdown } = useReduxCountdown()
 
   const handleSave = (data: Partial<CountdownData>) => {
     // This will be handled by PluginPageWrapper
@@ -17,6 +21,11 @@ export default function CountdownPage() {
   }
 
   const handleLoad = (countdown: CountdownData) => {
+    // Load the countdown data into Redux store
+    loadCountdown(countdown)
+    setCurrentCountdown(countdown)
+
+    // Also update local state for the page wrapper
     setActiveCountdown(countdown)
     setCurrentName(countdown.name)
   }

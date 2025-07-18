@@ -5,11 +5,15 @@ import { Calendar } from 'lucide-react'
 import PluginPageWrapper from '@/components/common/PluginPageWrapper'
 import TripPlanner from '@/components/TripPlanner'
 import { PlannerData } from '@/types'
+import { useReduxPlanner } from '@/hooks/useReduxPlanner'
 
 export default function PlannerPage() {
   const [currentName, setCurrentName] = useState('')
   const [canSave, setCanSave] = useState(false)
   const [activePlan, setActivePlan] = useState<PlannerData | null>(null)
+
+  // Get Redux actions
+  const { loadPlannerData, setCurrentPlannerItem } = useReduxPlanner()
 
   const handleSave = (data: Partial<PlannerData>) => {
     // This will be handled by PluginPageWrapper
@@ -17,6 +21,11 @@ export default function PlannerPage() {
   }
 
   const handleLoad = (plan: PlannerData) => {
+    // Load the planner data into Redux store
+    loadPlannerData(plan)
+    setCurrentPlannerItem(plan)
+
+    // Also update local state for the page wrapper
     setActivePlan(plan)
     setCurrentName(plan.name)
   }

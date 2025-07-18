@@ -5,11 +5,15 @@ import { DollarSign } from 'lucide-react'
 import PluginPageWrapper from '@/components/common/PluginPageWrapper'
 import BudgetTracker from '@/components/BudgetTracker'
 import { BudgetData } from '@/types'
+import { useReduxBudget } from '@/hooks/useReduxBudget'
 
 export default function BudgetPage() {
   const [currentName, setCurrentName] = useState('')
   const [canSave, setCanSave] = useState(false)
   const [activeBudget, setActiveBudget] = useState<BudgetData | null>(null)
+
+    // Get Redux actions
+  const { loadBudget, setCurrentBudget } = useReduxBudget()
 
   const handleSave = (data: Partial<BudgetData>) => {
     // This will be handled by PluginPageWrapper
@@ -17,6 +21,11 @@ export default function BudgetPage() {
   }
 
   const handleLoad = (budget: BudgetData) => {
+    // Load the budget data into Redux store
+    loadBudget(budget)
+    setCurrentBudget(budget)
+
+    // Also update local state for the page wrapper
     setActiveBudget(budget)
     setCurrentName(budget.name)
   }

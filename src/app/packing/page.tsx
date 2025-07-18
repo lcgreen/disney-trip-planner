@@ -5,11 +5,15 @@ import { Package } from 'lucide-react'
 import PluginPageWrapper from '@/components/common/PluginPageWrapper'
 import PackingChecklist from '@/components/PackingChecklist'
 import { PackingData } from '@/types'
+import { useReduxPacking } from '@/hooks/useReduxPacking'
 
 export default function PackingPage() {
   const [currentName, setCurrentName] = useState('')
   const [canSave, setCanSave] = useState(false)
   const [activeList, setActiveList] = useState<PackingData | null>(null)
+
+  // Get Redux actions
+  const { loadPackingData, setCurrentPackingItem } = useReduxPacking()
 
   const handleSave = (data: Partial<PackingData>) => {
     // This will be handled by PluginPageWrapper
@@ -17,6 +21,11 @@ export default function PackingPage() {
   }
 
   const handleLoad = (list: PackingData) => {
+    // Load the packing data into Redux store
+    loadPackingData(list)
+    setCurrentPackingItem(list)
+
+    // Also update local state for the page wrapper
     setActiveList(list)
     setCurrentName(list.name)
   }
